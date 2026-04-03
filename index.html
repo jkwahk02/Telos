@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telos — Taejae University Advising</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f7f6f3; --surface:#fff; --surface2:#f2f1ed; --surface3:#eceae4;
+  --border:rgba(0,0,0,0.08); --border-em:rgba(0,0,0,0.14);
+  --text:#1a1916; --text2:#6b6960; --text3:#9e9c96;
+  --blue:#185FA5; --blue-l:#E6F1FB; --blue-m:#378ADD; --blue-b:#B5D4F4;
+  --amber:#854F0B; --amber-l:#FAEEDA; --amber-b:#EF9F27; --amber-d:#633806;
+  --green:#3B6D11; --green-l:#EAF3DE; --green-b:#C0DD97;
+  --red:#A32D2D; --red-l:#FCEBEB;
+  --gray-l:#F1EFE8; --gray-m:#5F5E5A;
+  --teal-l:#E1F5EE; --teal:#0F6E56;
+  --r:8px; --r-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:17px;min-height:100vh;}
+button,input,select,textarea{font-family:inherit;}
+
+/* NAV */
+.topnav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;height:52px;position:sticky;top:0;z-index:100;gap:0;}
+.nav-logo{font-size:17px;font-weight:600;color:var(--text);letter-spacing:-0.02em;margin-right:28px;white-space:nowrap;display:flex;align-items:center;gap:9px;}
+.nav-logo span{color:var(--blue);}
+.nav-tabs{display:flex;height:100%;}
+.nav-tab{font-size:17px;font-weight:400;color:var(--text2);padding:0 15px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;transition:color .15s;white-space:nowrap;}
+.nav-tab:hover{color:var(--text);}
+.nav-tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500;}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.nav-avatar{width:32px;height:32px;border-radius:50%;background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.nav-name{font-size:13px;color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.nav-user-btn{display:flex;align-items:center;gap:7px;cursor:pointer;padding:4px 6px;border-radius:var(--r);border:none;background:transparent;transition:background .12s;position:relative;}
+.nav-user-btn:hover{background:var(--surface2);}
+.nav-user-btn .caret{font-size:10px;color:var(--text3);}
+.nav-dropdown{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border-em);border-radius:var(--r-lg);min-width:170px;z-index:200;overflow:hidden;}
+.nav-dropdown.open{display:block;}
+.nav-dropdown-item{display:flex;align-items:center;gap:9px;padding:9px 14px;font-size:17px;color:var(--text);cursor:pointer;transition:background .1s;border:none;background:none;width:100%;text-align:left;font-family:inherit;}
+.nav-dropdown-item:hover{background:var(--surface2);}
+.nav-dropdown-item.danger{color:var(--red);}
+.nav-dropdown-item.danger:hover{background:var(--red-l);}
+.nav-dropdown-divider{height:1px;background:var(--border);margin:3px 0;}
+.nav-source{font-size:17px;color:var(--text3);display:flex;align-items:center;gap:5px;}
+.src-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+.src-dot.loading{background:var(--amber-b);animation:pulse 1s infinite;}
+.src-dot.error{background:var(--red);}
+.src-dot.authed{background:var(--green);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* MAIN */
+.main{padding:24px;max-width:1200px;margin:0 auto;width:100%;}
+.page{display:none;}
+.page.active{display:block;}
+
+/* LOADING SCREEN */
+.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 0;gap:16px;}
+.loading-spinner{width:32px;height:32px;border:2px solid var(--border-em);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:17px;color:var(--text2);}
+.error-banner{background:var(--red-l);border:1px solid var(--red);border-radius:var(--r-lg);padding:16px 20px;color:var(--red);font-size:17px;margin-bottom:16px;}
+.error-banner strong{display:block;margin-bottom:4px;font-weight:600;}
+
+/* OVERVIEW */
+.overview-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;}
+.stat-val{font-size:30px;font-weight:600;letter-spacing:-0.03em;line-height:1;margin-bottom:4px;}
+.stat-val.ok{color:var(--green);}
+.stat-val.warn{color:var(--amber);}
+.stat-val.bad{color:var(--red);}
+.stat-lbl{font-size:17px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.05em;}
+.overview-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.ov-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;}
+.ov-card-hd{padding:11px 16px;border-bottom:1px solid var(--border);font-size:17px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:space-between;}
+.ov-item{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);font-size:17px;}
+.ov-item:last-child{border-bottom:none;}
+.ov-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dot-red{background:var(--red);}
+.dot-amber{background:var(--amber-b);}
+.dot-green{background:var(--green);}
+.ov-name{font-weight:500;flex:1;}
+.ov-detail{color:var(--text2);}
+.go-link{font-size:17px;color:var(--blue);cursor:pointer;text-decoration:underline;white-space:nowrap;}
+
+/* FILTER BAR */
+.filter-bar{display:flex;gap:7px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+.fchip{font-size:17px;padding:4px 10px;border:1px solid var(--border-em);border-radius:20px;background:var(--surface);color:var(--text2);cursor:pointer;transition:all .12s;white-space:nowrap;}
+.fchip:hover{border-color:var(--blue-m);color:var(--blue);}
+.fchip.active{background:var(--blue-l);border-color:var(--blue-b);color:var(--blue);font-weight:500;}
+.fchip.warn.active{background:var(--amber-l);border-color:var(--amber-b);color:var(--amber);}
+.fsep{width:1px;height:16px;background:var(--border-em);margin:0 2px;}
+.flabel{font-size:17px;color:var(--text3);white-space:nowrap;}
+.fcount{font-size:17px;color:var(--text3);white-space:nowrap;}
+.search-box{padding:5px 12px;border:1px solid var(--border-em);border-radius:var(--r);background:var(--surface);color:var(--text);font-size:17px;min-width:200px;outline:none;margin-left:auto;}
+.search-box:focus{border-color:var(--blue-m);}
+
+/* TABLE */
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;}
+table{width:100%;border-collapse:collapse;font-size:17px;}
+thead th{font-size:17px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:9px 14px;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
+thead th:hover{color:var(--text);}
+thead th.sort-asc::after{content:' ↑';color:var(--blue);}
+thead th.sort-desc::after{content:' ↓';color:var(--blue);}
+tbody td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tbody tr{cursor:pointer;transition:background .1s;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:var(--surface2);}
+tbody tr.row-active td{background:var(--blue-l);}
+tbody tr.row-active td.td-fc{border-left:3px solid var(--blue-m);padding-left:11px;}
+tbody tr.xtr{cursor:default;}
+tbody tr.xtr:hover td{background:var(--surface);}
+tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
+
+/* BADGES */
+.bdg{display:inline-block;font-size:17px;font-weight:600;padding:2px 7px;border-radius:20px;white-space:nowrap;}
+.bdg-blue{background:var(--blue-l);color:var(--blue);}
+.bdg-gray{background:var(--gray-l);color:var(--gray-m);}
+.bdg-green{background:var(--green-l);color:var(--green);}
+.bdg-amber{background:var(--amber-l);color:var(--amber);}
+.bdg-red{background:var(--red-l);color:var(--red);}
+.bdg-teal{background:var(--teal-l);color:var(--teal);}
+
+/* EXPAND PANEL */
+.xwrap{overflow:hidden;max-height:0;transition:max-height .32s cubic-bezier(.4,0,.2,1);}
+.xwrap.open{max-height:2400px;}
+.action-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--surface2);border-bottom:1px solid var(--border);border-left:3px solid var(--blue-m);gap:16px;}
+.ab-items{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+.ab-item{display:flex;flex-direction:column;gap:1px;}
+.ab-lbl{font-size:17px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.05em;}
+.ab-val{font-size:17px;color:var(--text);font-weight:500;}
+.ab-btns{display:flex;gap:8px;align-items:center;flex-shrink:0;}
+.btn-log{font-size:17px;font-weight:600;padding:6px 14px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;cursor:pointer;transition:background .12s;white-space:nowrap;}
+.btn-log:hover{background:#0C447C;}
+.btn-cls{width:26px;height:26px;border-radius:var(--r);border:1px solid var(--border-em);background:var(--surface);color:var(--text2);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;}
+.btn-cls:hover{background:var(--surface2);}
+
+/* TIMELINE */
+.tl-wrap{padding:14px 18px 6px;background:var(--surface);}
+.tl-item{display:flex;gap:12px;}
+.tl-spine{display:flex;flex-direction:column;align-items:center;width:13px;flex-shrink:0;}
+.tl-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.tl-dot.done{background:var(--green);border:2px solid var(--green-b);}
+.tl-dot.upcoming{background:var(--surface);border:2px dashed var(--border-em);}
+.tl-dot.entry{background:var(--blue);border:2px solid var(--blue-b);}
+.tl-line{width:1px;background:var(--border);flex:1;min-height:10px;margin-top:4px;}
+.tl-content{flex:1;padding-bottom:14px;}
+.tl-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.tl-date{font-size:17px;font-weight:600;color:var(--text);}
+.tl-logid{font-size:17px;color:var(--text3);font-family:'DM Mono',monospace;}
+.tl-empty{padding:20px 0 10px;text-align:center;font-size:17px;color:var(--text3);}
+.upcoming-card{border:1px dashed var(--border-em);border-radius:var(--r);padding:10px 13px;}
+.upcoming-date{font-size:17px;font-weight:500;color:var(--text);}
+.upcoming-agenda{font-size:17px;color:var(--text2);margin-top:2px;}
+.upcoming-none{font-size:17px;color:var(--text3);font-style:italic;}
+
+/* SESSION CARD — shared */
+.sess-card{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.two-pane{display:grid;grid-template-columns:1fr 1fr;}
+.pane{padding:10px 12px;}
+.pane.disc{background:var(--blue-l);border-right:1px solid var(--blue-b);}
+.pane.conc{background:var(--amber-l);}
+.pane-lbl{font-size:17px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.pane-lbl.disc{color:var(--blue);}
+.pane-lbl.conc{color:var(--amber);}
+.pane-val{font-size:17px;line-height:1.55;}
+.pane-val.disc{color:#0C447C;}
+.pane-val.conc{color:var(--amber-d);}
+.pane-val.none{color:var(--text3);font-style:italic;}
+.card-bot{padding:9px 12px;background:var(--surface2);display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid var(--border);}
+.cb-lbl{font-size:17px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+.cb-val{font-size:17px;color:var(--text);line-height:1.4;}
+.cb-val.ok{color:var(--green);font-weight:500;}
+.cb-val.warn{color:var(--amber);font-weight:500;}
+
+/* SESSION LOG */
+.log-list{display:flex;flex-direction:column;}
+.log-stat-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 16px;display:flex;gap:24px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+.log-stat{display:flex;align-items:baseline;gap:6px;}
+.log-stat-v{font-size:22px;font-weight:600;letter-spacing:-0.02em;}
+.log-stat-l{font-size:17px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:500;}
+.log-stat-sep{width:1px;height:20px;background:var(--border-em);}
+.log-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:8px;overflow:hidden;cursor:pointer;transition:border-color .12s;}
+.log-row:hover{border-color:var(--border-em);}
+.log-row.active{border-left:3px solid var(--blue-m);border-color:var(--blue-m);}
+.log-sum{display:flex;align-items:center;gap:9px;padding:10px 14px;transition:background .1s;}
+.log-row.active .log-sum{background:var(--blue-l);}
+.log-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
+.log-date{font-size:17px;font-weight:600;white-space:nowrap;}
+.log-logid{font-size:17px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap;}
+.log-who{font-size:17px;font-weight:600;white-space:nowrap;}
+.log-sub{font-size:17px;color:var(--text2);white-space:nowrap;}
+.log-preview{font-size:17px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;}
+.log-hint{font-size:17px;color:var(--text3);flex-shrink:0;white-space:nowrap;}
+.log-row.active .log-hint{color:var(--blue);}
+.log-xwrap{overflow:hidden;max-height:0;transition:max-height .3s cubic-bezier(.4,0,.2,1);}
+.log-xwrap.open{max-height:700px;}
+.log-ab{display:flex;align-items:center;padding:8px 14px;gap:18px;background:var(--surface2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.log-sc{padding:12px 14px;background:var(--surface);}
+
+/* NEW SESSION FORM */
+.ns-card{border:1px solid var(--blue-b);border-radius:var(--r);overflow:hidden;}
+.ns-hd{background:var(--blue-l);padding:9px 13px;border-bottom:1px solid var(--blue-b);display:flex;align-items:center;justify-content:space-between;}
+.ns-title{font-size:17px;font-weight:600;color:var(--blue);}
+.ns-cancel{font-size:17px;color:var(--blue-m);cursor:pointer;border:none;background:none;}
+.ns-cancel:hover{color:var(--blue);}
+.ns-body{padding:14px;background:var(--surface);display:flex;flex-direction:column;gap:12px;}
+.rg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.rg2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.fg{display:flex;flex-direction:column;gap:4px;}
+.fl{font-size:17px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
+.req{color:var(--red);}
+.fi,.fsel,.fta{border:1px solid var(--border-em);border-radius:var(--r);background:var(--surface2);font-size:17px;color:var(--text);outline:none;transition:border-color .12s;}
+.fi{height:32px;padding:0 10px;}
+.fsel{height:32px;padding:0 10px;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%236b6960' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
+.fta{padding:8px 10px;resize:none;line-height:1.5;width:100%;}
+.fi:focus,.fsel:focus,.fta:focus{border-color:var(--blue-m);}
+.fi.af{background:var(--blue-l);border-color:var(--blue-b);color:var(--blue);font-weight:600;}
+.fi.ph{color:var(--text3);}
+.mchip-row{display:flex;gap:6px;flex-wrap:wrap;}
+.mchip{font-size:17px;padding:4px 10px;border:1px solid var(--border-em);border-radius:20px;background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .12s;user-select:none;}
+.mchip:hover{border-color:var(--blue-m);color:var(--blue);}
+.mchip.on{background:var(--blue-l);border-color:var(--blue-b);color:var(--blue);font-weight:500;}
+.prow{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.pbox{border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;}
+.pbox.disc{border:1px solid var(--blue-b);}
+.pbox.conc{border:1px solid var(--amber-b);}
+.plbl{font-size:17px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px 6px;flex-shrink:0;}
+.plbl.disc{color:var(--blue);background:var(--blue-l);}
+.plbl.conc{color:var(--amber);background:var(--amber-l);}
+.fta-disc{border:none;border-radius:0;background:#fff;color:#0C447C;flex:1;min-height:120px;resize:vertical!important;padding:10px;}
+.fta-conc{border:none;border-radius:0;background:#fff;color:var(--amber-d);flex:1;min-height:120px;resize:vertical!important;padding:10px;}
+.ns-ft{padding:10px 14px;background:var(--surface2);border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.ns-note{font-size:17px;color:var(--text3);}
+.ns-btns{display:flex;gap:8px;}
+.btn-save{font-size:17px;font-weight:600;padding:6px 16px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;cursor:pointer;transition:background .12s;}
+.btn-save:hover{background:#0C447C;}
+.btn-cancel{font-size:17px;padding:6px 12px;border-radius:var(--r);background:var(--surface);color:var(--text2);border:1px solid var(--border-em);cursor:pointer;transition:all .12s;}
+.btn-cancel:hover{background:var(--surface2);}
+
+/* CODEBOOK */
+.cb-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+.cb-sect{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;}
+.cb-sect-hd{padding:10px 14px;border-bottom:1px solid var(--border);font-size:17px;font-weight:600;display:flex;align-items:baseline;gap:6px;}
+.cb-sect-sub{font-size:17px;color:var(--text3);font-weight:400;}
+.cb-row{display:flex;align-items:flex-start;gap:10px;padding:8px 14px;border-bottom:1px solid var(--border);font-size:17px;}
+.cb-row:last-child{border-bottom:none;}
+.cb-key{font-weight:500;min-width:110px;flex-shrink:0;}
+.cb-desc{color:var(--text2);}
+.sec-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:12px;}
+.help-hero{background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r-lg);padding:24px 28px;margin-bottom:24px;}
+.help-hero-title{font-size:20px;font-weight:600;color:#0C447C;margin-bottom:6px;letter-spacing:-0.01em;}
+.help-hero-sub{font-size:15px;color:var(--blue-m);line-height:1.6;}
+.help-section{margin-bottom:28px;}
+.help-section-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.help-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:0;}
+.help-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;}
+.help-card-icon{width:36px;height:36px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:18px;}
+.help-card-icon.blue{background:var(--blue-l);}
+.help-card-icon.green{background:var(--green-l);}
+.help-card-icon.amber{background:var(--amber-l);}
+.help-card-icon.gray{background:var(--gray-l);}
+.help-card-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.help-card-body{font-size:13px;color:var(--text2);line-height:1.65;}
+.help-steps{display:flex;flex-direction:column;gap:0;}
+.help-step{display:flex;gap:16px;padding:14px 0;border-bottom:1px solid var(--border);}
+.help-step:last-child{border-bottom:none;}
+.help-step-num{width:28px;height:28px;border-radius:50%;background:var(--blue);color:white;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.help-step-content{flex:1;}
+.help-step-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.help-step-body{font-size:13px;color:var(--text2);line-height:1.65;}
+.help-step-body code{font-family:var(--font-mono,monospace);font-size:12px;background:var(--surface2);padding:1px 5px;border-radius:4px;color:var(--text);}
+.help-tip{background:var(--amber-l);border:1px solid var(--amber-b);border-radius:var(--r);padding:12px 16px;display:flex;gap:10px;align-items:flex-start;margin-top:12px;}
+.help-tip-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.help-tip-text{font-size:13px;color:var(--amber-d);line-height:1.6;}
+.help-ref-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.help-ref-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;}
+.help-ref-hd{padding:10px 14px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:baseline;gap:7px;}
+.help-ref-sub{font-size:12px;color:var(--text3);font-weight:400;}
+.help-ref-row{display:flex;align-items:flex-start;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px;}
+.help-ref-row:last-child{border-bottom:none;}
+.help-ref-key{font-weight:500;min-width:110px;flex-shrink:0;color:var(--text);}
+.help-ref-val{color:var(--text2);line-height:1.5;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;font-size:17px;font-weight:500;padding:10px 18px;border-radius:var(--r);z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+.text-ok{color:var(--green);font-weight:500;}
+.text-warn{color:var(--amber);font-weight:500;}
+.text-bad{color:var(--red);font-weight:500;}
+.text-muted{color:var(--text3);}
+.mono{font-family:'DM Mono',monospace;font-size:17px;}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="nav-logo">Telos <span style="font-weight:400;color:var(--text3);font-size:13px;letter-spacing:0;">by Taejae</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" data-page="overview">Overview</button>
+    <button class="nav-tab" data-page="students">My Students</button>
+    <button class="nav-tab" data-page="log">Session Log</button>
+    <button class="nav-tab" data-page="codebook">Help & Guide</button>
+  </div>
+  <div class="nav-right">
+    <div class="nav-source">
+      <div class="src-dot loading" id="src-dot"></div>
+      <span id="src-label">Loading…</span>
+    </div>
+    <div style="position:relative;">
+      <button class="nav-user-btn" id="nav-user-btn" onclick="toggleUserMenu()" style="display:none;">
+        <div class="nav-avatar" id="nav-avatar">–</div>
+        <span class="nav-name" id="nav-name">Not signed in</span>
+        <span class="caret">▾</span>
+      </button>
+      <div class="nav-dropdown" id="nav-dropdown">
+        <div style="padding:10px 14px 8px;border-bottom:1px solid var(--border);">
+          <div style="font-size:17px;font-weight:500;color:var(--text);" id="dd-name">—</div>
+          <div style="font-size:17px;color:var(--text3);" id="dd-email">—</div>
+        </div>
+        <button class="nav-dropdown-item" onclick="showChangePwModal();closeUserMenu()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><rect x="2" y="9" width="12" height="5" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 9V6a3 3 0 0 1 6 0v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          Change password
+        </button>
+        <div class="nav-dropdown-divider"></div>
+        <button class="nav-dropdown-item danger" onclick="handleSignOut()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Sign out
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- FULL-PAGE LOGIN WALL — shown before login -->
+<div id="login-wall" style="position:fixed;inset:0;background:#f7f6f3;z-index:300;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;">
+  <div style="background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,0.1);width:100%;max-width:400px;overflow:hidden;margin:0 16px;">
+    <div style="padding:32px 32px 24px;text-align:center;border-bottom:1px solid rgba(0,0,0,0.07);">
+      <div style="font-size:17px;font-weight:600;color:#185FA5;letter-spacing:-0.01em;margin-bottom:6px;">Telos <span style="color:#1a1916;font-weight:400;">by Taejae</span></div>
+      <div style="font-size:22px;font-weight:600;color:#1a1916;letter-spacing:-0.02em;">Sign in</div>
+      <div style="font-size:17px;color:#6b6960;margin-top:4px;">Use your Taejae faculty email to sign in</div>
+    </div>
+    <div style="padding:24px 32px;">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <label style="font-size:17px;font-weight:600;color:#6b6960;text-transform:uppercase;letter-spacing:.05em;">Email</label>
+          <input id="wall-email" type="email" placeholder="your@taejae.ac.kr"
+            style="height:40px;border:1px solid rgba(0,0,0,0.14);border-radius:8px;padding:0 12px;font-size:17px;outline:none;font-family:inherit;transition:border-color .15s;"
+            onfocus="this.style.borderColor='#378ADD'" onblur="this.style.borderColor='rgba(0,0,0,0.14)'"
+            onkeydown="if(event.key==='Enter')document.getElementById('wall-password').focus()">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <label style="font-size:17px;font-weight:600;color:#6b6960;text-transform:uppercase;letter-spacing:.05em;">Password</label>
+          <input id="wall-password" type="password" placeholder="••••••••"
+            style="height:40px;border:1px solid rgba(0,0,0,0.14);border-radius:8px;padding:0 12px;font-size:17px;outline:none;font-family:inherit;transition:border-color .15s;"
+            onfocus="this.style.borderColor='#378ADD'" onblur="this.style.borderColor='rgba(0,0,0,0.14)'"
+            onkeydown="if(event.key==='Enter')handleWallLogin()">
+        </div>
+        <div id="wall-error" style="font-size:17px;color:#A32D2D;min-height:16px;text-align:center;"></div>
+        <button id="wall-submit" onclick="handleWallLogin()"
+          style="height:42px;border-radius:8px;background:#185FA5;color:white;border:none;font-size:17px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;letter-spacing:-0.01em;"
+          onmouseover="this.style.background='#0C447C'" onmouseout="this.style.background='#185FA5'">
+          Sign in
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PASSWORD CHANGE WALL — shown on first login -->
+<div id="pw-change-wall" style="display:none;position:fixed;inset:0;background:#f7f6f3;z-index:300;align-items:center;justify-content:center;flex-direction:column;">
+  <div style="background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,0.1);width:100%;max-width:400px;overflow:hidden;margin:0 16px;">
+    <div style="padding:28px 32px 20px;text-align:center;border-bottom:1px solid rgba(0,0,0,0.07);">
+      <div style="font-size:17px;font-weight:600;color:#185FA5;margin-bottom:6px;">Telos <span style="color:#1a1916;font-weight:400;">by Taejae</span></div>
+      <div id="pw-wall-title" style="font-size:22px;font-weight:600;color:#1a1916;letter-spacing:-0.02em;">Set your password</div>
+      <div id="pw-wall-desc" style="font-size:17px;color:#6b6960;margin-top:6px;line-height:1.5;">This is your first sign-in.<br>Please set a new password to continue.</div>
+    </div>
+    <div style="padding:24px 32px;">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <label style="font-size:17px;font-weight:600;color:#6b6960;text-transform:uppercase;letter-spacing:.05em;">New password</label>
+          <input id="pw-new" type="password" placeholder="At least 8 characters"
+            style="height:40px;border:1px solid rgba(0,0,0,0.14);border-radius:8px;padding:0 12px;font-size:17px;outline:none;font-family:inherit;transition:border-color .15s;"
+            onfocus="this.style.borderColor='#378ADD'" onblur="this.style.borderColor='rgba(0,0,0,0.14)'"
+            onkeydown="if(event.key==='Enter')document.getElementById('pw-confirm').focus()">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <label style="font-size:17px;font-weight:600;color:#6b6960;text-transform:uppercase;letter-spacing:.05em;">Confirm password</label>
+          <input id="pw-confirm" type="password" placeholder="Re-enter new password"
+            style="height:40px;border:1px solid rgba(0,0,0,0.14);border-radius:8px;padding:0 12px;font-size:17px;outline:none;font-family:inherit;transition:border-color .15s;"
+            onfocus="this.style.borderColor='#378ADD'" onblur="this.style.borderColor='rgba(0,0,0,0.14)'"
+            onkeydown="if(event.key==='Enter')handlePasswordChange()">
+        </div>
+        <div id="pw-error" style="font-size:17px;color:#A32D2D;min-height:16px;text-align:center;"></div>
+        <button id="pw-submit" onclick="handlePasswordChange()"
+          style="height:42px;border-radius:8px;background:#185FA5;color:white;border:none;font-size:17px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;"
+          onmouseover="this.style.background='#0C447C'" onmouseout="this.style.background='#185FA5'">
+          Set password &amp; continue
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="setup-banner" style="background:#FAEEDA;border-bottom:1px solid #EF9F27;padding:10px 24px;font-size:17px;color:#633806;display:flex;align-items:center;gap:12px;">
+  <strong>Setup required:</strong>
+  Replace <code style="background:rgba(0,0,0,0.08);padding:1px 5px;border-radius:4px;">YOUR_SUPABASE_URL</code> and <code style="background:rgba(0,0,0,0.08);padding:1px 5px;border-radius:4px;">YOUR_SUPABASE_ANON_KEY</code> in the source with your project credentials from the <a href="https://supabase.com/dashboard" target="_blank" style="color:#854F0B;">Supabase dashboard</a>.
+  <button onclick="document.getElementById('setup-banner').style.display='none'" style="margin-left:auto;border:none;background:none;cursor:pointer;font-size:17px;color:#854F0B;">×</button>
+</div>
+<div class="main">
+  <div class="page active" id="page-overview"></div>
+  <div class="page" id="page-students"></div>
+  <div class="page" id="page-log"></div>
+  <div class="page" id="page-codebook"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN MODAL -->
+<script>
+// ── CONSTANTS ──
+// Current faculty — set dynamically after login (do not hardcode)
+let FACULTY = '';
+let FACULTY_INITIALS = '';
+
+// ↓ Supabase project credentials — replace with your own
+// Project URL:  Supabase dashboard → Project Settings → API → Project URL
+// Anon key:     Supabase dashboard → Project Settings → API → anon/public key
+const SUPABASE_URL  = 'https://ecktuualyuvctixlkjve.supabase.co';
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVja3R1dWFseXV2Y3RpeGxranZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxOTczOTgsImV4cCI6MjA5MDc3MzM5OH0.EauKNa2US2VQ4dTdCzx0DBZXlw4OR-CQnlMRuulYfB8';
+
+// Supabase table names
+const TBL_STUDENTS = 'students';
+const TBL_LOG      = 'advising_log';
+
+// ── STATE ──
+let students = [];
+let sessions = [];
+let dataLoaded = false;
+
+// ── AUTH STATE ──
+let supabaseUser = null;
+
+let studFilter = 'my', studExtra = '', studSearch = '', studSort = {col:'name',dir:1};
+let openStudId = null, showFormFor = null, selTopics = [];
+let logFilter = 'all', logSearch = '', openLogId = null, editingLogId = null;
+
+// ── UTILS ──
+function bdg(t,c){return `<span class="bdg bdg-${c}">${t}</span>`;}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function shortMajor(m){
+  const map={'Data Science and AI':'DSA','Humanities and Social Sciences':'HSS',
+    'Natural Sciences':'Nat. Sci.','Business Innovation':'Bus. Innov.',
+    'Self-designed':'Self-designed'};
+  return map[m]||m||'—';
+}
+function shortCohort(c){return c.replace('Cohort ','C').replace(' (2023)','23').replace(' (2024)','24');}
+function roleFor(st){return st.advisor1===FACULTY?'Primary':'Secondary';}
+function initials(n){return (n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+
+function myStudents(){return students.filter(s=>s.advisor1===FACULTY||s.advisor2===FACULTY);}
+
+function syncStudents(){
+  students.forEach(st=>{
+    const ss=sessions.filter(s=>s.studentId===st.id).sort((a,b)=>b.date.localeCompare(a.date));
+    if(ss.length){
+      st.sessions=ss.length;
+      st.lastMeeting=ss[0].date;
+      const wn=ss.filter(s=>s.nextDate);
+      st.nextMeeting=wn.length?wn[0].nextDate:'';
+      st.nextAgenda=wn.length?wn[0].nextAgenda:'';
+    }
+  });
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ── SUPABASE HELPERS ──
+function sbHeaders(extra={}) {
+  return {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${supabaseUser?.access_token || SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+    ...extra,
+  };
+}
+
+async function sbGet(table, params='') {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
+    headers: sbHeaders(),
+  });
+  if (!r.ok) {
+    const body = await r.json().catch(()=>({}));
+    const msg = body.message || body.hint || body.error || `HTTP ${r.status}`;
+    throw new Error(`${table}: ${msg}`);
+  }
+  return r.json();
+}
+
+async function sbInsert(table, row) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: sbHeaders(),
+    body: JSON.stringify(row),
+  });
+  if (!r.ok) {
+    const err = await r.json();
+    throw new Error(err.message || err.hint || `POST ${table} failed: ${r.status}`);
+  }
+  return r.json();
+}
+
+// ── SUPABASE DELETE ──
+async function sbDelete(table, col, val) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${encodeURIComponent(val)}`, {
+    method: 'DELETE',
+    headers: sbHeaders(),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(()=>({}));
+    throw new Error(err.message || `DELETE ${table} failed: ${r.status}`);
+  }
+}
+
+// ── SUPABASE UPDATE ──
+async function sbUpdate(table, col, val, row) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${encodeURIComponent(val)}`, {
+    method: 'PATCH',
+    headers: sbHeaders(),
+    body: JSON.stringify(row),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(()=>({}));
+    throw new Error(err.message || `PATCH ${table} failed: ${r.status}`);
+  }
+}
+
+// ── AUTH ──
+async function handleWallLogin() {
+  const email    = document.getElementById('wall-email').value.trim();
+  const password = document.getElementById('wall-password').value;
+  const errEl    = document.getElementById('wall-error');
+  const btn      = document.getElementById('wall-submit');
+
+  if (!email || !password) { errEl.textContent = 'Email and password are required.'; return; }
+  btn.textContent = 'Signing in…'; btn.disabled = true; errEl.textContent = '';
+
+  try {
+    // Step 1: Authenticate with Supabase
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error_description || data.msg || 'Login failed');
+
+    supabaseUser = data;
+
+    // Step 2: Look up faculty name + first-login flag from faculty_profiles
+    const profRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}&select=name_en,must_change_password`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}` } }
+    );
+    const profData = await profRes.json();
+
+    if (profData.length > 0) {
+      FACULTY = profData[0].name_en;
+    } else {
+      FACULTY = data.user?.user_metadata?.full_name || email.split('@')[0];
+    }
+    FACULTY_INITIALS = FACULTY.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+    // Step 3: Update nav
+    document.getElementById('nav-avatar').textContent = FACULTY_INITIALS;
+    document.getElementById('nav-name').textContent   = FACULTY;
+    document.getElementById('dd-name').textContent    = FACULTY;
+    document.getElementById('dd-email').textContent   = supabaseUser?.user?.email || '';
+    document.getElementById('nav-user-btn').style.display = 'flex';
+    document.getElementById('src-dot').className = 'src-dot authed';
+    document.getElementById('login-wall').style.display = 'none';
+
+    // Step 4: First login? Show password change screen instead of app
+    const mustChange = profData.length > 0 && profData[0].must_change_password === true;
+    if (mustChange) {
+      document.getElementById('pw-change-wall').style.display = 'flex';
+      document.getElementById('pw-new').focus();
+      return; // don't enter app yet
+    }
+
+    // Step 5: Normal login — enter app
+    await loadData();
+
+  } catch(e) {
+    errEl.textContent = e.message;
+    btn.textContent = 'Sign in'; btn.disabled = false;
+  }
+}
+
+
+
+function showChangePwModal() {
+  // Reuse the pw-change-wall with a different heading
+  document.getElementById('pw-wall-title').textContent = 'Change password';
+  document.getElementById('pw-wall-desc').textContent = 'Enter your new password below.';
+  document.getElementById('pw-submit').textContent = 'Update password';
+  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-confirm').value = '';
+  document.getElementById('pw-error').textContent = '';
+  document.getElementById('pw-change-wall').dataset.mode = 'change';
+  document.getElementById('pw-change-wall').style.display = 'flex';
+  document.getElementById('pw-new').focus();
+}
+
+async function handlePasswordChange() {
+  const pw1   = document.getElementById('pw-new').value;
+  const pw2   = document.getElementById('pw-confirm').value;
+  const errEl = document.getElementById('pw-error');
+  const btn   = document.getElementById('pw-submit');
+
+  errEl.textContent = '';
+  if (pw1.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; return; }
+  if (pw1 !== pw2)    { errEl.textContent = 'Passwords do not match.'; return; }
+
+  btn.textContent = 'Saving…'; btn.disabled = true;
+
+  try {
+    // 1. Change password in Supabase Auth
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      method: 'PUT',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${supabaseUser.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ password: pw1 }),
+    });
+    if (!r.ok) {
+      const err = await r.json();
+      throw new Error(err.msg || err.message || 'Password change failed');
+    }
+
+    // 2. If first-login mode, clear must_change_password flag
+    const mode = document.getElementById('pw-change-wall').dataset.mode || 'first';
+    if (mode === 'first') {
+      const email = supabaseUser.user?.email || '';
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${supabaseUser.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ must_change_password: false }),
+        }
+      );
+    }
+
+    // 3. Hide pw wall, restore defaults, and enter/stay in app
+    document.getElementById('pw-change-wall').style.display = 'none';
+    document.getElementById('pw-new').value = '';
+    document.getElementById('pw-confirm').value = '';
+    document.getElementById('pw-submit').textContent = 'Set password & continue';
+    document.getElementById('pw-wall-title').textContent = 'Set your password';
+    document.getElementById('pw-wall-desc').textContent = 'This is your first sign-in.\nPlease set a new password to continue.';
+    document.getElementById('pw-change-wall').dataset.mode = 'first';
+    const mode2 = document.getElementById('pw-change-wall').dataset.mode;
+    showToast(mode2 === 'first' ? 'Password set — welcome!' : 'Password updated successfully');
+    if (!dataLoaded) await loadData();
+
+  } catch(e) {
+    errEl.textContent = e.message;
+    btn.textContent = 'Set password & continue';
+    btn.disabled = false;
+  }
+}
+
+async function handleSignOut() {
+  if (supabaseUser?.access_token) {
+    await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${supabaseUser.access_token}` },
+    }).catch(()=>{});
+  }
+  supabaseUser = null;
+  FACULTY = '';
+  FACULTY_INITIALS = '';
+  students = []; sessions = []; dataLoaded = false;
+  document.getElementById('nav-user-btn').style.display = 'none';
+  document.getElementById('nav-dropdown').classList.remove('open');
+  document.getElementById('src-dot').className = 'src-dot';
+  document.getElementById('src-label').textContent = 'Not signed in';
+  document.getElementById('nav-avatar').textContent = '–';
+  document.getElementById('nav-name').textContent = 'Not signed in';
+  document.getElementById('dd-name').textContent  = '—';
+  document.getElementById('dd-email').textContent = '—';
+  closeUserMenu();
+  document.getElementById('wall-email').value = '';
+  document.getElementById('wall-password').value = '';
+  document.getElementById('wall-error').textContent = '';
+  document.getElementById('wall-submit').textContent = 'Sign in';
+  document.getElementById('wall-submit').disabled = false;
+  document.getElementById('pw-change-wall').style.display = 'none';
+  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-confirm').value = '';
+  document.getElementById('pw-error').textContent = '';
+  document.getElementById('login-wall').style.display = 'flex';
+}
+
+function isSignedIn() { return !!supabaseUser?.access_token; }
+
+// ── DATA LOADING ──
+async function loadData() {
+  const dot = document.getElementById('src-dot');
+  const lbl = document.getElementById('src-label');
+  dot.className = 'src-dot loading';
+  lbl.textContent = 'Loading from Supabase…';
+
+  if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+    dot.className = 'src-dot error';
+    loadFallback('Supabase not configured — using local data');
+    return;
+  }
+
+  try {
+    const [rawStudents, rawSessions] = await Promise.all([
+      sbGet(TBL_STUDENTS, 'order=id.asc'),
+      sbGet(TBL_LOG,      'order=meeting_date.desc'),
+    ]);
+    students = rawStudents.map(mapStudent);
+    sessions = rawSessions.map(mapSession);
+    syncStudents();
+    dataLoaded = true;
+    dot.className = 'src-dot authed';
+    lbl.textContent = `Telos · Live · ${students.length} students, ${sessions.length} sessions`;
+    document.getElementById('setup-banner').style.display = 'none';
+    console.log('[Supabase] Loaded:', students.length, 'students,', sessions.length, 'sessions');
+    renderCurrent();
+  } catch(e) {
+    console.error('Supabase load error:', e);
+    dot.className = 'src-dot error';
+    lbl.textContent = `Load failed: ${e.message}`;
+    loadFallback(); // label already set above — no override
+  }
+}
+
+function loadFallback(overrideMsg) {
+  students = FALLBACK_STUDENTS;
+  sessions = FALLBACK_SESSIONS;
+  syncStudents();
+  dataLoaded = true;
+  // Only override the label if explicitly provided (don't clobber the error message set by caller)
+  if (overrideMsg !== undefined) {
+    document.getElementById('src-label').textContent = overrideMsg;
+  }
+  renderCurrent();
+}
+
+// Map Supabase row → app student object
+function mapStudent(r) {
+  return {
+    id:               String(r.id),
+    name:             r.name_en   || '',
+    nameKr:           r.name_kr   || '',
+    email:            r.email     || '',
+    cohort:           r.cohort    || '',
+    school:           r.school    || '',
+    track:            r.track     || '',
+    major1:           r.major1    || '',
+    major2:           r.major2    || '',
+    minor:            r.minor     || '',
+    status:           r.status    || '',
+    sessions:         r.session_count || 0,
+    lastMeeting:      r.last_meeting_date || '',
+    lastSummary:      r.last_meeting_summary || '',
+    nextMeeting:      r.next_meeting_date || '',
+    nextAgenda:       r.next_meeting_agenda || '',
+    advisor1:         r.advisor1  || '',
+    advisor2:         r.advisor2  || '',
+    careerGoal:       r.career_goal || '',
+    researchInterest: r.research_interest || '',
+    concerns:         r.concerns  || '',
+    notes:            r.notes     || '',
+  };
+}
+
+// Map Supabase row → app session object
+function mapSession(r) {
+  return {
+    logId:           r.log_id          || '',
+    date:            (r.meeting_date   || '').slice(0,10),
+    faculty:         r.faculty_name    || '',
+    studentId:       String(r.student_id || ''),
+    studentName:     r.student_name    || '',
+    type:            r.meeting_type    || '',
+    format:          r.meeting_format  || '',
+    disc:            r.discussion_summary || '',
+    conc:            r.student_concerns  || '',
+    advice:          r.advisor_advice    || '',
+    studentAction:   r.student_action_items || '',
+    followUp:        r.follow_up_required || 'N',
+    nextDate:        (r.next_meeting_date   || '').slice(0,10),
+    nextAgenda:      r.next_meeting_agenda || '',
+    majorChangeNote: r.major_change_note   || '',
+    mainTopic:       r.main_topic          || '',
+  };
+}
+
+// ── WRITE TO SUPABASE ──
+async function insertSession(row) {
+  // Map app field names → Supabase column names
+  const dbRow = {
+    log_id:                row.logId,
+    meeting_date:          row.date,
+    faculty_name:          row.faculty,
+    student_id:            row.studentId,
+    student_name:          row.studentName,
+    meeting_type:          row.type,
+    meeting_format:        row.format,
+    discussion_summary:    row.disc,
+    student_concerns:      row.conc,
+    advisor_advice:        row.advice,
+    student_action_items:  row.studentAction,
+    follow_up_required:    row.followUp,
+    next_meeting_date:     row.nextDate || null,
+    next_meeting_agenda:   row.nextAgenda,
+    major_change_note:     row.majorChangeNote,
+    main_topic:            row.mainTopic,
+  };
+  return sbInsert(TBL_LOG, dbRow);
+}
+
+// ── ROUTING ──
+let currentPage = 'overview';
+
+document.querySelectorAll('.nav-tab').forEach(t => {
+  t.addEventListener('click', () => {
+    const pg = t.dataset.page;
+    document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+pg).classList.add('active');
+    currentPage = pg;
+    renderCurrent();
+  });
+});
+
+function renderCurrent() {
+  if (!dataLoaded) return;
+  if (currentPage==='overview') renderOverview();
+  if (currentPage==='students') renderStudents();
+  if (currentPage==='log') renderLog();
+  if (currentPage==='codebook') renderCodebook();
+}
+
+// ── OVERVIEW ──
+function renderOverview() {
+  const mine = myStudents();
+  const mySess = sessions.filter(s=>s.faculty===FACULTY);
+  const zeroSess = mine.filter(s=>s.sessions===0).length;
+  const noNext = mine.filter(s=>!s.nextMeeting).length;
+  const followUp = mySess.filter(s=>s.followUp==='Y').length;
+  const noNextList = mine.filter(s=>!s.nextMeeting).slice(0,8);
+  const recent = [...mySess].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
+
+  document.getElementById('page-overview').innerHTML = `
+    <div class="overview-stats">
+      <div class="stat-card"><div class="stat-val">${mine.length}</div><div class="stat-lbl">My students</div></div>
+      <div class="stat-card"><div class="stat-val ok">${mySess.length}</div><div class="stat-lbl">Total sessions</div></div>
+      <div class="stat-card"><div class="stat-val ${zeroSess>0?'bad':'ok'}">${zeroSess}</div><div class="stat-lbl">0-session students</div></div>
+      <div class="stat-card"><div class="stat-val ${noNext>0?'warn':'ok'}">${noNext}</div><div class="stat-lbl">No next meeting</div></div>
+      <div class="stat-card"><div class="stat-val ${followUp>0?'warn':'ok'}">${followUp}</div><div class="stat-lbl">Follow-up pending</div></div>
+    </div>
+    <div class="overview-cards">
+      <div class="ov-card">
+        <div class="ov-card-hd">No next meeting set <span class="text-muted" style="font-weight:400;font-size:17px;">${noNextList.length} students</span></div>
+        ${noNextList.map(s=>`
+        <div class="ov-item">
+          <div class="ov-dot dot-amber"></div>
+          <div class="ov-name">${esc(s.name)}</div>
+          <div class="ov-detail">${s.sessions} session${s.sessions!==1?'s':''} · ${s.lastMeeting||'never met'}</div>
+          <span class="go-link" onclick="goToStudent('${s.id}')">View →</span>
+        </div>`).join('')}
+      </div>
+      <div class="ov-card">
+        <div class="ov-card-hd">Recent sessions</div>
+        ${recent.length ? recent.map(s=>`
+        <div class="ov-item">
+          <div class="ov-dot dot-green"></div>
+          <div class="ov-name">${esc(s.studentName)}</div>
+          <div class="ov-detail">${s.date} · ${s.type} · ${s.format}</div>
+          <span class="go-link" onclick="goToLog('${s.logId}')">View →</span>
+        </div>`).join('') : '<div class="ov-item"><div class="text-muted">No sessions recorded yet</div></div>'}
+      </div>
+    </div>`;
+}
+
+// ── MY STUDENTS ──
+function renderStudents() {
+  const mine = myStudents();
+  const fp = sessions.filter(s=>s.followUp==='Y'&&s.faculty===FACULTY).length;
+  const ns = mine.filter(s=>s.sessions===0).length;
+
+  document.getElementById('page-students').innerHTML = `
+    <div class="filter-bar">
+      <span class="flabel">View:</span>
+      <button class="fchip ${studFilter==='my'?'active':''}" onclick="setStudFilter('my')">My students only</button>
+      <button class="fchip ${studFilter==='all'?'active':''}" onclick="setStudFilter('all')">Show all</button>
+      <div class="fsep"></div>
+      <button class="fchip warn ${studExtra==='fu'?'active':''}" onclick="setStudExtra('fu')">Follow-up pending (${fp})</button>
+      <button class="fchip warn ${studExtra==='ns'?'active':''}" onclick="setStudExtra('ns')">0 sessions (${ns})</button>
+      <input class="search-box" placeholder="Search by name or ID…" value="${esc(studSearch)}" oninput="studSearch=this.value;renderStudBody()">
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th class="${thCls('id')}" onclick="sortStud('id')">Student ID</th>
+          <th class="${thCls('name')}" onclick="sortStud('name')">Name</th>
+          <th class="${thCls('cohort')}" onclick="sortStud('cohort')">Cohort</th>
+          <th class="${thCls('major1')}" onclick="sortStud('major1')">1st major</th>
+          <th>Role</th>
+          <th class="${thCls('sessions')}" onclick="sortStud('sessions')">Sessions</th>
+          <th class="${thCls('lastMeeting')}" onclick="sortStud('lastMeeting')">Last meeting</th>
+          <th class="${thCls('nextMeeting')}" onclick="sortStud('nextMeeting')">Next meeting</th>
+        </tr></thead>
+        <tbody id="stud-tbody"></tbody>
+      </table>
+    </div>`;
+  renderStudBody();
+}
+
+function thCls(col){return studSort.col===col?('sort-'+(studSort.dir===1?'asc':'desc')):'';}
+function setStudFilter(v){studFilter=v;studExtra='';renderStudents();}
+function setStudExtra(v){studExtra=studExtra===v?'':v;renderStudBody();}
+function sortStud(col){
+  if(studSort.col===col)studSort.dir*=-1;else{studSort.col=col;studSort.dir=1;}
+  renderStudBody();
+}
+
+function filteredStudents(){
+  let list=studFilter==='my'?myStudents():students;
+  if(studExtra==='fu'){
+    const ids=new Set(sessions.filter(s=>s.followUp==='Y').map(s=>s.studentId));
+    list=list.filter(s=>ids.has(s.id));
+  }
+  if(studExtra==='ns') list=list.filter(s=>s.sessions===0);
+  if(studSearch){
+    const q=studSearch.toLowerCase();
+    list=list.filter(s=>s.name.toLowerCase().includes(q)||s.id.includes(q)||(s.nameKr&&s.nameKr.includes(q)));
+  }
+  return [...list].sort((a,b)=>{
+    const av=(a[studSort.col]||'').toString().toLowerCase();
+    const bv=(b[studSort.col]||'').toString().toLowerCase();
+    return av<bv?-studSort.dir:av>bv?studSort.dir:0;
+  });
+}
+
+function renderStudBody(){
+  const list=filteredStudents();
+  const tbody=document.getElementById('stud-tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+
+  // Update count
+  let cnt=document.querySelector('#page-students .fcount');
+  if(!cnt){cnt=document.createElement('span');cnt.className='fcount';document.querySelector('#page-students .filter-bar')?.appendChild(cnt);}
+  if(cnt) cnt.textContent=`${list.length} student${list.length!==1?'s':''}`;
+
+  list.forEach(st=>{
+    const isOpen=openStudId===st.id;
+    const role=studFilter==='all'?(st.advisor1===FACULTY?'Primary':st.advisor2===FACULTY?'Secondary':'—'):roleFor(st);
+    const rc=role==='Primary'?'blue':role==='Secondary'?'gray':'gray';
+    const tr=document.createElement('tr');
+    tr.className=isOpen?'row-active':'';
+    tr.onclick=()=>toggleStud(st.id);
+    tr.innerHTML=`
+      <td class="td-fc mono">${esc(st.id)}</td>
+      <td style="font-weight:500;">${esc(st.name)}${st.nameKr?` <span class="text-muted" style="font-size:17px;font-weight:400;">${esc(st.nameKr)}</span>`:''}</td>
+      <td>${esc(shortCohort(st.cohort))}</td>
+      <td>${esc(shortMajor(st.major1))}</td>
+      <td>${bdg(role,rc)}</td>
+      <td style="font-weight:500;color:${st.sessions===0?'var(--red)':'var(--green)'};">${st.sessions}</td>
+      <td class="${!st.lastMeeting?'text-muted':''}">${esc(st.lastMeeting)||'—'}</td>
+      <td class="${!st.nextMeeting?'text-warn':''}" style="${!st.nextMeeting?'font-weight:500;':''}">${esc(st.nextMeeting)||'Not scheduled'}</td>`;
+    tbody.appendChild(tr);
+
+    if(isOpen){
+      const xtr=document.createElement('tr');
+      xtr.className='xtr';
+      xtr.innerHTML=`<td colspan="8"><div class="xwrap open" id="sp-${st.id}">${buildStudPanel(st)}</div></td>`;
+      tbody.appendChild(xtr);
+    }
+  });
+}
+
+function toggleStud(id){
+  openStudId=openStudId===id?null:id;
+  if(openStudId!==id){showFormFor=null;}
+  selTopics=[];
+  renderStudBody();
+}
+function closeStud(){openStudId=null;showFormFor=null;renderStudBody();}
+
+function buildStudPanel(st){
+  const extras=[];
+  if(st.track) extras.push({l:'Track',v:st.track});
+  if(st.major2) extras.push({l:'2nd major',v:shortMajor(st.major2)});
+  if(st.minor) extras.push({l:'Minor',v:shortMajor(st.minor)});
+  const other=st.advisor1===FACULTY?st.advisor2:st.advisor1;
+  if(other&&other!==FACULTY) extras.push({l:st.advisor1===FACULTY?'Advisor 2':'Advisor 1',v:other});
+
+  const abExtra=extras.map(e=>`<div class="ab-item"><div class="ab-lbl">${esc(e.l)}</div><div class="ab-val">${esc(e.v)}</div></div>`).join('');
+
+  const stSess=sessions.filter(s=>s.studentId===st.id).sort((a,b)=>b.date.localeCompare(a.date));
+  let tl='';
+  if(showFormFor===st.id) tl+=buildNsForm(st);
+
+  // upcoming
+  tl+=`<div class="tl-item"><div class="tl-spine"><div class="tl-dot upcoming"></div></div>
+    <div class="tl-content" style="padding-bottom:12px;"><div class="upcoming-card">
+      ${st.nextMeeting
+        ?`<div class="upcoming-date">Next meeting: ${esc(st.nextMeeting)}</div>${st.nextAgenda?`<div class="upcoming-agenda">${esc(st.nextAgenda)}</div>`:''}`
+        :`<div class="upcoming-none">Next meeting not yet scheduled</div>`}
+    </div></div></div>`;
+
+  if(stSess.length===0){
+    tl+=`<div class="tl-empty">No sessions recorded yet — click "+ Log session" to add the first one</div>`;
+  } else {
+    stSess.forEach(s=>{
+      const tc=s.type==='Regular'?'blue':'gray';
+      tl+=`<div class="tl-item"><div class="tl-spine"><div class="tl-dot done"></div><div class="tl-line"></div></div>
+        <div class="tl-content">
+          <div class="tl-meta"><span class="tl-date">${esc(s.date)}</span><span class="tl-logid">${esc(s.logId)}</span>
+            ${bdg(s.type,tc)}${bdg(s.format,'gray')}${bdg('Completed','green')}
+          </div>${buildSessCard(s)}
+        </div></div>`;
+    });
+  }
+
+  return `<div class="action-bar">
+      <div class="ab-items">${abExtra}</div>
+      <div class="ab-btns">
+        <button class="btn-log" onclick="event.stopPropagation();toggleForm('${st.id}')">+ Log session</button>
+        <button class="btn-cls" onclick="event.stopPropagation();closeStud()">×</button>
+      </div>
+    </div>
+    <div class="tl-wrap">${tl}</div>`;
+}
+
+function buildSessCard(s){
+  return `<div class="sess-card">
+    <div class="two-pane">
+      <div class="pane disc"><div class="pane-lbl disc">Discussion summary</div><div class="pane-val disc">${esc(s.disc)||'—'}</div></div>
+      <div class="pane conc"><div class="pane-lbl conc">Student concerns &amp; requests</div><div class="pane-val ${s.conc?'conc':'none'}">${s.conc?esc(s.conc):'None raised'}</div></div>
+    </div>
+    <div class="card-bot">
+      <div><div class="cb-lbl">Advisor advice &amp; action items</div><div class="cb-val">${esc(s.advice)||'—'}</div></div>
+      <div><div class="cb-lbl">Student action items</div><div class="cb-val">${esc(s.studentAction)||'—'}</div></div>
+      <div><div class="cb-lbl">Follow-up required</div><div class="cb-val ${s.followUp==='Y'?'warn':'ok'}">${s.followUp==='Y'?'Yes':'No'}</div></div>
+      <div><div class="cb-lbl">Next meeting</div><div class="cb-val ${s.nextDate?'':'warn'}">${esc(s.nextDate)||'Not scheduled'}</div></div>
+    </div>
+  </div>`;
+}
+
+function buildNsForm(st){
+  const topics=['Career','Academics','Research','Wellbeing','Administrative'];
+  const tHtml=topics.map(t=>`<span class="mchip ${selTopics.includes(t)?'on':''}" onclick="toggleTopic('${st.id}','${t}')">${t}</span>`).join('');
+  return `<div class="tl-item">
+  <div class="tl-spine"><div class="tl-dot entry"></div><div class="tl-line"></div></div>
+  <div class="tl-content" style="padding-bottom:16px;">
+  <div class="ns-card">
+    <div class="ns-hd"><span class="ns-title">New session — ${esc(st.name)}</span>
+      <button class="ns-cancel" onclick="event.stopPropagation();cancelForm()">Cancel ×</button></div>
+    <div class="ns-body">
+      <div class="rg3">
+        <div class="fg"><div class="fl">Student ID</div><div class="fi af">${esc(st.id)}</div></div>
+        <div class="fg"><div class="fl">Student name</div><div class="fi af">${esc(st.name)}</div></div>
+        <div class="fg"><div class="fl">Advisor role</div><div class="fi af">${roleFor(st)}</div></div>
+      </div>
+      <div class="rg3">
+        <div class="fg"><div class="fl">Date <span class="req">*</span></div><input class="fi" type="date" id="ns-date" value="${new Date().toISOString().split('T')[0]}"></div>
+        <div class="fg"><div class="fl">Type <span class="req">*</span></div><select class="fsel" id="ns-type"><option>Regular</option><option>Ad-hoc</option><option>Email</option></select></div>
+        <div class="fg"><div class="fl">Format <span class="req">*</span></div><select class="fsel" id="ns-format"><option>Zoom</option><option>In-person</option><option>Phone</option><option>Email</option></select></div>
+      </div>
+      <div class="fg"><div class="fl">Main topic <span class="req">*</span></div><div class="mchip-row" id="ns-topics">${tHtml}</div></div>
+      <div class="prow">
+        <div class="pbox disc"><div class="plbl disc">Discussion summary <span class="req">*</span></div><textarea class="fta fta-disc" id="ns-disc" placeholder="What was discussed…"></textarea></div>
+        <div class="pbox conc"><div class="plbl conc">Student concerns &amp; requests</div><textarea class="fta fta-conc" id="ns-conc" placeholder="What the student raised…"></textarea></div>
+      </div>
+      <div class="rg2">
+        <div class="fg"><div class="fl">Advisor advice &amp; action items</div><textarea class="fta" id="ns-advice" rows="2" placeholder="Your advice and follow-up…"></textarea></div>
+        <div class="fg"><div class="fl">Student action items</div><textarea class="fta" id="ns-sa" rows="2" placeholder="What the student will do…"></textarea></div>
+      </div>
+      <div class="rg3">
+        <div class="fg"><div class="fl">Follow-up required? <span class="req">*</span></div><select class="fsel" id="ns-fu"><option value="N">No</option><option value="Y">Yes</option></select></div>
+        <div class="fg"><div class="fl">Status <span class="req">*</span></div><select class="fsel" id="ns-status"><option>Completed</option><option>Rescheduled</option><option>No-show</option></select></div>
+        <div class="fg"><div class="fl">Referral</div><select class="fsel" id="ns-ref"><option>None</option><option>Academic support</option><option>Counseling</option><option>Career services</option><option>Financial aid</option></select></div>
+      </div>
+      <div class="rg2">
+        <div class="fg"><div class="fl">Next meeting date</div><input class="fi" type="date" id="ns-nd"></div>
+        <div class="fg"><div class="fl">Next meeting agenda</div><input class="fi" id="ns-na" placeholder="Brief agenda"></div>
+      </div>
+      <div class="fg"><div class="fl">Major change note</div><input class="fi" id="ns-mc" placeholder="Leave blank if no change"></div>
+    </div>
+    <div class="ns-ft">
+      <span class="ns-note">Saves to Advising Log · updates Master DB automatically</span>
+      <div class="ns-btns">
+        <button class="btn-cancel" onclick="event.stopPropagation();cancelForm()">Cancel</button>
+        <button class="btn-save" onclick="event.stopPropagation();saveSession('${st.id}')">Save session</button>
+      </div>
+    </div>
+  </div></div></div>`;
+}
+
+function toggleTopic(sid,t){
+  selTopics=selTopics.includes(t)?selTopics.filter(x=>x!==t):[...selTopics,t];
+  const el=document.getElementById('ns-topics');
+  if(el){
+    const topics=['Career','Academics','Research','Wellbeing','Administrative'];
+    el.innerHTML=topics.map(tp=>`<span class="mchip ${selTopics.includes(tp)?'on':''}" onclick="toggleTopic('${sid}','${tp}')">${tp}</span>`).join('');
+  }
+}
+
+function toggleForm(id){
+  showFormFor=showFormFor===id?null:id;
+  selTopics=[];
+  renderStudBody();
+  if(showFormFor){setTimeout(()=>{const el=document.getElementById('sp-'+id);if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});},50);}
+}
+function cancelForm(){showFormFor=null;renderStudBody();}
+
+async function saveSession(studId){
+  const disc=document.getElementById('ns-disc')?.value.trim();
+  if(!disc){showToast('Discussion summary is required.');return;}
+
+  const st=students.find(s=>s.id===studId);
+  const date=document.getElementById('ns-date')?.value||new Date().toISOString().split('T')[0];
+  const type=document.getElementById('ns-type')?.value||'Regular';
+  const format=document.getElementById('ns-format')?.value||'Zoom';
+  const conc=document.getElementById('ns-conc')?.value.trim()||'';
+  const advice=document.getElementById('ns-advice')?.value.trim()||'';
+  const studentAction=document.getElementById('ns-sa')?.value.trim()||'';
+  const followUp=document.getElementById('ns-fu')?.value||'N';
+  const nextDate=document.getElementById('ns-nd')?.value||'';
+  const nextAgenda=document.getElementById('ns-na')?.value.trim()||'';
+  const majorChangeNote=document.getElementById('ns-mc')?.value.trim()||'';
+
+  // Determine next Log ID
+  const existingNums = sessions
+    .map(s=>parseInt((s.logId||'').replace('LOG-',''))||0)
+    .filter(n=>n>0);
+  const nextNum = existingNums.length ? Math.max(...existingNums)+1 : sessions.length+1;
+  const logId = `LOG-${String(nextNum).padStart(3,'0')}`;
+
+  // Optimistic local update first
+  const newSess = {logId,date,faculty:FACULTY,studentId:studId,studentName:st?.name||'',
+    type,format,disc,conc,advice,studentAction,followUp,nextDate,nextAgenda,majorChangeNote,
+    mainTopic:selTopics.join(', ')};
+  sessions.push(newSess);
+  syncStudents();
+  showFormFor=null;selTopics=[];
+  renderStudBody();
+  showToast(`Saving session for ${st?.name}…`);
+
+  // Write to Supabase if signed in
+  if (isSignedIn()) {
+    try {
+      await insertSession(newSess);
+      showToast(`✓ Session saved to database — ${st?.name}`);
+    } catch(e) {
+      console.error('Supabase write error:', e);
+      // Roll back optimistic update on failure
+      sessions.pop();
+      syncStudents();
+      renderStudBody();
+      showToast(`Save failed: ${e.message}`);
+    }
+  } else {
+    showToast(`Saved locally — sign in to persist to database`);
+  }
+}
+
+// ── SESSION LOG ──
+function renderLog(){
+  const mine=myStudents();
+  const mySess=sessions.filter(s=>s.faculty===FACULTY);
+  const fu=mySess.filter(s=>s.followUp==='Y').length;
+  const z=mine.filter(s=>s.sessions===0).length;
+
+  document.getElementById('page-log').innerHTML=`
+    <div class="log-stat-bar">
+      <div class="log-stat"><div class="log-stat-v" style="color:var(--text)">${mySess.length}</div><div class="log-stat-l">Total sessions</div></div>
+      <div class="log-stat-sep"></div>
+      <div class="log-stat"><div class="log-stat-v" style="color:${fu>0?'var(--amber)':'var(--green)'}">${fu}</div><div class="log-stat-l">Follow-up pending</div></div>
+      <div class="log-stat-sep"></div>
+      <div class="log-stat"><div class="log-stat-v" style="color:${z>0?'var(--red)':'var(--green)'}">${z}</div><div class="log-stat-l">Students with 0 sessions</div></div>
+      <div style="margin-left:auto;display:flex;gap:7px;align-items:center;">
+        <button class="fchip ${logFilter==='all'?'active':''}" onclick="setLogFilter('all')">All sessions</button>
+        <button class="fchip warn ${logFilter==='fu'?'active':''}" onclick="setLogFilter('fu')">Follow-up pending</button>
+        <input class="search-box" placeholder="Search by student name or ID…" value="${esc(logSearch)}" oninput="logSearch=this.value;renderLogList()" style="min-width:180px;margin-left:0;">
+      </div>
+    </div>
+    <div class="log-list" id="log-list"></div>`;
+  renderLogList();
+}
+
+function setLogFilter(v){logFilter=v;renderLogList();}
+
+function buildEditForm(s) {
+  const typeOpts = ['Regular','Ad-hoc','Email'].map(o=>
+    `<option${s.type===o?' selected':''}>${o}</option>`).join('');
+  const fmtOpts = ['Zoom','In-person','Phone','Email'].map(o=>
+    `<option${s.format===o?' selected':''}>${o}</option>`).join('');
+  const fuOpts = ['N','Y'].map(o=>
+    `<option value="${o}"${s.followUp===o?' selected':''}>${o==='Y'?'Yes':'No'}</option>`).join('');
+
+  return `<div class="ns-card" style="margin:0;border-radius:0;border-left:none;border-right:none;border-bottom:none;">
+    <div class="ns-hd" style="background:var(--surface2);border-color:var(--border);">
+      <span class="ns-title" style="color:var(--text);">Edit session — ${esc(s.logId)}</span>
+      <button class="ns-cancel" style="color:var(--text2);" onclick="event.stopPropagation();cancelEdit()">Cancel ×</button>
+    </div>
+    <div class="ns-body">
+      <div class="rg3">
+        <div class="fg"><div class="fl">Date <span class="req">*</span></div><input class="fi" type="date" id="ed-date" value="${esc(s.date)}"></div>
+        <div class="fg"><div class="fl">Type <span class="req">*</span></div><select class="fsel" id="ed-type">${typeOpts}</select></div>
+        <div class="fg"><div class="fl">Format <span class="req">*</span></div><select class="fsel" id="ed-format">${fmtOpts}</select></div>
+      </div>
+      <div class="prow">
+        <div class="pbox disc">
+          <div class="plbl disc">Discussion summary <span class="req">*</span></div>
+          <textarea class="fta fta-disc" id="ed-disc">${esc(s.disc)}</textarea>
+        </div>
+        <div class="pbox conc">
+          <div class="plbl conc">Student concerns &amp; requests</div>
+          <textarea class="fta fta-conc" id="ed-conc">${esc(s.conc)}</textarea>
+        </div>
+      </div>
+      <div class="rg2">
+        <div class="fg"><div class="fl">Advisor advice &amp; action items</div><textarea class="fta" id="ed-advice" rows="2">${esc(s.advice)}</textarea></div>
+        <div class="fg"><div class="fl">Student action items</div><textarea class="fta" id="ed-sa" rows="2">${esc(s.studentAction)}</textarea></div>
+      </div>
+      <div class="rg3">
+        <div class="fg"><div class="fl">Follow-up required? <span class="req">*</span></div><select class="fsel" id="ed-fu">${fuOpts}</select></div>
+        <div class="fg"><div class="fl">Next meeting date</div><input class="fi" type="date" id="ed-nd" value="${esc(s.nextDate)}"></div>
+        <div class="fg"><div class="fl">Next meeting agenda</div><input class="fi" id="ed-na" value="${esc(s.nextAgenda)}" placeholder="Brief agenda"></div>
+      </div>
+      <div class="fg"><div class="fl">Major change note</div><input class="fi" id="ed-mc" value="${esc(s.majorChangeNote)}" placeholder="Leave blank if no change"></div>
+    </div>
+    <div class="ns-ft">
+      <span class="ns-note">${isSignedIn() ? 'Saves to Supabase database' : 'Sign in to persist changes to database'}</span>
+      <div class="ns-btns">
+        <button class="btn-cancel" onclick="event.stopPropagation();cancelEdit()">Cancel</button>
+        <button class="btn-save" onclick="event.stopPropagation();saveEdit('${esc(s.logId)}')">Save changes</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function cancelEdit() {
+  editingLogId = null;
+  renderLogList();
+}
+
+async function saveEdit(logId) {
+  const disc = document.getElementById('ed-disc')?.value.trim();
+  if (!disc) { showToast('Discussion summary is required.'); return; }
+
+  const updated = {
+    date:            document.getElementById('ed-date')?.value || '',
+    type:            document.getElementById('ed-type')?.value || 'Regular',
+    format:          document.getElementById('ed-format')?.value || 'Zoom',
+    disc,
+    conc:            document.getElementById('ed-conc')?.value.trim() || '',
+    advice:          document.getElementById('ed-advice')?.value.trim() || '',
+    studentAction:   document.getElementById('ed-sa')?.value.trim() || '',
+    followUp:        document.getElementById('ed-fu')?.value || 'N',
+    nextDate:        document.getElementById('ed-nd')?.value || '',
+    nextAgenda:      document.getElementById('ed-na')?.value.trim() || '',
+    majorChangeNote: document.getElementById('ed-mc')?.value.trim() || '',
+  };
+
+  // Apply locally
+  const idx = sessions.findIndex(s => s.logId === logId);
+  if (idx === -1) return;
+  const prev = {...sessions[idx]};
+  Object.assign(sessions[idx], updated);
+  syncStudents();
+  editingLogId = null;
+  renderLogList();
+  if (openStudId === prev.studentId) renderStudBody();
+  showToast('Saving changes…');
+
+  if (isSignedIn()) {
+    try {
+      await sbUpdate(TBL_LOG, 'log_id', logId, {
+        meeting_date:         updated.date,
+        meeting_type:         updated.type,
+        meeting_format:       updated.format,
+        discussion_summary:   updated.disc,
+        student_concerns:     updated.conc,
+        advisor_advice:       updated.advice,
+        student_action_items: updated.studentAction,
+        follow_up_required:   updated.followUp,
+        next_meeting_date:    updated.nextDate || null,
+        next_meeting_agenda:  updated.nextAgenda,
+        major_change_note:    updated.majorChangeNote,
+      });
+      showToast(`✓ Session ${logId} updated`);
+    } catch(e) {
+      // Roll back
+      Object.assign(sessions[idx], prev);
+      syncStudents();
+      renderLogList();
+      showToast(`Update failed: ${e.message}`);
+    }
+  } else {
+    showToast(`Updated locally — sign in to persist to database`);
+  }
+}
+
+async function deleteSession(logId) {
+  if (!confirm(`Delete session ${logId}?\n\nThis cannot be undone.`)) return;
+
+  // Optimistic: remove from local state immediately
+  const idx = sessions.findIndex(s => s.logId === logId);
+  if (idx === -1) return;
+  const removed = sessions.splice(idx, 1)[0];
+  syncStudents();
+  openLogId = null;
+  renderLogList();
+  // Also refresh My Students if open
+  if (openStudId === removed.studentId) renderStudBody();
+
+  if (isSignedIn()) {
+    try {
+      await sbDelete(TBL_LOG, 'log_id', logId);
+      showToast(`Session ${logId} deleted`);
+    } catch(e) {
+      // Roll back on failure
+      sessions.splice(idx, 0, removed);
+      syncStudents();
+      renderLogList();
+      showToast(`Delete failed: ${e.message}`);
+    }
+  } else {
+    showToast(`${logId} removed locally — sign in to sync deletion to database`);
+  }
+}
+
+function renderLogList(){
+  const mine=myStudents();
+  let list=sessions.filter(s=>s.faculty===FACULTY);
+  if(logFilter==='fu') list=list.filter(s=>s.followUp==='Y');
+  if(logSearch){const q=logSearch.toLowerCase();list=list.filter(s=>s.studentName.toLowerCase().includes(q)||s.studentId.includes(q));}
+  list=[...list].sort((a,b)=>b.date.localeCompare(a.date));
+
+  const container=document.getElementById('log-list');
+  if(!container)return;
+  container.innerHTML='';
+
+  if(!list.length){container.innerHTML=`<div class="tl-empty">No sessions match the current filter.</div>`;return;}
+
+  list.forEach(s=>{
+    const isOpen=openLogId===s.logId;
+    const tc=s.type==='Regular'?'blue':'gray';
+    const st=students.find(x=>x.id===s.studentId);
+    const extras=[
+      {l:'Student ID',v:s.studentId},
+      {l:'Cohort',v:shortCohort(st?.cohort||'')},
+      {l:'1st major',v:shortMajor(st?.major1||'')},
+      {l:'Track',v:st?.track||'—'},
+      {l:'Advisor role',v:st?roleFor(st):'—'},
+      ...(st?.major2?[{l:'2nd major',v:shortMajor(st.major2)}]:[]),
+    ];
+    const eHtml=extras.map(e=>`<div class="ab-item"><div class="ab-lbl">${esc(e.l)}</div><div class="ab-val">${esc(e.v)}</div></div>`).join('');
+
+    const div=document.createElement('div');
+    div.className='log-row'+(isOpen?' active':'');
+    div.innerHTML=`
+      <div class="log-sum">
+        <div class="log-left">
+          <span class="log-date">${esc(s.date)}</span>
+          <span class="log-logid">${esc(s.logId)}</span>
+          <span class="log-who">${esc(s.studentName)}</span>
+          <span class="log-sub">· ${esc(shortCohort(st?.cohort||''))} · ${esc(shortMajor(st?.major1||''))}</span>
+          ${bdg(s.type,tc)}${bdg(s.format,'gray')}${bdg('Completed','green')}
+          <span class="log-preview">${esc(s.disc.substring(0,60))}…</span>
+        </div>
+        <span class="log-hint">${isOpen?'▴ Collapse':'▾ Expand'}</span>
+      </div>
+      <div class="log-xwrap${isOpen?' open':''}">
+        <div class="log-ab">${eHtml}
+          <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+            <span class="go-link" onclick="event.stopPropagation();goToStudent('${s.studentId}')">Go to student →</span>
+            <button onclick="event.stopPropagation();editingLogId=editingLogId==='${s.logId}'?null:'${s.logId}';renderLogList()"
+              style="font-size:17px;padding:3px 10px;border-radius:var(--r);border:0.5px solid var(--border-em);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .12s;"
+              onmouseover="this.style.background='var(--surface2)'"
+              onmouseout="this.style.background='var(--surface)'">
+              ${editingLogId===s.logId ? 'Cancel edit' : 'Edit'}
+            </button>
+            <button onclick="event.stopPropagation();deleteSession('${s.logId}')"
+              style="font-size:17px;padding:3px 10px;border-radius:var(--r);border:1px solid var(--red-l);background:var(--red-l);color:var(--red);cursor:pointer;font-family:inherit;transition:all .12s;"
+              onmouseover="this.style.background='var(--red)';this.style.color='white'"
+              onmouseout="this.style.background='var(--red-l)';this.style.color='var(--red)'">
+              Delete
+            </button>
+          </div>
+        </div>
+        <div class="log-sc">${editingLogId===s.logId ? buildEditForm(s) : buildSessCard(s)}</div>
+      </div>`;
+    div.querySelector('.log-sum').onclick=()=>{
+      if (openLogId===s.logId) { openLogId=null; editingLogId=null; }
+      else { openLogId=s.logId; editingLogId=null; }
+      renderLogList();
+    };
+    container.appendChild(div);
+  });
+}
+
+// ── CODEBOOK ──
+function renderCodebook(){
+  document.getElementById('page-codebook').innerHTML=`
+    <div class="help-hero">
+      <div class="help-hero-title">Help & Guide — Telos</div>
+      <div class="help-hero-sub">Telos is the advising portal for Taejae University faculty. Everything you enter here is saved to the shared database and accessible to the Program Chair.</div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">What each page does</div>
+      <div class="help-cards">
+        <div class="help-card">
+          <div class="help-card-icon blue">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.5" fill="#185FA5"/><rect x="11" y="3" width="6" height="6" rx="1.5" fill="#185FA5" opacity=".4"/><rect x="3" y="11" width="6" height="6" rx="1.5" fill="#185FA5" opacity=".4"/><rect x="11" y="11" width="6" height="6" rx="1.5" fill="#185FA5" opacity=".4"/></svg>
+          </div>
+          <div class="help-card-title">Overview</div>
+          <div class="help-card-body">A quick summary of your advising status — how many students you advise, total sessions logged this semester, students with no session yet, upcoming meetings not scheduled, and any follow-up items pending.</div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-icon green">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="#3B6D11" stroke-width="1.5"/><path d="M4 17c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="#3B6D11" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="help-card-title">My Students</div>
+          <div class="help-card-body">A list of all students assigned to you as Advisor 1 or Advisor 2. Click any row to expand the student's full session timeline. Use the "+ Log session" button to record a new advising session for that student.</div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-icon amber">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 6h12M4 10h8M4 14h5" stroke="#854F0B" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="help-card-title">Session Log</div>
+          <div class="help-card-body">A chronological list of all advising sessions you have conducted. Click any session row to see the full record. You can also edit or delete a session from this view.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">How to log an advising session</div>
+      <div class="tbl-wrap" style="border-radius:var(--r-lg);overflow:hidden;">
+        <div class="help-steps">
+          <div class="help-step">
+            <div class="help-step-num">1</div>
+            <div class="help-step-content">
+              <div class="help-step-title">Go to My Students</div>
+              <div class="help-step-body">Click the <strong>My Students</strong> tab in the top navigation. You will see a list of all students assigned to you.</div>
+            </div>
+          </div>
+          <div class="help-step">
+            <div class="help-step-num">2</div>
+            <div class="help-step-content">
+              <div class="help-step-title">Click the student's row</div>
+              <div class="help-step-body">Click anywhere on the student's row to expand it. You will see their advising history as a timeline, including past sessions and the next scheduled meeting (if any).</div>
+            </div>
+          </div>
+          <div class="help-step">
+            <div class="help-step-num">3</div>
+            <div class="help-step-content">
+              <div class="help-step-title">Click "+ Log session"</div>
+              <div class="help-step-body">The button appears in the top-right of the expanded panel. Click it to open the session entry form. The student's name, ID, and your advisor role will be filled in automatically.</div>
+            </div>
+          </div>
+          <div class="help-step">
+            <div class="help-step-num">4</div>
+            <div class="help-step-content">
+              <div class="help-step-title">Fill in the session details</div>
+              <div class="help-step-body">
+                Enter the date, session type, and format. Then fill in the two main content fields:<br><br>
+                <strong style="color:#185FA5;">Discussion summary</strong> — What you discussed from your perspective as the advisor. This is required.<br><br>
+                <strong style="color:#854F0B;">Student concerns &amp; requests</strong> — What the student raised, asked, or expressed concern about. This is optional but highly recommended.
+              </div>
+              <div class="help-tip">
+                <div class="help-tip-icon">💡</div>
+                <div class="help-tip-text">Recording what the student said separately from what was discussed helps build a clearer picture of the student's needs over time and ensures continuity across sessions.</div>
+              </div>
+            </div>
+          </div>
+          <div class="help-step">
+            <div class="help-step-num">5</div>
+            <div class="help-step-content">
+              <div class="help-step-title">Add follow-up and next meeting</div>
+              <div class="help-step-body">Note any action items for yourself or the student. If follow-up is required before the next session, set it to <code>Yes</code>. If you have already arranged the next meeting, enter the date and agenda.</div>
+            </div>
+          </div>
+          <div class="help-step">
+            <div class="help-step-num">6</div>
+            <div class="help-step-content">
+              <div class="help-step-title">Save the session</div>
+              <div class="help-step-body">Click <strong>Save session</strong>. The record will appear immediately in the student's timeline and in Session Log. If you are signed in, it is saved to the database automatically.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">Editing and deleting sessions</div>
+      <div class="help-cards" style="grid-template-columns:1fr 1fr;">
+        <div class="help-card">
+          <div class="help-card-title">Editing a session</div>
+          <div class="help-card-body">Go to <strong>Session Log</strong>, click the session row to expand it, then click <strong>Edit</strong> in the action bar. All content fields become editable. Click <strong>Save changes</strong> when done. The Log ID, Student ID, and faculty name cannot be changed.</div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-title">Deleting a session</div>
+          <div class="help-card-body">Go to <strong>Session Log</strong>, expand the session, then click <strong>Delete</strong>. You will be asked to confirm. Deletion is permanent and cannot be undone — please double-check before proceeding.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">Field reference</div>
+      <div class="help-ref-grid">
+        <div class="help-ref-card">
+          <div class="help-ref-hd">Session type <span class="help-ref-sub">choose one</span></div>
+          <div class="help-ref-row"><div class="help-ref-key">Regular</div><div class="help-ref-val">A scheduled, recurring advising meeting</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Ad-hoc</div><div class="help-ref-val">An unscheduled or spontaneous meeting</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Email</div><div class="help-ref-val">An advising exchange conducted via email</div></div>
+        </div>
+        <div class="help-ref-card">
+          <div class="help-ref-hd">Meeting format <span class="help-ref-sub">choose one</span></div>
+          <div class="help-ref-row"><div class="help-ref-key">Zoom</div><div class="help-ref-val">Video call via Zoom</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">In-person</div><div class="help-ref-val">Face-to-face meeting on campus</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Phone</div><div class="help-ref-val">Voice call</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Email</div><div class="help-ref-val">Written email exchange</div></div>
+        </div>
+        <div class="help-ref-card">
+          <div class="help-ref-hd">Main topic <span class="help-ref-sub">select all that apply</span></div>
+          <div class="help-ref-row"><div class="help-ref-key">Career</div><div class="help-ref-val">Career exploration, job search, graduate school plans</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Academics</div><div class="help-ref-val">Course selection, grades, academic progress</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Research</div><div class="help-ref-val">Research projects, AIR, thesis work</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Wellbeing</div><div class="help-ref-val">Personal wellbeing, stress, mental health</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Administrative</div><div class="help-ref-val">Leave of absence, major change, enrollment</div></div>
+        </div>
+        <div class="help-ref-card">
+          <div class="help-ref-hd">Status & follow-up</div>
+          <div class="help-ref-row"><div class="help-ref-key">Completed</div><div class="help-ref-val">Session took place as planned</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Rescheduled</div><div class="help-ref-val">Session was postponed to a later date</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">No-show</div><div class="help-ref-val">Student did not attend without prior notice</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Follow-up: Yes</div><div class="help-ref-val">You have a pending action before the next session</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Follow-up: No</div><div class="help-ref-val">No immediate action needed on your end</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">Tips for good advising records</div>
+      <div class="help-cards">
+        <div class="help-card">
+          <div class="help-card-title">Record immediately after the session</div>
+          <div class="help-card-body">Memory fades quickly. Even a brief note entered right after the meeting is far more valuable than a detailed reconstruction written days later.</div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-title">Separate what you said from what the student said</div>
+          <div class="help-card-body">Use the blue Discussion field for your perspective and the amber Concerns field for the student's voice. This distinction helps the Program Chair understand both sides of each conversation.</div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-title">Always set the next meeting</div>
+          <div class="help-card-body">Students with no next meeting date set appear as alerts on the Overview page. Scheduling the next session before ending the current one keeps advising momentum going.</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── CROSS-PAGE NAV ──
+function goToStudent(id){
+  openStudId=id;showFormFor=null;
+  document.querySelectorAll('.nav-tab').forEach(t=>{t.classList.toggle('active',t.dataset.page==='students');});
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-students').classList.add('active');
+  currentPage='students';
+  renderStudents();
+  setTimeout(()=>{
+    const r=document.querySelector('#stud-tbody tr.row-active');
+    if(r)r.scrollIntoView({behavior:'smooth',block:'center'});
+  },100);
+}
+function goToLog(logId){
+  openLogId=logId;
+  document.querySelectorAll('.nav-tab').forEach(t=>{t.classList.toggle('active',t.dataset.page==='log');});
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-log').classList.add('active');
+  currentPage='log';
+  renderLog();
+}
+
+// ── FALLBACK DATA (Student_Master_DB extracted) ──
+const FALLBACK_STUDENTS = [{"id":"2023005","name":"Hoai Thu Luu","nameKr":"","email":"jessyluu@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Business Innovation","track":"Single Major","major1":"Business Innovation","major2":"","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Sam Young Chung","advisor2":"","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023008","name":"Dahee Chun","nameKr":"전다희","email":"daheechun@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Natural Sciences","track":"Double Major","major1":"Natural Sciences","major2":"Data Science and AI","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Mijung Lee","advisor2":"Sung Jun Park","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023012","name":"Jaehong Park","nameKr":"박재홍","email":"jay@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Humanities and Social Sciences","track":"Major and Minor","major1":"Humanities and Social Sciences","major2":"","minor":"Natural Sciences","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jeongseok Lee","advisor2":"Mijung Lee","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023014","name":"Yeju Kwon","nameKr":"권예주","email":"yejugracekwon@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Humanities and Social Sciences","track":"Double Major","major1":"Humanities and Social Sciences","major2":"Data Science and AI","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jeongseok Lee","advisor2":"Kendall Koe","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023016","name":"Yijun Kim","nameKr":"김이준","email":"michael@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Innovation Foundations","track":"","major1":"","major2":"","minor":"","status":"Leave of Absence","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"","advisor2":"","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023018","name":"Ju Won Lee","nameKr":"이주원","email":"joannelee@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Data Science and AI","track":"Major and Minor","major1":"Data Science and AI","major2":"","minor":"Humanities and Social Sciences","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jiyoung Kwahk","advisor2":"Jeongseok Lee","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023023","name":"Eunyoung Chang","nameKr":"장은영","email":"eunyoung@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Humanities and Social Sciences","track":"Self-designed Major","major1":"Self-designed","major2":"","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jeongseok Lee","advisor2":"","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023030","name":"Yuseol Kim","nameKr":"김유설","email":"youngsnow@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Innovation Foundations","track":"","major1":"","major2":"","minor":"","status":"Leave of Absence","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"","advisor2":"","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023037","name":"Sejun Kim","nameKr":"김세준","email":"sejun7684@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Business Innovation","track":"Major and Minor","major1":"Business Innovation","major2":"","minor":"Data Science and AI","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Sam Young Chung","advisor2":"Jiyoung Kwahk","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023042","name":"Shahar Bezalel","nameKr":"","email":"36954838@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Humanities and Social Sciences","track":"Double Major","major1":"Humanities and Social Sciences","major2":"Natural Sciences","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jeongseok Lee","advisor2":"Mijung Lee","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023044","name":"Suyeon Koh","nameKr":"고수연","email":"rhtnd12@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Data Science and AI","track":"Single Major","major1":"Data Science and AI","major2":"","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Sung Jun Park","advisor2":"","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023045","name":"Aigerim Kakimzhanova","nameKr":"","email":"aigerim@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Data Science and AI","track":"Double Major","major1":"Data Science and AI","major2":"Business Innovation","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Kendall Koe","advisor2":"Sam Young Chung","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023050","name":"Dohyeong Lee","nameKr":"이도형","email":"myetty@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Humanities and Social Sciences","track":"Double Major","major1":"Humanities and Social Sciences","major2":"Data Science and AI","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jeongseok Lee","advisor2":"Sung Jun Park","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023054","name":"Yoonmin Cha","nameKr":"차윤민","email":"chayoonmin@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Data Science and AI","track":"Major and Minor","major1":"Data Science and AI","major2":"","minor":"Business Innovation","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Sung Jun Park","advisor2":"Sam Young Chung","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023058","name":"Hyein Kim","nameKr":"김혜인","email":"hanny1126@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Data Science and AI","track":"Double Major","major1":"Data Science and AI","major2":"Humanities and Social Sciences","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jiyoung Kwahk","advisor2":"Jeongseok Lee","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023071","name":"Minjin Cho","nameKr":"조민진","email":"minjin0706@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Business Innovation","track":"Double Major","major1":"Business Innovation","major2":"Humanities and Social Sciences","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Sam Young Chung","advisor2":"Jeongseok Lee","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023084","name":"Sooyong Kim","nameKr":"김수용","email":"harrenkim621@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Data Science and AI","track":"Major and Minor","major1":"Data Science and AI","major2":"","minor":"Business Innovation","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Kendall Koe","advisor2":"Sam Young Chung","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023086","name":"Lina Jellibi","nameKr":"","email":"linajel@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Data Science and AI","track":"Double Major","major1":"Data Science and AI","major2":"Business Innovation","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jiyoung Kwahk","advisor2":"Sam Young Chung","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023088","name":"Jihoon Choi","nameKr":"최지훈","email":"joon@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Data Science and AI","track":"Double Major","major1":"Data Science and AI","major2":"Business Innovation","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Sung Jun Park","advisor2":"Sam Young Chung","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023089","name":"Minwoo Choi","nameKr":"최민우","email":"jake@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Innovation Foundations","track":"","major1":"","major2":"","minor":"","status":"Leave of Absence","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"","advisor2":"","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023092","name":"Bandi Kim","nameKr":"김반디","email":"bandi@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Humanities and Social Sciences","track":"Double Major","major1":"Humanities and Social Sciences","major2":"Natural Sciences","minor":"","status":"Enrolled","sessions":1,"lastMeeting":"2026-03-13","lastSummary":"Reviewed the student's progress on the AIR Project.","nextMeeting":"","nextAgenda":"","advisor1":"Jeongseok Lee","advisor2":"Mijung Lee","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023095","name":"Dawit Chun","nameKr":"전다윗","email":"chundawit@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Data Science and AI","track":"Double Major","major1":"Data Science and AI","major2":"Natural Sciences","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Kendall Koe","advisor2":"Mijung Lee","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2023097","name":"Yejoon Song","nameKr":"송예준","email":"gabby7110@taejae.ac.kr","cohort":"Cohort 1 (2023)","school":"Business Innovation","track":"Double Major","major1":"Business Innovation","major2":"Data Science and AI","minor":"","status":"Enrolled","sessions":1,"lastMeeting":"2026-03-12","lastSummary":"The student is experiencing difficulty in choosing a career path due to having too many areas of interest.","nextMeeting":"","nextAgenda":"","advisor1":"Sam Young Chung","advisor2":"Jiyoung Kwahk","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024003","name":"Sooyeon Yoo","nameKr":"유수연","email":"yoosooyeon@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Natural Sciences","track":"Double Major","major1":"Natural Sciences","major2":"Data Science and AI","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Mijung Lee","advisor2":"Kendall Koe","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024008","name":"Hua Hwang","nameKr":"황후아","email":"huhua2011@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Humanities and Social Sciences","track":"Major and Minor","major1":"Humanities and Social Sciences","major2":"","minor":"Data Science and AI","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jeongseok Lee","advisor2":"Jiyoung Kwahk","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024010","name":"Hyeseung Oh","nameKr":"오혜승","email":"diana0427@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Humanities and Social Sciences","track":"Major and Minor","major1":"Humanities and Social Sciences","major2":"","minor":"Data Science and AI","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jeongseok Lee","advisor2":"Sung Jun Park","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024012","name":"Koko Sato","nameKr":"","email":"cocosato@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Business Innovation","track":"Double Major","major1":"Business Innovation","major2":"Data Science and AI","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Sam Young Chung","advisor2":"Kendall Koe","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024022","name":"Jioh Han","nameKr":"한지오","email":"isaax021@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Data Science and AI","track":"Double Major","major1":"Data Science and AI","major2":"Business Innovation","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jiyoung Kwahk","advisor2":"Sam Young Chung","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024025","name":"Kanat Atakonys","nameKr":"","email":"kanatatakonys@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Data Science and AI","track":"Single Major","major1":"Data Science and AI","major2":"","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Sung Jun Park","advisor2":"","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024027","name":"Amartushig Amarmandakh","nameKr":"","email":"aden@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Data Science and AI","track":"Major and Minor","major1":"Data Science and AI","major2":"","minor":"Business Innovation","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Kendall Koe","advisor2":"Sam Young Chung","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024029","name":"Jungin Lim","nameKr":"임정인","email":"inny101810@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Business Innovation","track":"Major and Minor","major1":"Business Innovation","major2":"","minor":"Data Science and AI","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Sam Young Chung","advisor2":"Kendall Koe","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024037","name":"Gaeun Oh","nameKr":"오가은","email":"graceoh@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Natural Sciences","track":"Major and Minor","major1":"Natural Sciences","major2":"","minor":"Humanities and Social Sciences","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Mijung Lee","advisor2":"Jeongseok Lee","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024038","name":"Daniil Andriushchenko","nameKr":"","email":"daniiland@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Natural Sciences","track":"Double Major","major1":"Natural Sciences","major2":"Data Science and AI","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Mijung Lee","advisor2":"Sung Jun Park","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024043","name":"Yeju Han","nameKr":"한예주","email":"yejuhan@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Business Innovation","track":"Double Major","major1":"Business Innovation","major2":"Humanities and Social Sciences","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Sam Young Chung","advisor2":"Jeongseok Lee","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024050","name":"Momoka Utsunomiya","nameKr":"","email":"momokautnmy@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Humanities and Social Sciences","track":"Single Major","major1":"Humanities and Social Sciences","major2":"","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jeongseok Lee","advisor2":"","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024055","name":"Daria Melnikova","nameKr":"","email":"dariamelnikova@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Natural Sciences","track":"Double Major","major1":"Natural Sciences","major2":"Business Innovation","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Mijung Lee","advisor2":"Sam Young Chung","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024058","name":"Lauren Jacqueline Labat","nameKr":"","email":"lau322@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Humanities and Social Sciences","track":"Single Major","major1":"Humanities and Social Sciences","major2":"","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jeongseok Lee","advisor2":"","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024062","name":"Jinseong Park","nameKr":"박진성","email":"jinseong0826@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Humanities and Social Sciences","track":"Double Major","major1":"Humanities and Social Sciences","major2":"Data Science and AI","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jeongseok Lee","advisor2":"Jiyoung Kwahk","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024065","name":"Stella Park","nameKr":"박수빈","email":"spark0@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Humanities and Social Sciences","track":"Double Major","major1":"Humanities and Social Sciences","major2":"Business Innovation","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jeongseok Lee","advisor2":"Sam Young Chung","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024066","name":"Kyungmin Lew","nameKr":"류경민","email":"kmlew@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Humanities and Social Sciences","track":"Double Major","major1":"Humanities and Social Sciences","major2":"Business Innovation","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jeongseok Lee","advisor2":"Sam Young Chung","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024069","name":"Sena Jin","nameKr":"진세나","email":"jinsena@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Data Science and AI","track":"Double Major","major1":"Data Science and AI","major2":"Business Innovation","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Jiyoung Kwahk","advisor2":"Sam Young Chung","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024073","name":"Youah Jung","nameKr":"정유아","email":"eunice0506@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Business Innovation","track":"Single Major","major1":"Business Innovation","major2":"","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Sam Young Chung","advisor2":"","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024079","name":"Yonggun Lee","nameKr":"이용군","email":"yongguun@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Data Science and AI","track":"Double Major","major1":"Data Science and AI","major2":"Business Innovation","minor":"","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Sung Jun Park","advisor2":"Sam Young Chung","careerGoal":"","researchInterest":"","concerns":"","notes":""},{"id":"2024093","name":"Dahyeon Kang","nameKr":"강다현","email":"riverdhh@taejae.ac.kr","cohort":"Cohort 2 (2024)","school":"Data Science and AI","track":"Major and Minor","major1":"Data Science and AI","major2":"","minor":"Humanities and Social Sciences","status":"Enrolled","sessions":0,"lastMeeting":"","lastSummary":"","nextMeeting":"","nextAgenda":"","advisor1":"Kendall Koe","advisor2":"Jeongseok Lee","careerGoal":"","researchInterest":"","concerns":"","notes":""}];
+
+const FALLBACK_SESSIONS = [
+  {logId:'LOG-001',date:'2026-03-12',faculty:'Jiyoung Kwahk',studentId:'2023097',studentName:'Yejoon Song',type:'Ad-hoc',format:'Zoom',disc:'The student is experiencing difficulty in choosing a career path due to having too many areas of interest.',conc:'The student had been considering a career in Finance but has recently become concerned that the field may already be saturated ("red ocean"). Given the current job market conditions, the student is considering exploring alternative fields.',advice:'Suggested that the student explore and study the topic of Complex Systems.',followUp:'N',nextDate:'',nextAgenda:'',majorChangeNote:''},
+  {logId:'LOG-002',date:'2026-03-13',faculty:'Jiyoung Kwahk',studentId:'2023092',studentName:'Bandi Kim',type:'Ad-hoc',format:'Zoom',disc:"Reviewed the student's progress on the AIR Project.",conc:'The student requested guidance on the final outcome and capstone idea for the AIR Project. Expressed concern that the results may be too trivial. Uncertain about how to approach and structure the analysis method.',advice:'Suggested considering a data storytelling approach in the style of digital humanities.',followUp:'N',nextDate:'',nextAgenda:'',majorChangeNote:''}
+];
+
+// ── USER MENU ──
+function toggleUserMenu() {
+  document.getElementById('nav-dropdown').classList.toggle('open');
+}
+function closeUserMenu() {
+  document.getElementById('nav-dropdown').classList.remove('open');
+}
+// 드롭다운 외부 클릭 시 닫기
+document.addEventListener('click', (e) => {
+  const btn = document.getElementById('nav-user-btn');
+  const dd  = document.getElementById('nav-dropdown');
+  if (dd && btn && !btn.contains(e.target) && !dd.contains(e.target)) {
+    dd.classList.remove('open');
+  }
+});
+
+// ── START ──
+// Data loads after login — do not call loadData() here
+if(SUPABASE_URL !== 'YOUR_SUPABASE_URL'){
+  document.getElementById('setup-banner').style.display = 'none';
+}
+// Focus email field on load
+document.getElementById('wall-email').focus();
+</script>
+</body>
+</html>
