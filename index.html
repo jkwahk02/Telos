@@ -453,9 +453,9 @@ function bdg(t,c){return `<span class="bdg bdg-${c}">${t}</span>`;}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 function shortMajor(m){
-  const map={'Data Science and AI':'DSA','Humanities and Social Sciences':'HSS',
-    'Natural Sciences':'Nat. Sci.','Business Innovation':'Bus. Innov.',
-    'Self-designed':'Self-designed'};
+  const map={'Data Science and AI':'DSAI','Humanities and Social Sciences':'HSS',
+    'Natural Sciences':'NS','Business Innovation':'BI',
+    'Self-designed':'Self'};
   return map[m]||m||'—';
 }
 //function shortCohort(c){return c.replace('Cohort ','C').replace(' (2023)','23').replace(' (2024)','24');}
