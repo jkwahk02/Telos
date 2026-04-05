@@ -458,7 +458,12 @@ function shortMajor(m){
   return map[m]||m||'—';
 }
 function shortCohort(c){return c.replace('Cohort ','C').replace(' (2023)','23').replace(' (2024)','24');}
-function roleFor(st){return st.advisor1===FACULTY?'Primary':'Secondary';}
+// function roleFor(st){return st.advisor1===FACULTY?'Primary':'Secondary';}
+function roleFor(st) {
+  return st.advisor1 === FACULTY ? 'Primary'
+       : st.advisor2 === FACULTY ? 'Secondary'
+       : '—';
+}
 function initials(n){return (n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 
 function myStudents(){return students.filter(s=>s.advisor1===FACULTY||s.advisor2===FACULTY);}
