@@ -997,7 +997,7 @@ function renderStudBody(){
     tr.onclick=()=>toggleStud(st.id);
     tr.innerHTML=`
       <td class="td-fc mono">${esc(st.id)}</td>
-      <td style="font-weight:500;">${esc(st.name)}${st.nameKr?` <span class="text-muted" style="font-size:17px;font-weight:400;">${esc(st.nameKr)}</span>`:''}</td>
+      <td style="font-weight:500;white-space:nowrap;">${esc(st.name)}${st.nameKr?` <span class="text-muted" style="font-size:13px;font-weight:400;">${esc(st.nameKr)}</span>`:''}</td>
       <td>${esc(shortCohort(st.cohort))}</td>
       <td>${esc(shortMajor(st.major1))}</td>
       <td>${bdg(role,rc)}</td>
