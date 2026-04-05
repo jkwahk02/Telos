@@ -1024,9 +1024,15 @@ function buildStudPanel(st){
   if(st.track) extras.push({l:'Track',v:st.track});
   if(st.major2) extras.push({l:'2nd major',v:shortMajor(st.major2)});
   if(st.minor) extras.push({l:'Minor',v:shortMajor(st.minor)});
-  const other=st.advisor1===FACULTY?st.advisor2:st.advisor1;
-  if(other&&other!==FACULTY) extras.push({l:st.advisor1===FACULTY?'Advisor 2':'Advisor 1',v:other});
-
+  // Single Major / Self-designed: Advisor 1만 표시
+  const singleAdvisor = st.track==='Single Major' || st.track==='Self-designed Major' || !st.advisor2;
+  if(singleAdvisor){
+    extras.push({l:'Advisor 1',v:st.advisor1||'—'});
+  } else {
+    extras.push({l:'Advisor 1',v:st.advisor1||'—'});
+    extras.push({l:'Advisor 2',v:st.advisor2||'—'});
+  }
+  
   const abExtra=extras.map(e=>`<div class="ab-item"><div class="ab-lbl">${esc(e.l)}</div><div class="ab-val">${esc(e.v)}</div></div>`).join('');
 
   const stSess=sessions.filter(s=>s.studentId===st.id).sort((a,b)=>b.date.localeCompare(a.date));
