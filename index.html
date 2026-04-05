@@ -457,7 +457,10 @@ function shortMajor(m){
     'Self-designed':'Self-designed'};
   return map[m]||m||'—';
 }
-function shortCohort(c){return c.replace('Cohort ','C').replace(' (2023)','23').replace(' (2024)','24');}
+//function shortCohort(c){return c.replace('Cohort ','C').replace(' (2023)','23').replace(' (2024)','24');}
+function shortCohort(c){
+  return c.replace(/Cohort (\d+) \((\d{4})\)/, (_, n, y) => `C${n}('${y.slice(2)})`);
+}
 // function roleFor(st){return st.advisor1===FACULTY?'Primary':'Secondary';}
 function roleFor(st) {
   return st.advisor1 === FACULTY ? 'Primary'
