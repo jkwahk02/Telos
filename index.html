@@ -292,6 +292,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .text-bad{color:var(--red);font-weight:500;}
 .text-muted{color:var(--text3);}
 .mono{font-family:'DM Mono',monospace;font-size:17px;}
+.ov-card-body{overflow-y:auto;max-height:280px;}
 </style>
 </head>
 <body>
@@ -893,13 +894,15 @@ function renderOverview() {
     <div class="overview-cards">
       <div class="ov-card">
         <div class="ov-card-hd">No next meeting set <span class="text-muted" style="font-weight:400;font-size:17px;">${noNextList.length} students</span></div>
-        ${noNextList.map(s=>`
-        <div class="ov-item">
-          <div class="ov-dot dot-amber"></div>
-          <div class="ov-name">${esc(s.name)}</div>
-          <div class="ov-detail">${s.sessions} session${s.sessions!==1?'s':''} · ${s.lastMeeting||'never met'}</div>
-          <span class="go-link" onclick="goToStudent('${s.id}')">View →</span>
-        </div>`).join('')}
+        <div class="ov-card-body">
+          ${noNextList.map(s=>`
+          <div class="ov-item">
+            <div class="ov-dot dot-amber"></div>
+            <div class="ov-name">${esc(s.name)}</div>
+            <div class="ov-detail">${s.sessions} session${s.sessions!==1?'s':''} · ${s.lastMeeting||'never met'}</div>
+            <span class="go-link" onclick="goToStudent('${s.id}')">View →</span>
+          </div>`).join('')}
+        </div>
       </div>
       <div class="ov-card">
         <div class="ov-card-hd">Recent sessions</div>
