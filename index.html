@@ -1186,13 +1186,14 @@ function renderProgramSummary() {
   }).join('') + (neverMet.length > 8 ? `<div class="db-item"><div class="db-detail">+${neverMet.length-8} more</div></div>` : '');
 
   return `
-    <div class="db-divider">
-      <div class="db-divider-line"></div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-        <span class="db-divider-label">${esc(FACULTY_SCHOOL)} — Program Summary</span>
-        <span class="db-chair-badge">Chair view</span>
+    <div style="margin:32px 0 20px;">
+      <div style="border-top:2px solid var(--blue);padding-top:16px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Program Summary</div>
+          <div style="font-size:20px;font-weight:600;color:var(--text);letter-spacing:-0.02em;">${esc(FACULTY_SCHOOL)}</div>
+        </div>
+        <span class="db-chair-badge" style="padding:4px 12px;font-size:12px;">Chair view</span>
       </div>
-      <div class="db-divider-line"></div>
     </div>
 
     <div class="db-stats">
