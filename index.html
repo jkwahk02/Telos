@@ -933,52 +933,6 @@ function renderOverview() {
   const zeroSess = mine.filter(s=>s.sessions===0).length;
   const noNext = mine.filter(s=>!s.nextMeeting).length;
   const followUp = mySess.filter(s=>s.followUp==='Y').length;
-//  const noNextList = mine.filter(s=>!s.nextMeeting).slice(0,8);
-  const noNextList = mine.filter(s=>!s.nextMeeting);
-  const recent = [...mySess].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
-
-  document.getElementById('page-overview').innerHTML = `
-    <div class="overview-stats">
-      <div class="stat-card"><div class="stat-val">${mine.length}</div><div class="stat-lbl">My students</div></div>
-      <div class="stat-card"><div class="stat-val ok">${mySess.length}</div><div class="stat-lbl">Total sessions</div></div>
-      <div class="stat-card"><div class="stat-val ${zeroSess>0?'bad':'ok'}">${zeroSess}</div><div class="stat-lbl">0-session students</div></div>
-      <div class="stat-card"><div class="stat-val ${noNext>0?'warn':'ok'}">${noNext}</div><div class="stat-lbl">No next meeting</div></div>
-      <div class="stat-card"><div class="stat-val ${followUp>0?'warn':'ok'}">${followUp}</div><div class="stat-lbl">Follow-up pending</div></div>
-    </div>
-    <div class="overview-cards">
-      <div class="ov-card">
-        <div class="ov-card-hd">No next meeting set <span class="text-muted" style="font-weight:400;font-size:17px;">${noNextList.length} students</span></div>
-        <div class="ov-card-body">
-          ${noNextList.map(s=>`
-          <div class="ov-item">
-            <div class="ov-dot dot-amber"></div>
-            <div class="ov-name">${esc(s.name)}</div>
-            <div class="ov-detail">${s.sessions} session${s.sessions!==1?'s':''} · ${s.lastMeeting||'never met'}</div>
-            <span class="go-link" onclick="goToStudent('${s.id}')">View →</span>
-          </div>`).join('')}
-        </div>
-      </div>
-      <div class="ov-card">
-        <div class="ov-card-hd">Recent sessions</div>
-        ${recent.length ? recent.map(s=>`
-        <div class="ov-item">
-          <div class="ov-dot dot-green"></div>
-          <div class="ov-name">${esc(s.studentName)}</div>
-          <div class="ov-detail">${s.date} · ${s.type} · ${s.format}</div>
-          <span class="go-link" onclick="goToLog('${s.logId}')">View →</span>
-        </div>`).join('') : '<div class="ov-item"><div class="text-muted">No sessions recorded yet</div></div>'}
-      </div>
-    </div>
-    ${IS_CHAIR ? renderProgramSummary() : ''}`;
-}
-
-// ── OVERVIEW ──
-function renderOverview() {
-  const mine = myStudents();
-  const mySess = sessions.filter(s=>s.faculty===FACULTY);
-  const zeroSess = mine.filter(s=>s.sessions===0).length;
-  const noNext = mine.filter(s=>!s.nextMeeting).length;
-  const followUp = mySess.filter(s=>s.followUp==='Y').length;
   const noNextList = mine.filter(s=>!s.nextMeeting);
   const recent = [...mySess].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
 
