@@ -472,6 +472,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 let FACULTY = '';
 let FACULTY_INITIALS = '';
 let FACULTY_SCHOOL = '';  // chair's school for program filtering
+let SCHOOL_FACULTY_NAMES = []; // 같은 school 소속 교수 이름 목록
 
 // ↓ Supabase project credentials — replace with your own
 // Project URL:  Supabase dashboard → Project Settings → API → Project URL
@@ -628,7 +629,7 @@ async function handleWallLogin() {
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}` } }
     );
     const profData = await profRes.json();
-
+    
     if (profData.length > 0) {
       FACULTY        = profData[0].name_en;
       IS_CHAIR       = profData[0].is_chair === true;
@@ -638,6 +639,17 @@ async function handleWallLogin() {
       IS_CHAIR       = false;
       FACULTY_SCHOOL = '';
     }
+
+    // Chair인 경우 같은 school 소속 교수 목록 추가 로드
+    if (IS_CHAIR && FACULTY_SCHOOL) {
+      const allProfRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/faculty_profiles?school=eq.${encodeURIComponent(FACULTY_SCHOOL)}&select=name_en`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}` } }
+      );
+      const allProfData = await allProfRes.json();
+      SCHOOL_FACULTY_NAMES = allProfData.map(p => p.name_en);
+    }
+    
     FACULTY_INITIALS = FACULTY.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 
     // Step 3: Update nav
@@ -758,6 +770,8 @@ async function handleSignOut() {
   FACULTY_INITIALS = '';
   IS_CHAIR = false;
   FACULTY_SCHOOL = '';
+  SCHOOL_FACULTY_NAMES = [];
+
   students = []; sessions = []; dataLoaded = false;
   document.getElementById('nav-user-btn').style.display = 'none';
   document.getElementById('nav-dropdown').classList.remove('open');
@@ -1078,25 +1092,35 @@ function renderProgramSummary() {
 
   // ── Pulse 지표 ──
   const progSess    = sessions.filter(s => prog.some(p => p.id === s.studentId));
-  const neverMet    = prog.filter(s => s.sessions === 0);
+  const neverMet = prog.filter(s =>
+    s.sessions === 0 &&
+    (SCHOOL_FACULTY_NAMES.includes(s.advisor1) || SCHOOL_FACULTY_NAMES.includes(s.advisor2))
+  );
   const noNextProg  = prog.filter(s => !s.nextMeeting);
   const loaAll      = prog.filter(s => s.status === 'Leave of Absence');
-  const loaUnassigned = students.filter(s =>
+  const loaUnassigned = prog.filter(s =>
     s.status === 'Leave of Absence' && !s.advisor1
   );
   const metCount    = prog.filter(s => s.sessions > 0).length;
   const coveragePct = prog.length ? Math.round(metCount / prog.length * 100) : 0;
 
   // ── 코호트별 커버리지 ──
-  const c1 = prog.filter(s => s.cohort.includes('2023'));
-  const c2 = prog.filter(s => s.cohort.includes('2024'));
+  const advisedProg = prog.filter(s =>
+    SCHOOL_FACULTY_NAMES.includes(s.advisor1) || SCHOOL_FACULTY_NAMES.includes(s.advisor2)
+  );
+  const c1 = advisedProg.filter(s => s.cohort.includes('2023'));
+  const c2 = advisedProg.filter(s => s.cohort.includes('2024'));
   const cohort1Pct = c1.length ? Math.round(c1.filter(s=>s.sessions>0).length/c1.length*100) : 0;
   const cohort2Pct = c2.length ? Math.round(c2.filter(s=>s.sessions>0).length/c2.length*100) : 0;
-
+    
   // ── 어드바이저별 통계 ──
-  const advisorNames = [...new Set(
-    prog.flatMap(s => [s.advisor1, s.advisor2]).filter(Boolean)
-  )].sort();
+  const schoolFaculty = new Set(
+    students
+      .filter(s => s.advisor1 || s.advisor2)  // students 배열이 아닌
+      // faculty_profiles에서 school 필터가 필요하므로 별도 전역 변수 사용
+      // → handleWallLogin에서 같은 school 교수 목록을 로드해야 함
+  );
+  const advisorNames = SCHOOL_FACULTY_NAMES.slice().sort();
   const facultyStats = advisorNames.map(name => {
     const assigned = prog.filter(s => s.advisor1===name || s.advisor2===name);
     const met      = assigned.filter(s => s.sessions > 0).length;
