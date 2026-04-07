@@ -283,6 +283,52 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .help-ref-key{font-weight:500;min-width:110px;flex-shrink:0;color:var(--text);}
 .help-ref-val{color:var(--text2);line-height:1.5;}
 
+/* CHAIR DECISION BOARD */
+.db-divider{display:flex;align-items:center;gap:12px;margin:28px 0 20px;}
+.db-divider-line{flex:1;height:1px;background:var(--border);}
+.db-divider-label{font-size:13px;font-weight:600;color:var(--text2);white-space:nowrap;letter-spacing:.02em;}
+.db-chair-badge{background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.04em;}
+.db-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;}
+.db-stat{background:var(--surface2);border-radius:var(--r);padding:14px 16px;}
+.db-val{font-size:26px;font-weight:600;letter-spacing:-0.03em;line-height:1;margin-bottom:3px;}
+.db-val.ok{color:var(--green);}
+.db-val.warn{color:var(--amber);}
+.db-val.bad{color:var(--red);}
+.db-lbl{font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.05em;}
+.db-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.db-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;}
+.db-card-hd{padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:space-between;}
+.db-card-hd span{font-size:12px;color:var(--text3);font-weight:400;}
+.db-item{display:flex;align-items:center;gap:9px;padding:7px 14px;border-bottom:1px solid var(--border);font-size:13px;}
+.db-item:last-child{border-bottom:none;}
+.db-name{font-weight:500;flex:1;color:var(--text);}
+.db-detail{font-size:12px;color:var(--text2);}
+.db-badge{font-size:11px;font-weight:600;padding:1px 7px;border-radius:20px;white-space:nowrap;}
+.bdg-warn-sm{background:var(--amber-l);color:var(--amber);}
+.bdg-bad-sm{background:var(--red-l);color:var(--red);}
+.bdg-ok-sm{background:var(--green-l);color:var(--green);}
+.bdg-gray-sm{background:var(--gray-l);color:var(--gray-m);}
+.cov-bar{height:5px;border-radius:3px;background:var(--border-em);overflow:hidden;min-width:56px;}
+.cov-fill{height:100%;border-radius:3px;}
+.cov-green{background:var(--green);}
+.cov-amber{background:var(--amber-b);}
+.cov-red{background:var(--red);}
+.fac-table{width:100%;border-collapse:collapse;font-size:13px;}
+.fac-table th{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border);}
+.fac-table td{padding:7px 14px;border-bottom:1px solid var(--border);color:var(--text);}
+.fac-table tr:last-child td{border-bottom:none;}
+.watch-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:12px;}
+.watch-hd{padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text);}
+.watch-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;}
+.watch-item:last-child{border-bottom:none;}
+.watch-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-size:11px;font-weight:700;}
+.watch-icon.bad{background:var(--red-l);color:var(--red);}
+.watch-icon.warn{background:var(--amber-l);color:var(--amber);}
+.watch-body{flex:1;}
+.watch-title{font-weight:600;color:var(--text);margin-bottom:3px;}
+.watch-sub{font-size:12px;color:var(--text2);line-height:1.5;}
+.watch-empty{padding:16px 14px;font-size:13px;color:var(--text3);font-style:italic;}
+
 /* TOAST */
 .toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;font-size:17px;font-weight:500;padding:10px 18px;border-radius:var(--r);z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;}
 .toast.show{opacity:1;transform:translateY(0);}
@@ -425,6 +471,8 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 // Current faculty — set dynamically after login (do not hardcode)
 let FACULTY = '';
 let FACULTY_INITIALS = '';
+let FACULTY_SCHOOL = '';  // chair's school for program filtering
+let SCHOOL_FACULTY_NAMES = []; // 같은 school 소속 교수 이름 목록
 
 // ↓ Supabase project credentials — replace with your own
 // Project URL:  Supabase dashboard → Project Settings → API → Project URL
@@ -443,6 +491,7 @@ let dataLoaded = false;
 
 // ── AUTH STATE ──
 let supabaseUser = null;
+let IS_CHAIR = false;  // set from faculty_profiles.is_chair after login
 
 let studFilter = 'my', studExtra = '', studSearch = '', studSort = {col:'name',dir:1};
 let openStudId = null, showFormFor = null, selTopics = [];
@@ -576,16 +625,31 @@ async function handleWallLogin() {
 
     // Step 2: Look up faculty name + first-login flag from faculty_profiles
     const profRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}&select=name_en,must_change_password`,
+      `${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}&select=name_en,must_change_password,is_chair,school`,
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}` } }
     );
     const profData = await profRes.json();
-
+    
     if (profData.length > 0) {
-      FACULTY = profData[0].name_en;
+      FACULTY        = profData[0].name_en;
+      IS_CHAIR       = profData[0].is_chair === true;
+      FACULTY_SCHOOL = profData[0].school || '';
     } else {
-      FACULTY = data.user?.user_metadata?.full_name || email.split('@')[0];
+      FACULTY        = data.user?.user_metadata?.full_name || email.split('@')[0];
+      IS_CHAIR       = false;
+      FACULTY_SCHOOL = '';
     }
+
+    // Chair인 경우 같은 school 소속 교수 목록 추가 로드
+    if (IS_CHAIR && FACULTY_SCHOOL) {
+      const allProfRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/faculty_profiles?school=eq.${encodeURIComponent(FACULTY_SCHOOL)}&select=name_en`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}` } }
+      );
+      const allProfData = await allProfRes.json();
+      SCHOOL_FACULTY_NAMES = allProfData.map(p => p.name_en);
+    }
+    
     FACULTY_INITIALS = FACULTY.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 
     // Step 3: Update nav
@@ -704,6 +768,10 @@ async function handleSignOut() {
   supabaseUser = null;
   FACULTY = '';
   FACULTY_INITIALS = '';
+  IS_CHAIR = false;
+  FACULTY_SCHOOL = '';
+  SCHOOL_FACULTY_NAMES = [];
+
   students = []; sessions = []; dataLoaded = false;
   document.getElementById('nav-user-btn').style.display = 'none';
   document.getElementById('nav-dropdown').classList.remove('open');
@@ -879,7 +947,6 @@ function renderOverview() {
   const zeroSess = mine.filter(s=>s.sessions===0).length;
   const noNext = mine.filter(s=>!s.nextMeeting).length;
   const followUp = mySess.filter(s=>s.followUp==='Y').length;
-//  const noNextList = mine.filter(s=>!s.nextMeeting).slice(0,8);
   const noNextList = mine.filter(s=>!s.nextMeeting);
   const recent = [...mySess].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
 
@@ -893,16 +960,14 @@ function renderOverview() {
     </div>
     <div class="overview-cards">
       <div class="ov-card">
-        <div class="ov-card-hd">No next meeting set <span class="text-muted" style="font-weight:400;font-size:17px;">${noNextList.length} students</span></div>
-        <div class="ov-card-body">
-          ${noNextList.map(s=>`
-          <div class="ov-item">
-            <div class="ov-dot dot-amber"></div>
-            <div class="ov-name">${esc(s.name)}</div>
-            <div class="ov-detail">${s.sessions} session${s.sessions!==1?'s':''} · ${s.lastMeeting||'never met'}</div>
-            <span class="go-link" onclick="goToStudent('${s.id}')">View →</span>
-          </div>`).join('')}
-        </div>
+        <div class="ov-card-hd">No next meeting set <span class="text-muted" style="font-weight:400;font-size:17px;">${noNext} students</span></div>
+        ${noNextList.map(s=>`
+        <div class="ov-item">
+          <div class="ov-dot dot-amber"></div>
+          <div class="ov-name">${esc(s.name)}</div>
+          <div class="ov-detail">${s.sessions} session${s.sessions!==1?'s':''} · ${s.lastMeeting||'never met'}</div>
+          <span class="go-link" onclick="goToStudent('${s.id}')">View →</span>
+        </div>`).join('')}
       </div>
       <div class="ov-card">
         <div class="ov-card-hd">Recent sessions</div>
@@ -914,9 +979,281 @@ function renderOverview() {
           <span class="go-link" onclick="goToLog('${s.logId}')">View →</span>
         </div>`).join('') : '<div class="ov-item"><div class="text-muted">No sessions recorded yet</div></div>'}
       </div>
+    </div>
+    ${IS_CHAIR ? renderProgramSummary() : ''}`;
+}
+
+// ── CHAIR DECISION BOARD ──
+
+// ════════════════════════════════════════════════════
+// WATCH LIST RULES
+// 새 규칙을 추가하려면 WATCH_RULES 배열에 객체를 추가하면 됩니다.
+// 각 객체는 { level, check(data), title(data), detail(data) } 형태입니다.
+//   level  : 'bad' (빨강) | 'warn' (주황)
+//   check  : (data) => boolean  — true이면 Watch list에 표시
+//   title  : (data) => string   — 항목 제목
+//   detail : (data) => string   — 부연 설명
+// ════════════════════════════════════════════════════
+const WATCH_RULES = [
+
+  // Rule 1: 어드바이저 커버리지 30% 미만
+  {
+    level: 'bad',
+    check: ({facultyStats}) =>
+      facultyStats.some(f => f.total > 0 && f.coveragePct < 30),
+    title: ({facultyStats}) => {
+      const low = facultyStats.filter(f => f.total > 0 && f.coveragePct < 30);
+      return `${low.map(f=>f.name).join(', ')} — low coverage rate`;
+    },
+    detail: ({facultyStats}) => {
+      const low = facultyStats.filter(f => f.total > 0 && f.coveragePct < 30);
+      return low.map(f =>
+        `${f.name}: ${f.total} students assigned, ${f.metCount} met (${f.coveragePct}%)`
+      ).join(' · ');
+    },
+  },
+
+  // Rule 2: Cohort 2 커버리지가 Cohort 1의 60% 미만
+  {
+    level: 'warn',
+    check: ({cohort1Pct, cohort2Pct}) =>
+      cohort1Pct > 0 && cohort2Pct < cohort1Pct * 0.6,
+    title: () => 'Cohort 2 advising coverage significantly behind Cohort 1',
+    detail: ({cohort1Pct, cohort2Pct}) =>
+      `Cohort 1 coverage: ${cohort1Pct}% · Cohort 2 coverage: ${cohort2Pct}%. New cohort advising momentum not yet established.`,
+  },
+
+  // Rule 3: LOA 학생 중 어드바이저 미배정
+  {
+    level: 'warn',
+    check: ({loaUnassigned}) => loaUnassigned.length > 0,
+    title: ({loaUnassigned}) =>
+      `${loaUnassigned.length} student${loaUnassigned.length>1?'s':''} on LOA — no advisor assigned`,
+    detail: ({loaUnassigned}) =>
+      loaUnassigned.map(s=>s.name).join(', '),
+  },
+
+  // Rule 4: 60일 이상 미접촉 + 다음 미팅 없음
+  {
+    level: 'warn',
+    check: ({longInactive}) => longInactive.length > 0,
+    title: ({longInactive}) =>
+      `${longInactive.length} student${longInactive.length>1?'s':''} not contacted for 60+ days`,
+    detail: ({longInactive}) =>
+      longInactive.map(s => `${s.name} (last: ${s.lastMeeting})`).join(', '),
+  },
+
+  // Rule 5: 0-session 학생이 전체의 40% 초과
+  {
+    level: 'warn',
+    check: ({progStudents, neverMet}) =>
+      progStudents.length > 0 && (neverMet.length / progStudents.length) > 0.4,
+    title: ({neverMet, progStudents}) =>
+      `${Math.round(neverMet.length/progStudents.length*100)}% of program students have never had a session`,
+    detail: ({neverMet}) =>
+      `${neverMet.length} students have 0 sessions recorded.`,
+  },
+
+  // Rule 6: Follow-up 30일 이상 미처리
+  {
+    level: 'warn',
+    check: ({staleFollowUps}) => staleFollowUps.length > 0,
+    title: ({staleFollowUps}) =>
+      `${staleFollowUps.length} follow-up${staleFollowUps.length>1?'s':''} unresolved for 30+ days`,
+    detail: ({staleFollowUps}) =>
+      staleFollowUps.map(s => `${s.faculty} → ${s.studentName} (${s.date})`).join(', '),
+  },
+
+];
+
+function buildWatchList(data) {
+  const items = WATCH_RULES.filter(r => r.check(data));
+  if (!items.length) {
+    return `<div class="watch-empty">No items requiring attention — all metrics within normal range.</div>`;
+  }
+  return items.map(r => `
+    <div class="watch-item">
+      <div class="watch-icon ${r.level}">${r.level==='bad'?'!':'▲'}</div>
+      <div class="watch-body">
+        <div class="watch-title">${r.title(data)}</div>
+        <div class="watch-sub">${r.detail(data)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderProgramSummary() {
+  // ── 프로그램 학생 범위: chair의 school에 1st/2nd major 또는 minor로 등록된 학생 ──
+  // IS_CHAIR인 경우 FACULTY_SCHOOL을 기준으로 필터 (로그인 시 설정)
+  const prog = students.filter(s =>
+    s.major1 === FACULTY_SCHOOL ||
+    s.major2 === FACULTY_SCHOOL ||
+    s.minor  === FACULTY_SCHOOL
+  );
+
+  // ── Pulse 지표 ──
+  const progSess    = sessions.filter(s => prog.some(p => p.id === s.studentId));
+  const neverMet = prog.filter(s =>
+    s.sessions === 0 &&
+    (SCHOOL_FACULTY_NAMES.includes(s.advisor1) || SCHOOL_FACULTY_NAMES.includes(s.advisor2))
+  );
+  const noNextProg  = prog.filter(s => !s.nextMeeting);
+  const loaAll      = prog.filter(s => s.status === 'Leave of Absence');
+  const loaUnassigned = prog.filter(s =>
+    s.status === 'Leave of Absence' && !s.advisor1
+  );
+  const metCount    = prog.filter(s => s.sessions > 0).length;
+  const coveragePct = prog.length ? Math.round(metCount / prog.length * 100) : 0;
+
+  // ── 코호트별 커버리지 ──
+  const advisedProg = prog.filter(s =>
+    SCHOOL_FACULTY_NAMES.includes(s.advisor1) || SCHOOL_FACULTY_NAMES.includes(s.advisor2)
+  );
+  const c1 = advisedProg.filter(s => s.cohort.includes('2023'));
+  const c2 = advisedProg.filter(s => s.cohort.includes('2024'));
+  const cohort1Pct = c1.length ? Math.round(c1.filter(s=>s.sessions>0).length/c1.length*100) : 0;
+  const cohort2Pct = c2.length ? Math.round(c2.filter(s=>s.sessions>0).length/c2.length*100) : 0;
+    
+  // ── 어드바이저별 통계 ──
+  const schoolFaculty = new Set(
+    students
+      .filter(s => s.advisor1 || s.advisor2)  // students 배열이 아닌
+      // faculty_profiles에서 school 필터가 필요하므로 별도 전역 변수 사용
+      // → handleWallLogin에서 같은 school 교수 목록을 로드해야 함
+  );
+  const advisorNames = SCHOOL_FACULTY_NAMES.slice().sort();
+  const facultyStats = advisorNames.map(name => {
+    const assigned = prog.filter(s => s.advisor1===name || s.advisor2===name);
+    const met      = assigned.filter(s => s.sessions > 0).length;
+    const pct      = assigned.length ? Math.round(met/assigned.length*100) : 0;
+    const fu       = sessions.filter(s =>
+      s.faculty===name && s.followUp==='Y' &&
+      prog.some(p=>p.id===s.studentId)
+    ).length;
+    return { name, total: assigned.length, metCount: met, coveragePct: pct, followUps: fu };
+  });
+
+  // ── Rule 4 데이터: 60일 이상 미접촉 ──
+  const today = new Date();
+  const longInactive = prog.filter(s => {
+    if (!s.lastMeeting || s.nextMeeting) return false;
+    const diff = (today - new Date(s.lastMeeting)) / 86400000;
+    return diff >= 60;
+  });
+
+  // ── Rule 6 데이터: follow-up 30일 이상 미처리 ──
+  const staleFollowUps = sessions.filter(s => {
+    if (s.followUp !== 'Y') return false;
+    const diff = (today - new Date(s.date)) / 86400000;
+    return diff >= 30 && prog.some(p=>p.id===s.studentId);
+  });
+
+  // ── Watch list에 전달할 데이터 객체 ──
+  const watchData = {
+    prog, progStudents: prog, neverMet, noNextProg,
+    loaUnassigned, cohort1Pct, cohort2Pct,
+    facultyStats, longInactive, staleFollowUps,
+  };
+
+  // ── Faculty table rows ──
+  const facRows = facultyStats.map(f => {
+    const pct = f.coveragePct;
+    const cls = pct >= 60 ? 'cov-green' : pct >= 30 ? 'cov-amber' : 'cov-red';
+    const txtCls = pct >= 60 ? 'ok' : pct >= 30 ? 'warn' : 'bad';
+    return `<tr>
+      <td style="font-weight:500;">${esc(f.name)}</td>
+      <td style="text-align:center;">${f.total}</td>
+      <td style="text-align:center;font-weight:500;" class="${txtCls==='ok'?'text-ok':txtCls==='warn'?'text-warn':'text-bad'}">${f.metCount}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="cov-bar"><div class="cov-fill ${cls}" style="width:${pct}%"></div></div>
+          <span style="font-size:11px;" class="${txtCls==='ok'?'text-ok':txtCls==='warn'?'text-warn':'text-bad'}">${pct}%</span>
+        </div>
+      </td>
+      <td style="text-align:center;" class="${f.followUps>0?'text-warn':''}">${f.followUps||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  // ── Students never met (최대 8명) ──
+  const neverMetItems = neverMet.slice(0,8).map(s => {
+    const adv = s.advisor1 || '—';
+    const advShort = adv.split(' ').pop(); // 성만 표시
+    return `<div class="db-item">
+      <div class="ov-dot dot-red"></div>
+      <div class="db-name">${esc(s.name)}</div>
+      <div class="db-detail">${shortCohort(s.cohort)} · ${shortMajor(s.major1)}</div>
+      <span class="db-badge bdg-gray-sm">${esc(advShort)}</span>
+    </div>`;
+  }).join('') + (neverMet.length > 8 ? `<div class="db-item"><div class="db-detail">+${neverMet.length-8} more</div></div>` : '');
+
+  return `
+    <div style="margin:32px 0 20px;">
+      <div style="border-top:2px solid var(--blue);padding-top:16px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Program Summary</div>
+          <div style="font-size:20px;font-weight:600;color:var(--text);letter-spacing:-0.02em;">${esc(FACULTY_SCHOOL)}</div>
+        </div>
+        <span class="db-chair-badge" style="padding:4px 12px;font-size:12px;">Chair view</span>
+      </div>
+    </div>
+
+    <div class="db-stats">
+      <div class="db-stat"><div class="db-val">${prog.length}</div><div class="db-lbl">Program students</div></div>
+      <div class="db-stat"><div class="db-val ${coveragePct>=60?'ok':coveragePct>=30?'warn':'bad'}">${coveragePct}%</div><div class="db-lbl">Coverage rate</div></div>
+      <div class="db-stat"><div class="db-val ${neverMet.length>0?'bad':'ok'}">${neverMet.length}</div><div class="db-lbl">Never met</div></div>
+      <div class="db-stat"><div class="db-val ${noNextProg.length>0?'warn':'ok'}">${noNextProg.length}</div><div class="db-lbl">No next meeting</div></div>
+      <div class="db-stat"><div class="db-val ${loaAll.length>0?'warn':'ok'}">${loaAll.length}</div><div class="db-lbl">On LOA</div></div>
+    </div>
+
+    <div class="db-grid">
+      <div class="db-card">
+        <div class="db-card-hd">Faculty advising load <span>DSA-related students</span></div>
+        <table class="fac-table">
+          <thead><tr><th>Advisor</th><th style="text-align:center;">Students</th><th style="text-align:center;">Met</th><th>Coverage</th><th style="text-align:center;">Follow-up</th></tr></thead>
+          <tbody>${facRows}</tbody>
+        </table>
+      </div>
+      <div class="db-card">
+        <div class="db-card-hd">Students never met <span>${neverMet.length} total</span></div>
+        <div style="overflow-y:auto;max-height:220px;">${neverMetItems || '<div class="db-item"><span class="text-ok">All students have been met ✓</span></div>'}</div>
+      </div>
+    </div>
+
+    <div class="db-grid">
+      <div class="db-card">
+        <div class="db-card-hd">Cohort coverage</div>
+        <div class="db-item">
+          <div class="ov-dot ${cohort1Pct>=60?'dot-green':cohort1Pct>=30?'dot-amber':'dot-red'}"></div>
+          <div class="db-name">Cohort 1 ('23)</div>
+          <div class="db-detail">${c1.length} students</div>
+          <span class="db-badge ${cohort1Pct>=60?'bdg-ok-sm':cohort1Pct>=30?'bdg-warn-sm':'bdg-bad-sm'}">${cohort1Pct}% met</span>
+        </div>
+        <div class="db-item">
+          <div class="ov-dot ${cohort2Pct>=60?'dot-green':cohort2Pct>=30?'dot-amber':'dot-red'}"></div>
+          <div class="db-name">Cohort 2 ('24)</div>
+          <div class="db-detail">${c2.length} students</div>
+          <span class="db-badge ${cohort2Pct>=60?'bdg-ok-sm':cohort2Pct>=30?'bdg-warn-sm':'bdg-bad-sm'}">${cohort2Pct}% met</span>
+        </div>
+      </div>
+      <div class="db-card">
+        <div class="db-card-hd">Follow-up debt <span>by advisor</span></div>
+        ${facultyStats.filter(f=>f.followUps>0).map(f=>`
+        <div class="db-item">
+          <div class="ov-dot dot-amber"></div>
+          <div class="db-name">${esc(f.name)}</div>
+          <div class="db-detail">${f.followUps} pending</div>
+          <span class="db-badge bdg-warn-sm">${f.followUps} open</span>
+        </div>`).join('') ||
+        '<div class="db-item"><span class="text-ok">No pending follow-ups ✓</span></div>'}
+      </div>
+    </div>
+
+    <div class="watch-list">
+      <div class="watch-hd">Watch list — items requiring chair attention</div>
+      ${buildWatchList(watchData)}
     </div>`;
 }
 
+  
 // ── MY STUDENTS ──
 function renderStudents() {
   const mine = myStudents();
