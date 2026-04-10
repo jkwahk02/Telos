@@ -2311,53 +2311,6 @@ async function renderSettings() {
   </div>
 </div>
 
-<!-- MY PROFILE -->
-<div class="tbl-wrap" style="border-radius:var(--r-lg);">
-  <div style="padding:11px 16px;border-bottom:1px solid var(--border);">
-    <div style="font-size:17px;font-weight:600;">My profile</div>
-  </div>
-
-  <div class="settings-section-divider">
-    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="8" width="10" height="6" rx="1.5"/><path d="M5 8V6a3 3 0 0 1 6 0v2"/></svg>
-    Managed by administrator
-  </div>
-  ${[['Email', FACULTY_EMAIL],['School', FACULTY_SCHOOL],['Role', roleLabel]].map(([l,v])=>`
-    <div class="settings-field-row">
-      <div class="settings-field-label">${l}</div>
-      <div class="settings-field-val">${esc(v)}</div>
-    </div>`).join('')}
-
-  <div class="settings-section-divider">
-    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-8 8H3v-3l8-8z"/></svg>
-    Editable by you
-  </div>
-  <div class="settings-field-row editable">
-    <div class="settings-edit-bar"></div>
-    <div class="settings-field-label">Display name</div>
-    <div class="settings-field-input">
-      <input class="fi" id="prof-name" value="${esc(FACULTY)}"
-        style="height:30px;font-size:14px;" oninput="markProfileDirty()">
-    </div>
-  </div>
-  <div class="settings-field-row editable">
-    <div class="settings-edit-bar"></div>
-    <div class="settings-field-label">Timezone</div>
-    <div class="settings-field-input">
-      <select class="fsel" id="tz-select" onchange="markProfileDirty()"
-        style="height:30px;font-size:14px;width:100%;max-width:300px;">
-        ${TZ_LIST.map(tz=>
-          `<option value="${tz}" ${tz===FACULTY_TIMEZONE?'selected':''}>${tz}</option>`
-        ).join('')}
-      </select>
-    </div>
-  </div>
-
-  <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-    <span class="save-status" id="prof-save-status"></span>
-    <button class="btn-log" id="btn-save-profile" disabled onclick="saveProfile()">Save profile</button>
-  </div>
-</div>
-
   </div>`;
 
   await loadAvailability();
