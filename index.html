@@ -490,6 +490,7 @@ const TBL_AVAIL     = 'faculty_availability'; // ← 신규
 // ── STATE ──
 let students = [];
 let sessions = [];
+let meetings = [];  // ← 추가
 let dataLoaded = false;
 
 // ── AUTH STATE ──
@@ -782,7 +783,7 @@ async function handleSignOut() {
   FACULTY_SCHOOL = '';
   SCHOOL_FACULTY_NAMES = [];
 
-  students = []; sessions = []; dataLoaded = false;
+  students = []; sessions = []; meetings = []; dataLoaded = false;
   document.getElementById('nav-user-btn').style.display = 'none';
   document.getElementById('nav-dropdown').classList.remove('open');
   document.getElementById('src-dot').className = 'src-dot';
@@ -820,7 +821,7 @@ async function loadData() {
   }
 
   try {
-    const [rawStudents, rawSessions] = await Promise.all([
+    const [rawStudents, rawSessions,rawMeetings] = await Promise.all([
       sbGet(TBL_STUDENTS, 'order=id.asc'),
       sbGet(TBL_LOG,      'order=meeting_date.desc'),
       sbGet(TBL_MEETING,  'order=meeting_date.desc'), // ← 신규
@@ -847,6 +848,7 @@ async function loadData() {
 function loadFallback(overrideMsg) {
   students = FALLBACK_STUDENTS;
   sessions = FALLBACK_SESSIONS;
+  meetings = FALLBACK_MEETINGS;  // ← 추가
   syncStudents();
   dataLoaded = true;
   // Only override the label if explicitly provided (don't clobber the error message set by caller)
@@ -944,8 +946,6 @@ async function insertSession(row) {
     advisor_advice:        row.advice,
     student_action_items:  row.studentAction,
     follow_up_required:    row.followUp,
-    next_meeting_date:     row.nextDate || null,
-    next_meeting_agenda:   row.nextAgenda,
     major_change_note:     row.majorChangeNote,
     main_topic:            row.mainTopic,
   };
@@ -978,7 +978,7 @@ function renderCurrent() {
 // ── OVERVIEW ──
 function renderOverview() {
   const mine = myStudents();
-  const mySess = sessions.filter(s=>s.faculty===FACULTY);
+  const mySess = sessions.filter(s=>s.faculty===FACULTY_EMAIL);
   const zeroSess = mine.filter(s=>s.sessions===0).length;
   const noNext = mine.filter(s=>!s.nextMeeting).length;
   const followUp = mySess.filter(s=>s.followUp==='Y').length;
@@ -1649,8 +1649,8 @@ async function saveSession(studId){
   const advice=document.getElementById('ns-advice')?.value.trim()||'';
   const studentAction=document.getElementById('ns-sa')?.value.trim()||'';
   const followUp=document.getElementById('ns-fu')?.value||'N';
-  const nextDate=document.getElementById('ns-nd')?.value||'';
-  const nextAgenda=document.getElementById('ns-na')?.value.trim()||'';
+//  const nextDate=document.getElementById('ns-nd')?.value||'';
+//  const nextAgenda=document.getElementById('ns-na')?.value.trim()||'';
   const majorChangeNote=document.getElementById('ns-mc')?.value.trim()||'';
 
   // Determine next Log ID
@@ -1661,8 +1661,8 @@ async function saveSession(studId){
   const logId = `LOG-${String(nextNum).padStart(3,'0')}`;
 
   // Optimistic local update first
-  const newSess = {logId,date,faculty:FACULTY,studentId:studId,studentName:st?.name||'',
-    type,format,disc,conc,advice,studentAction,followUp,nextDate,nextAgenda,majorChangeNote,
+  const newSess = {logId,date,faculty:FACULTY_EMAIL,studentId:studId,studentName:st?.name||'',
+    type,format,disc,conc,advice,studentAction,followUp,majorChangeNote,
     mainTopic:selTopics.join(', ')};
   sessions.push(newSess);
   syncStudents();
@@ -2167,6 +2167,37 @@ const FALLBACK_STUDENTS = [{"id":"2023005","name":"Hoai Thu Luu","nameKr":"","em
 const FALLBACK_SESSIONS = [
   {logId:'LOG-001',date:'2026-03-12',faculty:'Jiyoung Kwahk',studentId:'2023097',studentName:'Yejoon Song',type:'Ad-hoc',format:'Zoom',disc:'The student is experiencing difficulty in choosing a career path due to having too many areas of interest.',conc:'The student had been considering a career in Finance but has recently become concerned that the field may already be saturated ("red ocean"). Given the current job market conditions, the student is considering exploring alternative fields.',advice:'Suggested that the student explore and study the topic of Complex Systems.',followUp:'N',nextDate:'',nextAgenda:'',majorChangeNote:''},
   {logId:'LOG-002',date:'2026-03-13',faculty:'Jiyoung Kwahk',studentId:'2023092',studentName:'Bandi Kim',type:'Ad-hoc',format:'Zoom',disc:"Reviewed the student's progress on the AIR Project.",conc:'The student requested guidance on the final outcome and capstone idea for the AIR Project. Expressed concern that the results may be too trivial. Uncertain about how to approach and structure the analysis method.',advice:'Suggested considering a data storytelling approach in the style of digital humanities.',followUp:'N',nextDate:'',nextAgenda:'',majorChangeNote:''}
+];
+
+const FALLBACK_MEETINGS = [
+  {
+    id: 1,
+    studentId: '2023092',
+    facultyEmail: 'kjy@taejae.ac.kr',
+    meetingDate: '2026-03-13',
+    meetingType: 'Ad-hoc',
+    meetingFormat: 'Zoom',
+    status: 'completed',
+    advisorConfirmed: true,
+    studentAgenda: '',
+    createdBy: 'advisor',
+    logId: 'LOG-002',
+    meetingLink: '',
+  },
+  {
+    id: 2,
+    studentId: '2023097',
+    facultyEmail: 'kjy@taejae.ac.kr',
+    meetingDate: '2026-03-12',
+    meetingType: 'Ad-hoc',
+    meetingFormat: 'Zoom',
+    status: 'completed',
+    advisorConfirmed: true,
+    studentAgenda: '',
+    createdBy: 'advisor',
+    logId: 'LOG-001',
+    meetingLink: '',
+  },
 ];
 
 // ── USER MENU ──
