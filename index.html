@@ -350,6 +350,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
     <button class="nav-tab" data-page="students">My Students</button>
     <button class="nav-tab" data-page="log">Session Log</button>
     <button class="nav-tab" data-page="codebook">Help & Guide</button>
+    <button class="nav-tab" data-page="settings">Settings</button>
   </div>
   <div class="nav-right">
     <div class="nav-source">
@@ -461,6 +462,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
   <div class="page" id="page-students"></div>
   <div class="page" id="page-log"></div>
   <div class="page" id="page-codebook"></div>
+  <div class="page" id="page-settings"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -975,6 +977,7 @@ function renderCurrent() {
   if (currentPage==='students') renderStudents();
   if (currentPage==='log') renderLog();
   if (currentPage==='codebook') renderCodebook();
+  if (currentPage==='settings')  renderSettings();
 }
 
 // ── OVERVIEW ──
@@ -2143,6 +2146,295 @@ function renderCodebook(){
         </div>
       </div>
     </div>`;
+}
+
+// ── SETTINGS ──
+let availSlots = []; // 로드된 faculty_availability 행
+
+async function renderSettings() {
+  const el = document.getElementById('page-settings');
+
+  // faculty_profiles 정보 표시
+  const roleLabel = [IS_CHAIR ? 'Program Chair' : '', 'Advisor']
+    .filter(Boolean).join(' · ');
+
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px;">
+
+      <!-- AVAILABILITY -->
+      <div class="tbl-wrap" style="border-radius:var(--r-lg);">
+        <div style="padding:11px 16px;border-bottom:1px solid var(--border);
+          display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:17px;font-weight:600;">Weekly availability</div>
+            <div style="font-size:13px;color:var(--text3);margin-top:2px;">
+              Students see your active slots when requesting a meeting.
+            </div>
+          </div>
+          <span id="avail-count" class="bdg bdg-blue">— slots</span>
+        </div>
+        <div style="padding:16px;">
+          ${buildDayGrid()}
+          <div id="add-slot-form" style="display:none;"></div>
+          <div style="height:1px;background:var(--border);margin:14px 0;"></div>
+          <div style="font-size:13px;font-weight:600;color:var(--text3);
+            text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">
+            Slot details
+          </div>
+          <div id="slot-list"></div>
+        </div>
+        <div style="padding:10px 16px;background:var(--surface2);
+          border-top:1px solid var(--border);
+          display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;color:var(--text3);">
+            Changes apply to future requests only
+          </span>
+          <button class="btn-log" onclick="saveAvailability()">Save changes</button>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="tbl-wrap" style="border-radius:var(--r-lg);">
+        <div style="padding:11px 16px;border-bottom:1px solid var(--border);
+          display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:17px;font-weight:600;">My profile</div>
+          <span class="bdg bdg-gray">Read-only</span>
+        </div>
+        <div style="padding:4px 16px;">
+          ${[
+            ['Name',   FACULTY],
+            ['Email',  FACULTY_EMAIL],
+            ['School', FACULTY_SCHOOL],
+            ['Role',   roleLabel],
+          ].map(([l,v])=>`
+            <div style="display:flex;gap:12px;padding:9px 0;
+              border-bottom:1px solid var(--border);">
+              <div style="font-size:13px;color:var(--text3);min-width:80px;">${l}</div>
+              <div style="font-size:14px;color:var(--text);font-weight:500;">${esc(v)}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+    </div>`;
+
+  await loadAvailability();
+}
+
+async function loadAvailability() {
+  try {
+    const rows = await sbGet(TBL_AVAIL,
+      `faculty_email=eq.${encodeURIComponent(FACULTY_EMAIL)}&order=day_of_week.asc,start_time.asc`
+    );
+    availSlots = rows;
+  } catch(e) {
+    availSlots = [];
+    console.warn('Availability load failed:', e.message);
+  }
+  renderSlotList();
+  updateAvailCount();
+}
+
+function buildDayGrid() {
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:14px;">
+    ${days.map((d,i) => {
+      const isWeekend = i===0||i===6;
+      return `<div style="display:flex;flex-direction:column;align-items:stretch;gap:5px;">
+        <div style="font-size:12px;font-weight:500;
+          color:${isWeekend?'var(--text3)':'var(--text2)'};
+          padding-bottom:6px;border-bottom:1px solid var(--border);
+          text-align:center;margin-bottom:2px;">${d}</div>
+        ${isWeekend ? '' : `<button style="font-size:12px;padding:6px 4px;border-radius:6px;
+          border:1px dashed var(--border-em);background:transparent;
+          color:var(--text3);cursor:pointer;font-size:16px;"
+          onclick="openAddSlotForm(${i})">+</button>`}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderSlotList() {
+  const list = document.getElementById('slot-list');
+  if (!list) return;
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  if (!availSlots.length) {
+    list.innerHTML = `<div style="padding:16px 0;text-align:center;
+      font-size:14px;color:var(--text3);">
+      No slots added yet — click + above to add your availability.
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = availSlots.map((s,i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;
+      border-bottom:1px solid var(--border);">
+      <span class="bdg ${s.is_active?'bdg-blue':'bdg-gray'}">${days[s.day_of_week]}</span>
+      <span style="font-size:14px;font-weight:500;flex:1;
+        color:${s.is_active?'var(--text)':'var(--text3)'};">
+        ${s.start_time.slice(0,5)} – ${s.end_time.slice(0,5)}
+      </span>
+      <span style="font-size:13px;color:var(--text3);min-width:80px;">
+        ${s.meeting_type||'Zoom'}
+      </span>
+      <span style="font-size:13px;color:var(--text3);flex:1;
+        font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        ${s.note||''}
+      </span>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+        <input type="checkbox" ${s.is_active?'checked':''} 
+          onchange="toggleAvailSlot(${i},this.checked)"
+          style="accent-color:var(--blue);width:14px;height:14px;">
+        <span style="font-size:12px;color:var(--text3);">Active</span>
+      </label>
+      <button onclick="removeAvailSlot(${i})"
+        style="font-size:12px;padding:3px 9px;border-radius:6px;border:none;
+          background:var(--red-l);color:var(--red);cursor:pointer;">
+        Remove
+      </button>
+    </div>`).join('');
+}
+
+function updateAvailCount() {
+  const el = document.getElementById('avail-count');
+  if (!el) return;
+  const active = availSlots.filter(s=>s.is_active).length;
+  el.textContent = `${active} active slot${active!==1?'s':''}`;
+}
+
+function openAddSlotForm(day) {
+  const wrap = document.getElementById('add-slot-form');
+  if (!wrap) return;
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const times = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
+  wrap.style.display = 'block';
+  wrap.innerHTML = `
+    <div style="background:var(--surface2);border-radius:var(--r);
+      padding:12px 14px;margin-bottom:14px;border:1px solid var(--border-em);">
+      <div style="font-size:13px;font-weight:600;color:var(--text3);
+        text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">
+        Add new slot
+      </div>
+      <div class="rg3" style="margin-bottom:10px;">
+        <div class="fg">
+          <div class="fl">Day</div>
+          <select class="fsel" id="as-day">
+            ${days.slice(1,6).map((d,i)=>
+              `<option value="${i+1}" ${i+1===day?'selected':''}>${d}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="fg">
+          <div class="fl">Start time</div>
+          <select class="fsel" id="as-start">
+            ${times.slice(0,-1).map(t=>
+              `<option ${t==='14:00'?'selected':''}>${t}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="fg">
+          <div class="fl">End time</div>
+          <select class="fsel" id="as-end">
+            ${times.slice(1).map(t=>
+              `<option ${t==='15:00'?'selected':''}>${t}</option>`
+            ).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="rg2" style="margin-bottom:10px;">
+        <div class="fg">
+          <div class="fl">Format</div>
+          <select class="fsel" id="as-format">
+            <option>Zoom</option><option>In-person</option><option>Both</option>
+          </select>
+        </div>
+        <div class="fg">
+          <div class="fl">Note (optional)</div>
+          <input class="fi" id="as-note" placeholder="e.g. Confirm 2 days before">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn-cancel" onclick="closeAddSlotForm()">Cancel</button>
+        <button class="btn-log" onclick="confirmAddSlot()">Add slot</button>
+      </div>
+    </div>`;
+}
+
+function closeAddSlotForm() {
+  const wrap = document.getElementById('add-slot-form');
+  if (wrap) { wrap.style.display='none'; wrap.innerHTML=''; }
+}
+
+async function confirmAddSlot() {
+  const day   = parseInt(document.getElementById('as-day').value);
+  const start = document.getElementById('as-start').value;
+  const end   = document.getElementById('as-end').value;
+  const fmt   = document.getElementById('as-format').value;
+  const note  = document.getElementById('as-note').value.trim();
+
+  const newSlot = {
+    faculty_email: FACULTY_EMAIL,
+    day_of_week:   day,
+    start_time:    start + ':00',
+    end_time:      end   + ':00',
+    meeting_type:  fmt,
+    note:          note,
+    is_active:     true,
+  };
+
+  // Optimistic update
+  availSlots.push({...newSlot});
+  availSlots.sort((a,b)=> a.day_of_week-b.day_of_week ||
+    a.start_time.localeCompare(b.start_time));
+  closeAddSlotForm();
+  renderSlotList();
+  updateAvailCount();
+
+  if (isSignedIn()) {
+    try {
+      await sbInsert(TBL_AVAIL, newSlot);
+      showToast('Slot added');
+    } catch(e) {
+      availSlots.pop();
+      renderSlotList();
+      showToast(`Failed to add slot: ${e.message}`);
+    }
+  }
+}
+
+function toggleAvailSlot(idx, active) {
+  availSlots[idx].is_active = active;
+  updateAvailCount();
+}
+
+function removeAvailSlot(idx) {
+  if (!confirm('Remove this slot?')) return;
+  availSlots.splice(idx,1);
+  renderSlotList();
+  updateAvailCount();
+}
+
+async function saveAvailability() {
+  if (!isSignedIn()) { showToast('Sign in to save changes'); return; }
+  showToast('Saving availability…');
+  try {
+    // Delete all existing slots for this faculty, then re-insert
+    await sbDelete(TBL_AVAIL, 'faculty_email', FACULTY_EMAIL);
+    for (const s of availSlots) {
+      await sbInsert(TBL_AVAIL, {
+        faculty_email: FACULTY_EMAIL,
+        day_of_week:   s.day_of_week,
+        start_time:    s.start_time,
+        end_time:      s.end_time,
+        meeting_type:  s.meeting_type,
+        note:          s.note,
+        is_active:     s.is_active,
+      });
+    }
+    showToast('✓ Availability saved');
+  } catch(e) {
+    showToast(`Save failed: ${e.message}`);
+  }
 }
 
 // ── CROSS-PAGE NAV ──
