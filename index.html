@@ -740,7 +740,7 @@ async function handlePasswordChange() {
     const mode = document.getElementById('pw-change-wall').dataset.mode || 'first';
     if (mode === 'first') {
       const email = supabaseUser.user?.email || '';
-      await fetch(
+      const patchRes = await fetch(
         `${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}`,
         {
           method: 'PATCH',
@@ -752,6 +752,10 @@ async function handlePasswordChange() {
           body: JSON.stringify({ must_change_password: false }),
         }
       );
+      if (!patchRes.ok) {
+        const err = await patchRes.json().catch(()=>({}));
+        throw new Error(`Profile update failed: ${err.message || patchRes.status}`);
+      }
     }
 
     // 3. Hide pw wall, restore defaults, and enter/stay in app
@@ -2244,11 +2248,11 @@ function buildDayGrid() {
           color:${isWeekend?'var(--text3)':'var(--text2)'};
           padding-bottom:6px;border-bottom:1px solid var(--border);
           text-align:center;margin-bottom:2px;">${d}</div>
-        ${isWeekend ? '' : `<button style="font-size:12px;padding:6px 4px;border-radius:6px;
-          border:1px dashed var(--border-em);background:transparent;
-          color:var(--text3);cursor:pointer;font-size:16px;"
-          onclick="openAddSlotForm(${i})">+</button>`}
-      </div>`;
+    <button style="font-size:12px;padding:6px 4px;border-radius:6px;
+      border:1px dashed var(--border-em);background:transparent;
+      color:var(--text3);cursor:pointer;font-size:16px;"
+      onclick="openAddSlotForm(${i})">+</button>
+  </div>`;
     }).join('')}
   </div>`;
 }
