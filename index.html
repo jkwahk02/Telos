@@ -1300,8 +1300,12 @@ function renderProgramSummary() {
 // ── MY STUDENTS ──
 function renderStudents() {
   const mine = myStudents();
-  const fp = sessions.filter(s=>s.followUp==='Y'&&s.faculty===FACULTY).length;
-  const ns = mine.filter(s=>s.sessions===0).length;
+  const baseList = studFilter === 'all' ? students : mine;
+  const fp = sessions.filter(s =>
+    s.followUp === 'Y' &&
+    (studFilter === 'all' ? true : s.faculty === FACULTY_EMAIL)
+  ).length;
+  const ns = baseList.filter(s => s.sessions === 0).length;
 
   document.getElementById('page-students').innerHTML = `
     <div class="filter-bar">
