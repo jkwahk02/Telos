@@ -2335,15 +2335,15 @@ function buildDayGrid() {
   return `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:14px;">
     ${days.map((d,i) => {
       const isWeekend = i===0||i===6;
-      return `<div style="display:flex;flex-direction:column;align-items:stretch;gap:5px;">
+      return `<div class="day-col" style="display:flex;flex-direction:column;align-items:stretch;gap:5px;">
         <div style="font-size:12px;font-weight:500;
           color:${isWeekend?'var(--text3)':'var(--text2)'};
           padding-bottom:6px;border-bottom:1px solid var(--border);
           text-align:center;margin-bottom:2px;">${d}</div>
-    <button style="font-size:12px;padding:6px 4px;border-radius:6px;
-      border:1px dashed var(--border-em);background:transparent;
-      color:var(--text3);cursor:pointer;font-size:16px;"
-      onclick="openAddSlotForm(${i})">+</button>
+      <button class="add-btn" style="font-size:12px;padding:6px 4px;border-radius:6px;
+        border:1px dashed var(--border-em);background:transparent;
+        color:var(--text3);cursor:pointer;font-size:16px;"
+        onclick="openAddSlotForm(${i})">+</button>
   </div>`;
     }).join('')}
   </div>`;
