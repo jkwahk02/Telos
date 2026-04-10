@@ -471,6 +471,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 // Current faculty — set dynamically after login (do not hardcode)
 let FACULTY = '';
 let FACULTY_INITIALS = '';
+let FACULTY_EMAIL = '';   // ← 신규: 이름 대신 email로 식별
 let FACULTY_SCHOOL = '';  // chair's school for program filtering
 let SCHOOL_FACULTY_NAMES = []; // 같은 school 소속 교수 이름 목록
 
@@ -483,7 +484,9 @@ const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 // Supabase table names
 const TBL_STUDENTS = 'students';
 const TBL_LOG      = 'advising_log';
-
+const TBL_MEETING   = 'student_meeting';   // ← 신규
+const TBL_AVAIL     = 'faculty_availability'; // ← 신규
+  
 // ── STATE ──
 let students = [];
 let sessions = [];
@@ -519,8 +522,13 @@ function roleFor(st) {
 }
 function initials(n){return (n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 
-function myStudents(){return students.filter(s=>s.advisor1===FACULTY||s.advisor2===FACULTY);}
-
+function myStudents() {
+  return students.filter(s =>
+    s.advisor1_email === FACULTY_EMAIL ||
+    s.advisor2_email === FACULTY_EMAIL
+  );
+}
+  
 function syncStudents(){
   students.forEach(st=>{
     const ss=sessions.filter(s=>s.studentId===st.id).sort((a,b)=>b.date.localeCompare(a.date));
@@ -625,17 +633,19 @@ async function handleWallLogin() {
 
     // Step 2: Look up faculty name + first-login flag from faculty_profiles
     const profRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}&select=name_en,must_change_password,is_chair,school`,
+      `${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}&select=name_en,email,school,is_chair,must_change_password`,
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}` } }
     );
     const profData = await profRes.json();
     
     if (profData.length > 0) {
       FACULTY        = profData[0].name_en;
+      FACULTY_EMAIL  = profData[0].email;        // ← 추가
       IS_CHAIR       = profData[0].is_chair === true;
       FACULTY_SCHOOL = profData[0].school || '';
     } else {
       FACULTY        = data.user?.user_metadata?.full_name || email.split('@')[0];
+      FACULTY_EMAIL  = email;                    // ← 추가 (fallback: 로그인 email 그대로)
       IS_CHAIR       = false;
       FACULTY_SCHOOL = '';
     }
@@ -813,9 +823,12 @@ async function loadData() {
     const [rawStudents, rawSessions] = await Promise.all([
       sbGet(TBL_STUDENTS, 'order=id.asc'),
       sbGet(TBL_LOG,      'order=meeting_date.desc'),
+      sbGet(TBL_MEETING,  'order=meeting_date.desc'), // ← 신규
     ]);
     students = rawStudents.map(mapStudent);
     sessions = rawSessions.map(mapSession);
+    meetings = rawMeetings.map(mapMeeting);           // ← 신규
+
     syncStudents();
     dataLoaded = true;
     dot.className = 'src-dot authed';
@@ -862,8 +875,10 @@ function mapStudent(r) {
     lastSummary:      r.last_meeting_summary || '',
     nextMeeting:      r.next_meeting_date || '',
     nextAgenda:       r.next_meeting_agenda || '',
-    advisor1:         r.advisor1  || '',
-    advisor2:         r.advisor2  || '',
+    advisor1_email: r.advisor1_email || '',   // ← FK로 변경
+    advisor2_email: r.advisor2_email || '',   // ← FK로 변경
+    advisor1: r.advisor1 || '',               // deprecated 유지 (호환)
+    advisor2: r.advisor2 || '',               // deprecated 유지 (호환)
     careerGoal:       r.career_goal || '',
     researchInterest: r.research_interest || '',
     concerns:         r.concerns  || '',
@@ -876,7 +891,8 @@ function mapSession(r) {
   return {
     logId:           r.log_id          || '',
     date:            (r.meeting_date   || '').slice(0,10),
-    faculty:         r.faculty_name    || '',
+    faculty:      r.faculty_email || '',  // ← email로 변경
+    facultyName:  getFacultyName(r.faculty_email), // ← 헬퍼로 이름 조회
     studentId:       String(r.student_id || ''),
     studentName:     r.student_name    || '',
     type:            r.meeting_type    || '',
@@ -886,24 +902,43 @@ function mapSession(r) {
     advice:          r.advisor_advice    || '',
     studentAction:   r.student_action_items || '',
     followUp:        r.follow_up_required || 'N',
-    nextDate:        (r.next_meeting_date   || '').slice(0,10),
-    nextAgenda:      r.next_meeting_agenda || '',
     majorChangeNote: r.major_change_note   || '',
     mainTopic:       r.main_topic          || '',
   };
 }
 
+// 신규 헬퍼
+function getFacultyName(email) {
+  const f = SCHOOL_FACULTY_NAMES.find(x => x.email === email);
+  return f?.name || email;
+}
+
+function mapMeeting(r) {
+  return {
+    id:              r.id,
+    studentId:       String(r.student_id || ''),
+    facultyEmail:    r.faculty_email || '',
+    meetingDate:     (r.meeting_date || '').slice(0,10),
+    meetingFormat:   r.meeting_format || 'Zoom',
+    meetingType:     r.meeting_type || 'Regular',
+    status:          r.status || 'scheduled',
+    advisorConfirmed: r.advisor_confirmed || false,
+    studentAgenda:   r.student_agenda || '',
+    createdBy:       r.created_by || 'advisor',
+    logId:           r.log_id || null,
+    meetingLink:     r.meeting_link || '',
+  };
+}
+  
 // ── WRITE TO SUPABASE ──
 async function insertSession(row) {
   // Map app field names → Supabase column names
   const dbRow = {
     log_id:                row.logId,
     meeting_date:          row.date,
-    faculty_name:          row.faculty,
+    faculty_email:         FACULTY_EMAIL,     // ← email로 변경
     student_id:            row.studentId,
     student_name:          row.studentName,
-    meeting_type:          row.type,
-    meeting_format:        row.format,
     discussion_summary:    row.disc,
     student_concerns:      row.conc,
     advisor_advice:        row.advice,
@@ -947,6 +982,12 @@ function renderOverview() {
   const zeroSess = mine.filter(s=>s.sessions===0).length;
   const noNext = mine.filter(s=>!s.nextMeeting).length;
   const followUp = mySess.filter(s=>s.followUp==='Y').length;
+  const pendingRequests = meetings.filter(m =>
+    m.facultyEmail === FACULTY_EMAIL &&
+    m.status === 'scheduled' &&
+    !m.advisorConfirmed &&
+    m.createdBy === 'student'
+  );
   const noNextList = mine.filter(s=>!s.nextMeeting);
   const recent = [...mySess].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
 
@@ -1422,50 +1463,158 @@ function buildSessCard(s){
 }
 
 function buildNsForm(st){
+  // ── 신규: 연결된 student_meeting 찾기
+  const linkedMeeting = meetings.find(m =>
+    m.studentId === st.id &&
+    m.status === 'scheduled' &&
+    m.advisorConfirmed === true
+  );
+  const hasLinked = !!linkedMeeting;
+
+  // 날짜/타입/포맷: meeting이 있으면 자동값, 없으면 오늘/기본값
+  const autoDate   = hasLinked ? linkedMeeting.meetingDate   : new Date().toISOString().split('T')[0];
+  const autoType   = hasLinked ? linkedMeeting.meetingType   : 'Regular';
+  const autoFormat = hasLinked ? linkedMeeting.meetingFormat : 'Zoom';
+  const autoAgenda = hasLinked ? linkedMeeting.studentAgenda : '';
+
   const topics=['Career','Academics','Research','Wellbeing','Administrative'];
-  const tHtml=topics.map(t=>`<span class="mchip ${selTopics.includes(t)?'on':''}" onclick="toggleTopic('${st.id}','${t}')">${t}</span>`).join('');
+  const tHtml=topics.map(t=>`<span class="mchip ${selTopics.includes(t)?'on':''}"
+    onclick="toggleTopic('${st.id}','${t}')">${t}</span>`).join('');
+
+  // ── 신규: student agenda 표시 블록 (읽기 전용)
+  const agendaBlock = hasLinked && autoAgenda ? `
+    <div class="fg">
+      <div class="fl">Student's agenda
+        <span style="font-size:10px;background:var(--accent-l);color:var(--accent);
+          padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:500;">
+          Pre-submitted
+        </span>
+      </div>
+      <div style="background:var(--accent-l);border-radius:var(--r);padding:10px 12px;
+        font-size:13px;color:var(--teal);line-height:1.55;border:1px solid var(--accent-b);">
+        ${esc(autoAgenda)}
+      </div>
+    </div>` : '';
+
   return `<div class="tl-item">
   <div class="tl-spine"><div class="tl-dot entry"></div><div class="tl-line"></div></div>
   <div class="tl-content" style="padding-bottom:16px;">
   <div class="ns-card">
-    <div class="ns-hd"><span class="ns-title">New session — ${esc(st.name)}</span>
-      <button class="ns-cancel" onclick="event.stopPropagation();cancelForm()">Cancel ×</button></div>
+    <div class="ns-hd">
+      <span class="ns-title">New session — ${esc(st.name)}</span>
+      <button class="ns-cancel" onclick="event.stopPropagation();cancelForm()">Cancel ×</button>
+    </div>
     <div class="ns-body">
+
       <div class="rg3">
-        <div class="fg"><div class="fl">Student ID</div><div class="fi af">${esc(st.id)}</div></div>
-        <div class="fg"><div class="fl">Student name</div><div class="fi af">${esc(st.name)}</div></div>
-        <div class="fg"><div class="fl">Advisor role</div><div class="fi af">${roleFor(st)}</div></div>
+        <div class="fg"><div class="fl">Student ID</div>
+          <div class="fi af">${esc(st.id)}</div></div>
+        <div class="fg"><div class="fl">Student name</div>
+          <div class="fi af">${esc(st.name)}</div></div>
+        <div class="fg"><div class="fl">Advisor role</div>
+          <div class="fi af">${roleFor(st)}</div></div>
       </div>
+
       <div class="rg3">
-        <div class="fg"><div class="fl">Date <span class="req">*</span></div><input class="fi" type="date" id="ns-date" value="${new Date().toISOString().split('T')[0]}"></div>
-        <div class="fg"><div class="fl">Type <span class="req">*</span></div><select class="fsel" id="ns-type"><option>Regular</option><option>Ad-hoc</option><option>Email</option></select></div>
-        <div class="fg"><div class="fl">Format <span class="req">*</span></div><select class="fsel" id="ns-format"><option>Zoom</option><option>In-person</option><option>Phone</option><option>Email</option></select></div>
+        <!-- ── Date: meeting 있으면 자동 + 읽기전용, 없으면 수동 입력 -->
+        <div class="fg"><div class="fl">Date <span class="req">*</span>
+          ${hasLinked?`<span style="font-size:10px;color:var(--accent);margin-left:4px;">
+            Auto-filled</span>`:''}
+        </div>
+        <input class="fi ${hasLinked?'af':''}" type="date" id="ns-date"
+          value="${autoDate}" ${hasLinked?'readonly':''}>
+        </div>
+
+        <!-- ── Type: meeting 있으면 자동 + 읽기전용 -->
+        <div class="fg"><div class="fl">Type <span class="req">*</span></div>
+        ${hasLinked
+          ? `<div class="fi af">${esc(autoType)}</div>
+             <input type="hidden" id="ns-type" value="${esc(autoType)}">`
+          : `<select class="fsel" id="ns-type">
+               <option>Regular</option><option>Ad-hoc</option><option>Email</option>
+             </select>`}
+        </div>
+
+        <!-- ── Format: meeting 있으면 자동 + 읽기전용 -->
+        <div class="fg"><div class="fl">Format <span class="req">*</span></div>
+        ${hasLinked
+          ? `<div class="fi af">${esc(autoFormat)}</div>
+             <input type="hidden" id="ns-format" value="${esc(autoFormat)}">`
+          : `<select class="fsel" id="ns-format">
+               <option>Zoom</option><option>In-person</option>
+               <option>Phone</option><option>Email</option>
+             </select>`}
+        </div>
       </div>
-      <div class="fg"><div class="fl">Main topic <span class="req">*</span></div><div class="mchip-row" id="ns-topics">${tHtml}</div></div>
+
+      <!-- ── 신규: student agenda 읽기전용 표시 -->
+      ${agendaBlock}
+
+      <div class="fg"><div class="fl">Main topic <span class="req">*</span></div>
+        <div class="mchip-row" id="ns-topics">${tHtml}</div>
+      </div>
+
       <div class="prow">
-        <div class="pbox disc"><div class="plbl disc">Discussion summary <span class="req">*</span></div><textarea class="fta fta-disc" id="ns-disc" placeholder="What was discussed…"></textarea></div>
-        <div class="pbox conc"><div class="plbl conc">Student concerns &amp; requests</div><textarea class="fta fta-conc" id="ns-conc" placeholder="What the student raised…"></textarea></div>
+        <div class="pbox disc">
+          <div class="plbl disc">Discussion summary <span class="req">*</span></div>
+          <textarea class="fta fta-disc" id="ns-disc"
+            placeholder="What was discussed…"></textarea>
+        </div>
+        <div class="pbox conc">
+          <div class="plbl conc">Student concerns &amp; requests</div>
+          <textarea class="fta fta-conc" id="ns-conc"
+            placeholder="What the student raised…"></textarea>
+        </div>
       </div>
+
       <div class="rg2">
-        <div class="fg"><div class="fl">Advisor advice &amp; action items</div><textarea class="fta" id="ns-advice" rows="2" placeholder="Your advice and follow-up…"></textarea></div>
-        <div class="fg"><div class="fl">Student action items</div><textarea class="fta" id="ns-sa" rows="2" placeholder="What the student will do…"></textarea></div>
+        <div class="fg"><div class="fl">Advisor advice &amp; action items</div>
+          <textarea class="fta" id="ns-advice" rows="2"
+            placeholder="Your advice and follow-up…"></textarea>
+        </div>
+        <div class="fg"><div class="fl">Student action items</div>
+          <textarea class="fta" id="ns-sa" rows="2"
+            placeholder="What the student will do…"></textarea>
+        </div>
       </div>
-      <div class="rg3">
-        <div class="fg"><div class="fl">Follow-up required? <span class="req">*</span></div><select class="fsel" id="ns-fu"><option value="N">No</option><option value="Y">Yes</option></select></div>
-        <div class="fg"><div class="fl">Status <span class="req">*</span></div><select class="fsel" id="ns-status"><option>Completed</option><option>Rescheduled</option><option>No-show</option></select></div>
-        <div class="fg"><div class="fl">Referral</div><select class="fsel" id="ns-ref"><option>None</option><option>Academic support</option><option>Counseling</option><option>Career services</option><option>Financial aid</option></select></div>
-      </div>
+
       <div class="rg2">
-        <div class="fg"><div class="fl">Next meeting date</div><input class="fi" type="date" id="ns-nd"></div>
-        <div class="fg"><div class="fl">Next meeting agenda</div><input class="fi" id="ns-na" placeholder="Brief agenda"></div>
+        <!-- ── Follow-up: 유지 -->
+        <div class="fg"><div class="fl">Follow-up required? <span class="req">*</span></div>
+          <select class="fsel" id="ns-fu">
+            <option value="N">No</option><option value="Y">Yes</option>
+          </select>
+        </div>
+        <!-- ── Referral: 유지 -->
+        <div class="fg"><div class="fl">Referral</div>
+          <select class="fsel" id="ns-ref">
+            <option>None</option><option>Academic support</option>
+            <option>Counseling</option><option>Career services</option>
+            <option>Financial aid</option>
+          </select>
+        </div>
       </div>
-      <div class="fg"><div class="fl">Major change note</div><input class="fi" id="ns-mc" placeholder="Leave blank if no change"></div>
+
+      <div class="fg"><div class="fl">Major change note</div>
+        <input class="fi" id="ns-mc" placeholder="Leave blank if no change">
+      </div>
+
+      <!-- ── 제거: Status, Next meeting date, Next meeting agenda -->
+      <!-- student_meeting.status 는 saveSession()에서 자동으로 'completed'로 업데이트 -->
+      <!-- next_meeting은 student_meeting 테이블에서 별도 관리 -->
+
     </div>
     <div class="ns-ft">
-      <span class="ns-note">Saves to Advising Log · updates Master DB automatically</span>
+      <span class="ns-note">
+        ${hasLinked
+          ? 'Linked to meeting record · status → completed on save'
+          : 'No linked meeting — log only'}
+      </span>
       <div class="ns-btns">
-        <button class="btn-cancel" onclick="event.stopPropagation();cancelForm()">Cancel</button>
-        <button class="btn-save" onclick="event.stopPropagation();saveSession('${st.id}')">Save session</button>
+        <button class="btn-cancel"
+          onclick="event.stopPropagation();cancelForm()">Cancel</button>
+        <button class="btn-save"
+          onclick="event.stopPropagation();saveSession('${st.id}')">Save session</button>
       </div>
     </div>
   </div></div></div>`;
@@ -1524,8 +1673,30 @@ async function saveSession(studId){
   // Write to Supabase if signed in
   if (isSignedIn()) {
     try {
+      // 1. advising_log INSERT (기존과 동일)
       await insertSession(newSess);
+  
+      // 2. student_meeting 연동 (신규)
+      // 이 학생의 confirmed + scheduled 미팅이 있으면
+      // status → completed, log_id 연결
+      const linkedMeeting = meetings.find(m =>
+        m.studentId === studId &&
+        m.status === 'scheduled' &&
+        m.advisorConfirmed === true
+      );
+  
+      if (linkedMeeting) {
+        await sbPatch(TBL_MEETING, 'id', linkedMeeting.id, {
+          status: 'completed',
+          log_id: newSess.logId,
+        });
+        // 로컬 상태도 업데이트
+        linkedMeeting.status = 'completed';
+        linkedMeeting.logId  = newSess.logId;
+      }
+  
       showToast(`✓ Session saved to database — ${st?.name}`);
+  
     } catch(e) {
       console.error('Supabase write error:', e);
       // Roll back optimistic update on failure
