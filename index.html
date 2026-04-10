@@ -348,6 +348,13 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .settings-edit-bar{width:3px;border-radius:2px;background:var(--blue);align-self:stretch;flex-shrink:0;margin-right:12px;opacity:0;transition:opacity .15s;}
 .settings-field-row.editable:focus-within .settings-edit-bar{opacity:1;}
 .settings-field-input{flex:1;padding:7px 0;}
+.slot-chip{font-size:12px;padding:6px 4px;border-radius:6px;text-align:center;cursor:pointer;line-height:1.3;transition:all .12s;user-select:none;border:1px solid;display:block;width:100%;}
+.slot-chip.active{background:var(--blue-l);border-color:var(--blue-b);color:var(--blue);}
+.slot-chip.active:hover{background:var(--blue-b);}
+.slot-chip.inactive{background:var(--surface2);border-color:var(--border-em);color:var(--text3);}
+.slot-chip.add-btn{background:transparent;border:1px dashed var(--border-em);color:var(--text3);font-size:16px;padding:5px 4px;}
+.slot-chip.add-btn:hover{background:var(--surface2);}
+.day-col{display:flex;flex-direction:column;align-items:stretch;gap:5px;}
 </style>
 </head>
 <body>
@@ -2332,22 +2339,17 @@ async function loadAvailability() {
 
 function buildDayGrid() {
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  return `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:14px;">
-    ${days.map((d,i) => {
-      const isWeekend = i===0||i===6;
-      return `<div class="day-col" style="display:flex;flex-direction:column;align-items:stretch;gap:5px;">
-        <div style="font-size:12px;font-weight:500;
-          color:${isWeekend?'var(--text3)':'var(--text2)'};
-          padding-bottom:6px;border-bottom:1px solid var(--border);
-          text-align:center;margin-bottom:2px;">${d}</div>
-      <button class="add-btn" style="font-size:12px;padding:6px 4px;border-radius:6px;
-        border:1px dashed var(--border-em);background:transparent;
-        color:var(--text3);cursor:pointer;font-size:16px;"
-        onclick="openAddSlotForm(${i})">+</button>
-  </div>`;
-    }).join('')}
+  return `<div id="day-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:14px;">
+    ${days.map((d,i) => `
+      <div class="day-col">
+        <div style="font-size:12px;font-weight:500;text-align:center;padding-bottom:6px;
+          border-bottom:1px solid var(--border);margin-bottom:2px;
+          color:${(i===0||i===6)?'var(--text3)':'var(--text2)'};">${d}</div>
+        <button class="slot-chip add-btn" onclick="openAddSlotForm(${i})">+</button>
+      </div>`).join('')}
   </div>`;
 }
+
 
 function renderSlotList() {
   const list = document.getElementById('slot-list');
