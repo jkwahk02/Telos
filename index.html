@@ -526,7 +526,9 @@ function initials(n){return (n||'').split(' ').map(w=>w[0]).join('').slice(0,2).
 function myStudents() {
   return students.filter(s =>
     s.advisor1_email === FACULTY_EMAIL ||
-    s.advisor2_email === FACULTY_EMAIL
+    s.advisor2_email === FACULTY_EMAIL ||
+    s.advisor1 === FACULTY ||
+    s.advisor2 === FACULTY
   );
 }
   
@@ -893,8 +895,8 @@ function mapSession(r) {
   return {
     logId:           r.log_id          || '',
     date:            (r.meeting_date   || '').slice(0,10),
-    faculty:      r.faculty_email || '',  // ← email로 변경
-    facultyName:  getFacultyName(r.faculty_email), // ← 헬퍼로 이름 조회
+    faculty:         r.faculty_email || '',
+    facultyName:     r.faculty_name || getFacultyName(r.faculty_email),
     studentId:       String(r.student_id || ''),
     studentName:     r.student_name    || '',
     type:            r.meeting_type    || '',
@@ -1713,7 +1715,7 @@ async function saveSession(studId){
 // ── SESSION LOG ──
 function renderLog(){
   const mine=myStudents();
-  const mySess=sessions.filter(s=>s.faculty===FACULTY);
+  const mySess=sessions.filter(s=>s.faculty===FACULTY_EMAIL);
   const fu=mySess.filter(s=>s.followUp==='Y').length;
   const z=mine.filter(s=>s.sessions===0).length;
 
@@ -1879,7 +1881,7 @@ async function deleteSession(logId) {
 
 function renderLogList(){
   const mine=myStudents();
-  let list=sessions.filter(s=>s.faculty===FACULTY);
+  let list=sessions.filter(s=>s.faculty===FACULTY_EMAIL);
   if(logFilter==='fu') list=list.filter(s=>s.followUp==='Y');
   if(logSearch){const q=logSearch.toLowerCase();list=list.filter(s=>s.studentName.toLowerCase().includes(q)||s.studentId.includes(q));}
   list=[...list].sort((a,b)=>b.date.localeCompare(a.date));
