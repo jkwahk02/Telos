@@ -2264,28 +2264,6 @@ async function renderSettings() {
         </div>
       </div>
 
-// Before
-<!-- PROFILE -->
-<div class="tbl-wrap" style="border-radius:var(--r-lg);">
-  <div class="card-hd">
-    <div class="card-title">My profile</div>
-    <span class="pill pill-gray">Read-only</span>
-  </div>
-  <div style="padding:4px 16px;">
-    ${[
-      ['Name',   FACULTY],
-      ['Email',  FACULTY_EMAIL],
-      ['School', FACULTY_SCHOOL],
-      ['Role',   roleLabel],
-    ].map(([l,v])=>`
-      <div style="display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);">
-        <div style="font-size:13px;color:var(--text3);min-width:80px;">${l}</div>
-        <div style="font-size:14px;color:var(--text);font-weight:500;">${esc(v)}</div>
-      </div>`).join('')}
-  </div>
-</div>
-
-// After
 <!-- MY PROFILE -->
 <div class="tbl-wrap" style="border-radius:var(--r-lg);">
   <div style="padding:11px 16px;border-bottom:1px solid var(--border);">
