@@ -339,6 +339,15 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .text-muted{color:var(--text3);}
 .mono{font-family:'DM Mono',monospace;font-size:17px;}
 .ov-card-body{overflow-y:auto;max-height:280px;}
+.settings-section-divider{padding:6px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);display:flex;align-items:center;gap:6px;}
+.settings-field-row{display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);}
+.settings-field-row.editable{transition:background .15s;}
+.settings-field-row.editable:focus-within{background:var(--surface2);}
+.settings-field-label{font-size:13px;color:var(--text3);min-width:100px;flex-shrink:0;padding:11px 0;}
+.settings-field-val{font-size:14px;color:var(--text2);padding:11px 0;flex:1;}
+.settings-edit-bar{width:3px;border-radius:2px;background:var(--blue);align-self:stretch;flex-shrink:0;margin-right:12px;opacity:0;transition:opacity .15s;}
+.settings-field-row.editable:focus-within .settings-edit-bar{opacity:1;}
+.settings-field-input{flex:1;padding:7px 0;}
 </style>
 </head>
 <body>
@@ -2183,22 +2192,33 @@ const TZ_LIST = [
   'UTC',
 ];
 
-async function saveTz(tz) {
-  FACULTY_TIMEZONE = tz;
-  const status = document.getElementById('tz-save-status');
-  if (status) status.textContent = 'Saving…';
-  if (!isSignedIn()) {
-    if (status) status.textContent = 'Saved locally';
-    return;
-  }
+function markProfileDirty() {
+  const btn = document.getElementById('btn-save-profile');
+  if (btn) btn.disabled = false;
+  const status = document.getElementById('prof-save-status');
+  if (status) status.textContent = '';
+}
+
+async function saveProfile() {
+  const name = document.getElementById('prof-name')?.value.trim();
+  const tz   = document.getElementById('tz-select')?.value;
+  const btn  = document.getElementById('btn-save-profile');
+  const status = document.getElementById('prof-save-status');
+  if (!name) { showToast('Name cannot be empty.'); return; }
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
   try {
-    await sbUpdate('faculty_profiles', 'email', FACULTY_EMAIL, { timezone: tz });
-    if (status) {
-      status.textContent = 'Saved ✓';
-      setTimeout(() => { if (status) status.textContent = ''; }, 2000);
-    }
+    await sbUpdate('faculty_profiles', 'email', FACULTY_EMAIL, { name_en: name, timezone: tz });
+    FACULTY = name;
+    FACULTY_TIMEZONE = tz;
+    document.getElementById('nav-name').textContent    = FACULTY;
+    document.getElementById('dd-name').textContent     = FACULTY;
+    document.getElementById('nav-avatar').textContent  = initials(FACULTY);
+    if (status) { status.textContent = 'Saved ✓'; setTimeout(()=>{ status.textContent=''; },2500); }
+    showToast('Profile updated');
   } catch(e) {
     if (status) status.textContent = `Failed: ${e.message}`;
+  } finally {
+    if (btn) { btn.textContent = 'Save profile'; btn.disabled = true; }
   }
 }
   
@@ -2244,41 +2264,123 @@ async function renderSettings() {
         </div>
       </div>
 
-      <!-- PROFILE -->
-      <div class="tbl-wrap" style="border-radius:var(--r-lg);">
-        <div style="padding:11px 16px;border-bottom:1px solid var(--border);
-          display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-size:17px;font-weight:600;">My profile</div>
-          <span class="bdg bdg-gray">Read-only</span>
-        </div>
-        <div style="padding:4px 16px;">
-          ${[
-            ['Name',   FACULTY],
-            ['Email',  FACULTY_EMAIL],
-            ['School', FACULTY_SCHOOL],
-            ['Role',   roleLabel],
-          ].map(([l,v])=>`
-            <div style="display:flex;gap:12px;padding:9px 0;
-              border-bottom:1px solid var(--border);">
-              <div style="font-size:13px;color:var(--text3);min-width:80px;">${l}</div>
-              <div style="font-size:14px;color:var(--text);font-weight:500;">${esc(v)}</div>
-            </div>`).join('')}
-          <div style="display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);align-items:center;">
-            <div style="font-size:13px;color:var(--text3);min-width:80px;">Timezone</div>
-            <select id="tz-select" onchange="saveTz(this.value)"
-              style="font-size:14px;font-weight:500;border:1px solid var(--border-em);
-                border-radius:var(--r);background:var(--surface2);padding:4px 10px;
-                color:var(--text);outline:none;cursor:pointer;max-width:280px;">
-              ${TZ_LIST.map(tz =>
-                `<option value="${tz}" ${tz===FACULTY_TIMEZONE?'selected':''}>${tz}</option>`
-              ).join('')}
-            </select>
-            <span id="tz-save-status" style="font-size:12px;color:var(--teal);"></span>
-          </div>
-        </div>
-      </div>
+// Before
+<!-- PROFILE -->
+<div class="tbl-wrap" style="border-radius:var(--r-lg);">
+  <div class="card-hd">
+    <div class="card-title">My profile</div>
+    <span class="pill pill-gray">Read-only</span>
+  </div>
+  <div style="padding:4px 16px;">
+    ${[
+      ['Name',   FACULTY],
+      ['Email',  FACULTY_EMAIL],
+      ['School', FACULTY_SCHOOL],
+      ['Role',   roleLabel],
+    ].map(([l,v])=>`
+      <div style="display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:13px;color:var(--text3);min-width:80px;">${l}</div>
+        <div style="font-size:14px;color:var(--text);font-weight:500;">${esc(v)}</div>
+      </div>`).join('')}
+  </div>
+</div>
 
-    </div>`;
+// After
+<!-- MY PROFILE -->
+<div class="tbl-wrap" style="border-radius:var(--r-lg);">
+  <div style="padding:11px 16px;border-bottom:1px solid var(--border);">
+    <div style="font-size:17px;font-weight:600;">My profile</div>
+  </div>
+
+  <div class="settings-section-divider">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="8" width="10" height="6" rx="1.5"/><path d="M5 8V6a3 3 0 0 1 6 0v2"/></svg>
+    Managed by administrator
+  </div>
+  ${[['Email', FACULTY_EMAIL],['School', FACULTY_SCHOOL],['Role', roleLabel]].map(([l,v])=>`
+    <div class="settings-field-row">
+      <div class="settings-field-label">${l}</div>
+      <div class="settings-field-val">${esc(v)}</div>
+    </div>`).join('')}
+
+  <div class="settings-section-divider">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-8 8H3v-3l8-8z"/></svg>
+    Editable by you
+  </div>
+  <div class="settings-field-row editable">
+    <div class="settings-edit-bar"></div>
+    <div class="settings-field-label">Display name</div>
+    <div class="settings-field-input">
+      <input class="fi" id="prof-name" value="${esc(FACULTY)}"
+        style="height:30px;font-size:14px;" oninput="markProfileDirty()">
+    </div>
+  </div>
+  <div class="settings-field-row editable">
+    <div class="settings-edit-bar"></div>
+    <div class="settings-field-label">Timezone</div>
+    <div class="settings-field-input">
+      <select class="fsel" id="tz-select" onchange="markProfileDirty()"
+        style="height:30px;font-size:14px;width:100%;max-width:300px;">
+        ${TZ_LIST.map(tz=>
+          `<option value="${tz}" ${tz===FACULTY_TIMEZONE?'selected':''}>${tz}</option>`
+        ).join('')}
+      </select>
+    </div>
+  </div>
+
+  <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+    <span class="save-status" id="prof-save-status"></span>
+    <button class="btn-log" id="btn-save-profile" disabled onclick="saveProfile()">Save profile</button>
+  </div>
+</div>
+
+<!-- MY PROFILE -->
+<div class="tbl-wrap" style="border-radius:var(--r-lg);">
+  <div style="padding:11px 16px;border-bottom:1px solid var(--border);">
+    <div style="font-size:17px;font-weight:600;">My profile</div>
+  </div>
+
+  <div class="settings-section-divider">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="8" width="10" height="6" rx="1.5"/><path d="M5 8V6a3 3 0 0 1 6 0v2"/></svg>
+    Managed by administrator
+  </div>
+  ${[['Email', FACULTY_EMAIL],['School', FACULTY_SCHOOL],['Role', roleLabel]].map(([l,v])=>`
+    <div class="settings-field-row">
+      <div class="settings-field-label">${l}</div>
+      <div class="settings-field-val">${esc(v)}</div>
+    </div>`).join('')}
+
+  <div class="settings-section-divider">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-8 8H3v-3l8-8z"/></svg>
+    Editable by you
+  </div>
+  <div class="settings-field-row editable">
+    <div class="settings-edit-bar"></div>
+    <div class="settings-field-label">Display name</div>
+    <div class="settings-field-input">
+      <input class="fi" id="prof-name" value="${esc(FACULTY)}"
+        style="height:30px;font-size:14px;" oninput="markProfileDirty()">
+    </div>
+  </div>
+  <div class="settings-field-row editable">
+    <div class="settings-edit-bar"></div>
+    <div class="settings-field-label">Timezone</div>
+    <div class="settings-field-input">
+      <select class="fsel" id="tz-select" onchange="markProfileDirty()"
+        style="height:30px;font-size:14px;width:100%;max-width:300px;">
+        ${TZ_LIST.map(tz=>
+          `<option value="${tz}" ${tz===FACULTY_TIMEZONE?'selected':''}>${tz}</option>`
+        ).join('')}
+      </select>
+    </div>
+  </div>
+
+  <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+    <span class="save-status" id="prof-save-status"></span>
+    <button class="btn-log" id="btn-save-profile" disabled onclick="saveProfile()">Save profile</button>
+  </div>
+</div>
+
+  </div>`;
 
   await loadAvailability();
 }
