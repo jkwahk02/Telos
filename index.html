@@ -785,6 +785,11 @@ async function handlePasswordChange() {
         const err = await patchRes.json().catch(()=>({}));
         throw new Error(`Profile update failed: ${err.message || patchRes.status}`);
       }
+      // PATCH 성공했지만 실제로 업데이트된 행이 있는지 확인
+      const patchResult = await patchRes.json().catch(()=>[]);
+      if (!patchResult.length) {
+        console.warn('must_change_password PATCH returned empty — RLS may be blocking update');
+      }
     }
 
     // 3. Hide pw wall, restore defaults, and enter/stay in app
