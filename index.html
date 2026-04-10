@@ -2389,6 +2389,36 @@ function renderSlotList() {
         Remove
       </button>
     </div>`).join('');
+  renderDayGridSlots(); // ← 추가
+}
+
+function renderDayGridSlots() {
+  const cols = document.querySelectorAll('.day-col');
+  if (!cols.length) return;
+
+  // 기존 슬롯 칩만 제거 (add-btn 유지)
+  cols.forEach(col => {
+    col.querySelectorAll('.slot-chip:not(.add-btn)').forEach(c => c.remove());
+  });
+
+  // availSlots 기반으로 칩 재생성
+  availSlots.forEach((s, i) => {
+    const col = cols[s.day_of_week];
+    if (!col) return;
+    const addBtn = col.querySelector('.add-btn');
+    const chip = document.createElement('div');
+    chip.className = `slot-chip ${s.is_active ? 'active' : 'inactive'}`;
+    chip.dataset.idx = i;
+    chip.innerHTML = `${s.start_time.slice(0,5)}<br>${s.end_time.slice(0,5)}`;
+    chip.onclick = function() {
+      const idx = parseInt(this.dataset.idx);
+      availSlots[idx].is_active = !availSlots[idx].is_active;
+      renderSlotList();
+    };
+    col.insertBefore(chip, addBtn);
+  });
+
+  updateAvailCount();
 }
 
 function updateAvailCount() {
