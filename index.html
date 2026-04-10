@@ -339,6 +339,22 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .text-muted{color:var(--text3);}
 .mono{font-family:'DM Mono',monospace;font-size:17px;}
 .ov-card-body{overflow-y:auto;max-height:280px;}
+.settings-section-divider{padding:6px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);display:flex;align-items:center;gap:6px;}
+.settings-field-row{display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);}
+.settings-field-row.editable{transition:background .15s;}
+.settings-field-row.editable:focus-within{background:var(--surface2);}
+.settings-field-label{font-size:13px;color:var(--text3);min-width:100px;flex-shrink:0;padding:11px 0;}
+.settings-field-val{font-size:14px;color:var(--text2);padding:11px 0;flex:1;}
+.settings-edit-bar{width:3px;border-radius:2px;background:var(--blue);align-self:stretch;flex-shrink:0;margin-right:12px;opacity:0;transition:opacity .15s;}
+.settings-field-row.editable:focus-within .settings-edit-bar{opacity:1;}
+.settings-field-input{flex:1;padding:7px 0;}
+.slot-chip{font-size:12px;padding:6px 4px;border-radius:6px;text-align:center;cursor:pointer;line-height:1.3;transition:all .12s;user-select:none;border:1px solid;display:block;width:100%;}
+.slot-chip.active{background:var(--blue-l);border-color:var(--blue-b);color:var(--blue);}
+.slot-chip.active:hover{background:var(--blue-b);}
+.slot-chip.inactive{background:var(--surface2);border-color:var(--border-em);color:var(--text3);}
+.slot-chip.add-btn{background:transparent;border:1px dashed var(--border-em);color:var(--text3);font-size:16px;padding:5px 4px;}
+.slot-chip.add-btn:hover{background:var(--surface2);}
+.day-col{display:flex;flex-direction:column;align-items:stretch;gap:5px;}
 </style>
 </head>
 <body>
@@ -350,6 +366,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
     <button class="nav-tab" data-page="students">My Students</button>
     <button class="nav-tab" data-page="log">Session Log</button>
     <button class="nav-tab" data-page="codebook">Help & Guide</button>
+    <button class="nav-tab" data-page="settings">Settings</button>
   </div>
   <div class="nav-right">
     <div class="nav-source">
@@ -461,6 +478,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
   <div class="page" id="page-students"></div>
   <div class="page" id="page-log"></div>
   <div class="page" id="page-codebook"></div>
+  <div class="page" id="page-settings"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -471,7 +489,9 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 // Current faculty — set dynamically after login (do not hardcode)
 let FACULTY = '';
 let FACULTY_INITIALS = '';
+let FACULTY_EMAIL = '';   // ← 신규: 이름 대신 email로 식별
 let FACULTY_SCHOOL = '';  // chair's school for program filtering
+let FACULTY_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let SCHOOL_FACULTY_NAMES = []; // 같은 school 소속 교수 이름 목록
 
 // ↓ Supabase project credentials — replace with your own
@@ -483,10 +503,13 @@ const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 // Supabase table names
 const TBL_STUDENTS = 'students';
 const TBL_LOG      = 'advising_log';
-
+const TBL_MEETING   = 'student_meeting';   // ← 신규
+const TBL_AVAIL     = 'faculty_availability'; // ← 신규
+  
 // ── STATE ──
 let students = [];
 let sessions = [];
+let meetings = [];  // ← 추가
 let dataLoaded = false;
 
 // ── AUTH STATE ──
@@ -509,7 +532,7 @@ function shortMajor(m){
 }
 //function shortCohort(c){return c.replace('Cohort ','C').replace(' (2023)','23').replace(' (2024)','24');}
 function shortCohort(c){
-  return c.replace(/Cohort (\d+) \((\d{4})\)/, (_, n, y) => `C${n}('${y.slice(2)})`);
+  return (c||'').replace(/Cohort (\d+) \((\d{4})\)/, (_,n,y) => `C${n} ('${y.slice(2)})`);
 }
 // function roleFor(st){return st.advisor1===FACULTY?'Primary':'Secondary';}
 function roleFor(st) {
@@ -519,8 +542,15 @@ function roleFor(st) {
 }
 function initials(n){return (n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 
-function myStudents(){return students.filter(s=>s.advisor1===FACULTY||s.advisor2===FACULTY);}
-
+function myStudents() {
+  return students.filter(s =>
+    s.advisor1_email === FACULTY_EMAIL ||
+    s.advisor2_email === FACULTY_EMAIL ||
+    s.advisor1 === FACULTY ||
+    s.advisor2 === FACULTY
+  );
+}
+  
 function syncStudents(){
   students.forEach(st=>{
     const ss=sessions.filter(s=>s.studentId===st.id).sort((a,b)=>b.date.localeCompare(a.date));
@@ -625,19 +655,33 @@ async function handleWallLogin() {
 
     // Step 2: Look up faculty name + first-login flag from faculty_profiles
     const profRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}&select=name_en,must_change_password,is_chair,school`,
+      `${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}&select=name_en,email,school,is_chair,must_change_password`,
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}` } }
     );
     const profData = await profRes.json();
     
     if (profData.length > 0) {
       FACULTY        = profData[0].name_en;
+      FACULTY_EMAIL  = profData[0].email;        // ← 추가
       IS_CHAIR       = profData[0].is_chair === true;
       FACULTY_SCHOOL = profData[0].school || '';
+      FACULTY_TIMEZONE = profData[0].timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
+      // 첫 로그인 시 timezone이 null이면 브라우저 값으로 DB에 저장
+      if (!profData[0].timezone) {
+        const browserTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        fetch(`${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}`, {
+          method: 'PATCH',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ timezone: browserTZ }),
+        }).catch(()=>{});
+      }
     } else {
       FACULTY        = data.user?.user_metadata?.full_name || email.split('@')[0];
+      FACULTY_EMAIL  = email;                    // ← 추가 (fallback: 로그인 email 그대로)
       IS_CHAIR       = false;
       FACULTY_SCHOOL = '';
+      FACULTY_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone; // ← 추가
     }
 
     // Chair인 경우 같은 school 소속 교수 목록 추가 로드
@@ -725,7 +769,7 @@ async function handlePasswordChange() {
     const mode = document.getElementById('pw-change-wall').dataset.mode || 'first';
     if (mode === 'first') {
       const email = supabaseUser.user?.email || '';
-      await fetch(
+      const patchRes = await fetch(
         `${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}`,
         {
           method: 'PATCH',
@@ -733,10 +777,20 @@ async function handlePasswordChange() {
             'apikey': SUPABASE_KEY,
             'Authorization': `Bearer ${supabaseUser.access_token}`,
             'Content-Type': 'application/json',
+            'Prefer': 'return=representation',
           },
           body: JSON.stringify({ must_change_password: false }),
         }
       );
+      if (!patchRes.ok) {
+        const err = await patchRes.json().catch(()=>({}));
+        throw new Error(`Profile update failed: ${err.message || patchRes.status}`);
+      }
+      // PATCH 성공했지만 실제로 업데이트된 행이 있는지 확인
+      const patchResult = await patchRes.json().catch(()=>[]);
+      if (!patchResult.length) {
+        throw new Error('Profile update failed — permission denied. Please contact the admin.');
+      }
     }
 
     // 3. Hide pw wall, restore defaults, and enter/stay in app
@@ -746,9 +800,10 @@ async function handlePasswordChange() {
     document.getElementById('pw-submit').textContent = 'Set password & continue';
     document.getElementById('pw-wall-title').textContent = 'Set your password';
     document.getElementById('pw-wall-desc').textContent = 'This is your first sign-in.\nPlease set a new password to continue.';
+    const isFirstLogin = mode === 'first';
     document.getElementById('pw-change-wall').dataset.mode = 'first';
-    const mode2 = document.getElementById('pw-change-wall').dataset.mode;
-    showToast(mode2 === 'first' ? 'Password set — welcome!' : 'Password updated successfully');
+    showToast(isFirstLogin ? 'Password set — welcome!' : 'Password updated successfully');
+    
     if (!dataLoaded) await loadData();
 
   } catch(e) {
@@ -770,9 +825,10 @@ async function handleSignOut() {
   FACULTY_INITIALS = '';
   IS_CHAIR = false;
   FACULTY_SCHOOL = '';
+  FACULTY_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
   SCHOOL_FACULTY_NAMES = [];
 
-  students = []; sessions = []; dataLoaded = false;
+  students = []; sessions = []; meetings = []; dataLoaded = false;
   document.getElementById('nav-user-btn').style.display = 'none';
   document.getElementById('nav-dropdown').classList.remove('open');
   document.getElementById('src-dot').className = 'src-dot';
@@ -810,12 +866,15 @@ async function loadData() {
   }
 
   try {
-    const [rawStudents, rawSessions] = await Promise.all([
+    const [rawStudents, rawSessions,rawMeetings] = await Promise.all([
       sbGet(TBL_STUDENTS, 'order=id.asc'),
       sbGet(TBL_LOG,      'order=meeting_date.desc'),
+      sbGet(TBL_MEETING,  'order=meeting_date.desc'), // ← 신규
     ]);
     students = rawStudents.map(mapStudent);
     sessions = rawSessions.map(mapSession);
+    meetings = rawMeetings.map(mapMeeting);           // ← 신규
+
     syncStudents();
     dataLoaded = true;
     dot.className = 'src-dot authed';
@@ -834,6 +893,7 @@ async function loadData() {
 function loadFallback(overrideMsg) {
   students = FALLBACK_STUDENTS;
   sessions = FALLBACK_SESSIONS;
+  meetings = FALLBACK_MEETINGS;  // ← 추가
   syncStudents();
   dataLoaded = true;
   // Only override the label if explicitly provided (don't clobber the error message set by caller)
@@ -862,8 +922,10 @@ function mapStudent(r) {
     lastSummary:      r.last_meeting_summary || '',
     nextMeeting:      r.next_meeting_date || '',
     nextAgenda:       r.next_meeting_agenda || '',
-    advisor1:         r.advisor1  || '',
-    advisor2:         r.advisor2  || '',
+    advisor1_email: r.advisor1_email || '',   // ← FK로 변경
+    advisor2_email: r.advisor2_email || '',   // ← FK로 변경
+    advisor1: r.advisor1 || '',               // deprecated 유지 (호환)
+    advisor2: r.advisor2 || '',               // deprecated 유지 (호환)
     careerGoal:       r.career_goal || '',
     researchInterest: r.research_interest || '',
     concerns:         r.concerns  || '',
@@ -876,7 +938,8 @@ function mapSession(r) {
   return {
     logId:           r.log_id          || '',
     date:            (r.meeting_date   || '').slice(0,10),
-    faculty:         r.faculty_name    || '',
+    faculty:         r.faculty_email || '',
+    facultyName:     r.faculty_name || getFacultyName(r.faculty_email),
     studentId:       String(r.student_id || ''),
     studentName:     r.student_name    || '',
     type:            r.meeting_type    || '',
@@ -886,31 +949,48 @@ function mapSession(r) {
     advice:          r.advisor_advice    || '',
     studentAction:   r.student_action_items || '',
     followUp:        r.follow_up_required || 'N',
-    nextDate:        (r.next_meeting_date   || '').slice(0,10),
-    nextAgenda:      r.next_meeting_agenda || '',
     majorChangeNote: r.major_change_note   || '',
     mainTopic:       r.main_topic          || '',
   };
 }
 
+// 신규 헬퍼
+function getFacultyName(email) {
+  const f = SCHOOL_FACULTY_NAMES.find(x => x.email === email);
+  return f?.name || email;
+}
+
+function mapMeeting(r) {
+  return {
+    id:              r.id,
+    studentId:       String(r.student_id || ''),
+    facultyEmail:    r.faculty_email || '',
+    meetingDate:     (r.meeting_date || '').slice(0,10),
+    meetingFormat:   r.meeting_format || 'Zoom',
+    meetingType:     r.meeting_type || 'Regular',
+    status:          r.status || 'scheduled',
+    advisorConfirmed: r.advisor_confirmed || false,
+    studentAgenda:   r.student_agenda || '',
+    createdBy:       r.created_by || 'advisor',
+    logId:           r.log_id || null,
+    meetingLink:     r.meeting_link || '',
+  };
+}
+  
 // ── WRITE TO SUPABASE ──
 async function insertSession(row) {
   // Map app field names → Supabase column names
   const dbRow = {
     log_id:                row.logId,
     meeting_date:          row.date,
-    faculty_name:          row.faculty,
+    faculty_email:         FACULTY_EMAIL,     // ← email로 변경
     student_id:            row.studentId,
     student_name:          row.studentName,
-    meeting_type:          row.type,
-    meeting_format:        row.format,
     discussion_summary:    row.disc,
     student_concerns:      row.conc,
     advisor_advice:        row.advice,
     student_action_items:  row.studentAction,
     follow_up_required:    row.followUp,
-    next_meeting_date:     row.nextDate || null,
-    next_meeting_agenda:   row.nextAgenda,
     major_change_note:     row.majorChangeNote,
     main_topic:            row.mainTopic,
   };
@@ -938,15 +1018,22 @@ function renderCurrent() {
   if (currentPage==='students') renderStudents();
   if (currentPage==='log') renderLog();
   if (currentPage==='codebook') renderCodebook();
+  if (currentPage==='settings')  renderSettings();
 }
 
 // ── OVERVIEW ──
 function renderOverview() {
   const mine = myStudents();
-  const mySess = sessions.filter(s=>s.faculty===FACULTY);
+  const mySess = sessions.filter(s=>s.faculty===FACULTY_EMAIL);
   const zeroSess = mine.filter(s=>s.sessions===0).length;
   const noNext = mine.filter(s=>!s.nextMeeting).length;
   const followUp = mySess.filter(s=>s.followUp==='Y').length;
+  const pendingRequests = meetings.filter(m =>
+    m.facultyEmail === FACULTY_EMAIL &&
+    m.status === 'scheduled' &&
+    !m.advisorConfirmed &&
+    m.createdBy === 'student'
+  );
   const noNextList = mine.filter(s=>!s.nextMeeting);
   const recent = [...mySess].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
 
@@ -1257,8 +1344,12 @@ function renderProgramSummary() {
 // ── MY STUDENTS ──
 function renderStudents() {
   const mine = myStudents();
-  const fp = sessions.filter(s=>s.followUp==='Y'&&s.faculty===FACULTY).length;
-  const ns = mine.filter(s=>s.sessions===0).length;
+  const baseList = studFilter === 'all' ? students : mine;
+  const fp = sessions.filter(s =>
+    s.followUp === 'Y' &&
+    (studFilter === 'all' ? true : s.faculty === FACULTY_EMAIL)
+  ).length;
+  const ns = baseList.filter(s => s.sessions === 0).length;
 
   document.getElementById('page-students').innerHTML = `
     <div class="filter-bar">
@@ -1422,50 +1513,158 @@ function buildSessCard(s){
 }
 
 function buildNsForm(st){
+  // ── 신규: 연결된 student_meeting 찾기
+  const linkedMeeting = meetings.find(m =>
+    m.studentId === st.id &&
+    m.status === 'scheduled' &&
+    m.advisorConfirmed === true
+  );
+  const hasLinked = !!linkedMeeting;
+
+  // 날짜/타입/포맷: meeting이 있으면 자동값, 없으면 오늘/기본값
+  const autoDate   = hasLinked ? linkedMeeting.meetingDate   : new Date().toISOString().split('T')[0];
+  const autoType   = hasLinked ? linkedMeeting.meetingType   : 'Regular';
+  const autoFormat = hasLinked ? linkedMeeting.meetingFormat : 'Zoom';
+  const autoAgenda = hasLinked ? linkedMeeting.studentAgenda : '';
+
   const topics=['Career','Academics','Research','Wellbeing','Administrative'];
-  const tHtml=topics.map(t=>`<span class="mchip ${selTopics.includes(t)?'on':''}" onclick="toggleTopic('${st.id}','${t}')">${t}</span>`).join('');
+  const tHtml=topics.map(t=>`<span class="mchip ${selTopics.includes(t)?'on':''}"
+    onclick="toggleTopic('${st.id}','${t}')">${t}</span>`).join('');
+
+  // ── 신규: student agenda 표시 블록 (읽기 전용)
+  const agendaBlock = hasLinked && autoAgenda ? `
+    <div class="fg">
+      <div class="fl">Student's agenda
+        <span style="font-size:10px;background:var(--accent-l);color:var(--accent);
+          padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:500;">
+          Pre-submitted
+        </span>
+      </div>
+      <div style="background:var(--accent-l);border-radius:var(--r);padding:10px 12px;
+        font-size:13px;color:var(--teal);line-height:1.55;border:1px solid var(--accent-b);">
+        ${esc(autoAgenda)}
+      </div>
+    </div>` : '';
+
   return `<div class="tl-item">
   <div class="tl-spine"><div class="tl-dot entry"></div><div class="tl-line"></div></div>
   <div class="tl-content" style="padding-bottom:16px;">
   <div class="ns-card">
-    <div class="ns-hd"><span class="ns-title">New session — ${esc(st.name)}</span>
-      <button class="ns-cancel" onclick="event.stopPropagation();cancelForm()">Cancel ×</button></div>
+    <div class="ns-hd">
+      <span class="ns-title">New session — ${esc(st.name)}</span>
+      <button class="ns-cancel" onclick="event.stopPropagation();cancelForm()">Cancel ×</button>
+    </div>
     <div class="ns-body">
+
       <div class="rg3">
-        <div class="fg"><div class="fl">Student ID</div><div class="fi af">${esc(st.id)}</div></div>
-        <div class="fg"><div class="fl">Student name</div><div class="fi af">${esc(st.name)}</div></div>
-        <div class="fg"><div class="fl">Advisor role</div><div class="fi af">${roleFor(st)}</div></div>
+        <div class="fg"><div class="fl">Student ID</div>
+          <div class="fi af">${esc(st.id)}</div></div>
+        <div class="fg"><div class="fl">Student name</div>
+          <div class="fi af">${esc(st.name)}</div></div>
+        <div class="fg"><div class="fl">Advisor role</div>
+          <div class="fi af">${roleFor(st)}</div></div>
       </div>
+
       <div class="rg3">
-        <div class="fg"><div class="fl">Date <span class="req">*</span></div><input class="fi" type="date" id="ns-date" value="${new Date().toISOString().split('T')[0]}"></div>
-        <div class="fg"><div class="fl">Type <span class="req">*</span></div><select class="fsel" id="ns-type"><option>Regular</option><option>Ad-hoc</option><option>Email</option></select></div>
-        <div class="fg"><div class="fl">Format <span class="req">*</span></div><select class="fsel" id="ns-format"><option>Zoom</option><option>In-person</option><option>Phone</option><option>Email</option></select></div>
+        <!-- ── Date: meeting 있으면 자동 + 읽기전용, 없으면 수동 입력 -->
+        <div class="fg"><div class="fl">Date <span class="req">*</span>
+          ${hasLinked?`<span style="font-size:10px;color:var(--accent);margin-left:4px;">
+            Auto-filled</span>`:''}
+        </div>
+        <input class="fi ${hasLinked?'af':''}" type="date" id="ns-date"
+          value="${autoDate}" ${hasLinked?'readonly':''}>
+        </div>
+
+        <!-- ── Type: meeting 있으면 자동 + 읽기전용 -->
+        <div class="fg"><div class="fl">Type <span class="req">*</span></div>
+        ${hasLinked
+          ? `<div class="fi af">${esc(autoType)}</div>
+             <input type="hidden" id="ns-type" value="${esc(autoType)}">`
+          : `<select class="fsel" id="ns-type">
+               <option>Regular</option><option>Ad-hoc</option><option>Email</option>
+             </select>`}
+        </div>
+
+        <!-- ── Format: meeting 있으면 자동 + 읽기전용 -->
+        <div class="fg"><div class="fl">Format <span class="req">*</span></div>
+        ${hasLinked
+          ? `<div class="fi af">${esc(autoFormat)}</div>
+             <input type="hidden" id="ns-format" value="${esc(autoFormat)}">`
+          : `<select class="fsel" id="ns-format">
+               <option>Zoom</option><option>In-person</option>
+               <option>Phone</option><option>Email</option>
+             </select>`}
+        </div>
       </div>
-      <div class="fg"><div class="fl">Main topic <span class="req">*</span></div><div class="mchip-row" id="ns-topics">${tHtml}</div></div>
+
+      <!-- ── 신규: student agenda 읽기전용 표시 -->
+      ${agendaBlock}
+
+      <div class="fg"><div class="fl">Main topic <span class="req">*</span></div>
+        <div class="mchip-row" id="ns-topics">${tHtml}</div>
+      </div>
+
       <div class="prow">
-        <div class="pbox disc"><div class="plbl disc">Discussion summary <span class="req">*</span></div><textarea class="fta fta-disc" id="ns-disc" placeholder="What was discussed…"></textarea></div>
-        <div class="pbox conc"><div class="plbl conc">Student concerns &amp; requests</div><textarea class="fta fta-conc" id="ns-conc" placeholder="What the student raised…"></textarea></div>
+        <div class="pbox disc">
+          <div class="plbl disc">Discussion summary <span class="req">*</span></div>
+          <textarea class="fta fta-disc" id="ns-disc"
+            placeholder="What was discussed…"></textarea>
+        </div>
+        <div class="pbox conc">
+          <div class="plbl conc">Student concerns &amp; requests</div>
+          <textarea class="fta fta-conc" id="ns-conc"
+            placeholder="What the student raised…"></textarea>
+        </div>
       </div>
+
       <div class="rg2">
-        <div class="fg"><div class="fl">Advisor advice &amp; action items</div><textarea class="fta" id="ns-advice" rows="2" placeholder="Your advice and follow-up…"></textarea></div>
-        <div class="fg"><div class="fl">Student action items</div><textarea class="fta" id="ns-sa" rows="2" placeholder="What the student will do…"></textarea></div>
+        <div class="fg"><div class="fl">Advisor advice &amp; action items</div>
+          <textarea class="fta" id="ns-advice" rows="2"
+            placeholder="Your advice and follow-up…"></textarea>
+        </div>
+        <div class="fg"><div class="fl">Student action items</div>
+          <textarea class="fta" id="ns-sa" rows="2"
+            placeholder="What the student will do…"></textarea>
+        </div>
       </div>
-      <div class="rg3">
-        <div class="fg"><div class="fl">Follow-up required? <span class="req">*</span></div><select class="fsel" id="ns-fu"><option value="N">No</option><option value="Y">Yes</option></select></div>
-        <div class="fg"><div class="fl">Status <span class="req">*</span></div><select class="fsel" id="ns-status"><option>Completed</option><option>Rescheduled</option><option>No-show</option></select></div>
-        <div class="fg"><div class="fl">Referral</div><select class="fsel" id="ns-ref"><option>None</option><option>Academic support</option><option>Counseling</option><option>Career services</option><option>Financial aid</option></select></div>
-      </div>
+
       <div class="rg2">
-        <div class="fg"><div class="fl">Next meeting date</div><input class="fi" type="date" id="ns-nd"></div>
-        <div class="fg"><div class="fl">Next meeting agenda</div><input class="fi" id="ns-na" placeholder="Brief agenda"></div>
+        <!-- ── Follow-up: 유지 -->
+        <div class="fg"><div class="fl">Follow-up required? <span class="req">*</span></div>
+          <select class="fsel" id="ns-fu">
+            <option value="N">No</option><option value="Y">Yes</option>
+          </select>
+        </div>
+        <!-- ── Referral: 유지 -->
+        <div class="fg"><div class="fl">Referral</div>
+          <select class="fsel" id="ns-ref">
+            <option>None</option><option>Academic support</option>
+            <option>Counseling</option><option>Career services</option>
+            <option>Financial aid</option>
+          </select>
+        </div>
       </div>
-      <div class="fg"><div class="fl">Major change note</div><input class="fi" id="ns-mc" placeholder="Leave blank if no change"></div>
+
+      <div class="fg"><div class="fl">Major change note</div>
+        <input class="fi" id="ns-mc" placeholder="Leave blank if no change">
+      </div>
+
+      <!-- ── 제거: Status, Next meeting date, Next meeting agenda -->
+      <!-- student_meeting.status 는 saveSession()에서 자동으로 'completed'로 업데이트 -->
+      <!-- next_meeting은 student_meeting 테이블에서 별도 관리 -->
+
     </div>
     <div class="ns-ft">
-      <span class="ns-note">Saves to Advising Log · updates Master DB automatically</span>
+      <span class="ns-note">
+        ${hasLinked
+          ? 'Linked to meeting record · status → completed on save'
+          : 'No linked meeting — log only'}
+      </span>
       <div class="ns-btns">
-        <button class="btn-cancel" onclick="event.stopPropagation();cancelForm()">Cancel</button>
-        <button class="btn-save" onclick="event.stopPropagation();saveSession('${st.id}')">Save session</button>
+        <button class="btn-cancel"
+          onclick="event.stopPropagation();cancelForm()">Cancel</button>
+        <button class="btn-save"
+          onclick="event.stopPropagation();saveSession('${st.id}')">Save session</button>
       </div>
     </div>
   </div></div></div>`;
@@ -1500,8 +1699,8 @@ async function saveSession(studId){
   const advice=document.getElementById('ns-advice')?.value.trim()||'';
   const studentAction=document.getElementById('ns-sa')?.value.trim()||'';
   const followUp=document.getElementById('ns-fu')?.value||'N';
-  const nextDate=document.getElementById('ns-nd')?.value||'';
-  const nextAgenda=document.getElementById('ns-na')?.value.trim()||'';
+//  const nextDate=document.getElementById('ns-nd')?.value||'';
+//  const nextAgenda=document.getElementById('ns-na')?.value.trim()||'';
   const majorChangeNote=document.getElementById('ns-mc')?.value.trim()||'';
 
   // Determine next Log ID
@@ -1512,8 +1711,8 @@ async function saveSession(studId){
   const logId = `LOG-${String(nextNum).padStart(3,'0')}`;
 
   // Optimistic local update first
-  const newSess = {logId,date,faculty:FACULTY,studentId:studId,studentName:st?.name||'',
-    type,format,disc,conc,advice,studentAction,followUp,nextDate,nextAgenda,majorChangeNote,
+  const newSess = {logId,date,faculty:FACULTY_EMAIL,studentId:studId,studentName:st?.name||'',
+    type,format,disc,conc,advice,studentAction,followUp,majorChangeNote,
     mainTopic:selTopics.join(', ')};
   sessions.push(newSess);
   syncStudents();
@@ -1524,8 +1723,30 @@ async function saveSession(studId){
   // Write to Supabase if signed in
   if (isSignedIn()) {
     try {
+      // 1. advising_log INSERT (기존과 동일)
       await insertSession(newSess);
+  
+      // 2. student_meeting 연동 (신규)
+      // 이 학생의 confirmed + scheduled 미팅이 있으면
+      // status → completed, log_id 연결
+      const linkedMeeting = meetings.find(m =>
+        m.studentId === studId &&
+        m.status === 'scheduled' &&
+        m.advisorConfirmed === true
+      );
+  
+      if (linkedMeeting) {
+        await sbPatch(TBL_MEETING, 'id', linkedMeeting.id, {
+          status: 'completed',
+          log_id: newSess.logId,
+        });
+        // 로컬 상태도 업데이트
+        linkedMeeting.status = 'completed';
+        linkedMeeting.logId  = newSess.logId;
+      }
+  
       showToast(`✓ Session saved to database — ${st?.name}`);
+  
     } catch(e) {
       console.error('Supabase write error:', e);
       // Roll back optimistic update on failure
@@ -1542,7 +1763,7 @@ async function saveSession(studId){
 // ── SESSION LOG ──
 function renderLog(){
   const mine=myStudents();
-  const mySess=sessions.filter(s=>s.faculty===FACULTY);
+  const mySess=sessions.filter(s=>s.faculty===FACULTY_EMAIL);
   const fu=mySess.filter(s=>s.followUp==='Y').length;
   const z=mine.filter(s=>s.sessions===0).length;
 
@@ -1708,7 +1929,7 @@ async function deleteSession(logId) {
 
 function renderLogList(){
   const mine=myStudents();
-  let list=sessions.filter(s=>s.faculty===FACULTY);
+  let list=sessions.filter(s=>s.faculty===FACULTY_EMAIL);
   if(logFilter==='fu') list=list.filter(s=>s.followUp==='Y');
   if(logSearch){const q=logSearch.toLowerCase();list=list.filter(s=>s.studentName.toLowerCase().includes(q)||s.studentId.includes(q));}
   list=[...list].sort((a,b)=>b.date.localeCompare(a.date));
@@ -1807,6 +2028,13 @@ function renderCodebook(){
           </div>
           <div class="help-card-title">Session Log</div>
           <div class="help-card-body">A chronological list of all advising sessions you have conducted. Click any session row to see the full record. You can also edit or delete a session from this view.</div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-icon gray">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="#5F5E5A" stroke-width="1.5"/><path d="M10 7v3l2 2" stroke="#5F5E5A" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="help-card-title">Settings</div>
+          <div class="help-card-body">Manage your weekly advising availability and profile. Set your available time slots so students can request meetings during those times. You can also update your display name and timezone here.</div>
         </div>
       </div>
     </div>
@@ -1965,7 +2193,421 @@ function renderCodebook(){
           <div class="help-card-body">Students with no next meeting date set appear as alerts on the Overview page. Scheduling the next session before ending the current one keeps advising momentum going.</div>
         </div>
       </div>
+    <div class="help-section">
+      <div class="help-section-title">Managing your availability</div>
+      <div class="help-cards">
+        <div class="help-card">
+          <div class="help-card-title">Setting up your weekly slots</div>
+          <div class="help-card-body">Go to Settings and add your recurring availability under Weekly availability. Each slot has a day, start/end time, and format (Zoom or In-person). Active slots are visible to students; inactive slots are hidden but saved.</div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-title">How students use your availability</div>
+          <div class="help-card-body">When a student requests a meeting, they select from your active slots for the next two weeks. They can pick multiple options — you then confirm one slot from their selection. The meeting link can be added at confirmation.</div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-title">Timezone setting</div>
+          <div class="help-card-body">Set your timezone in Settings → My profile so your slots display correctly for students in different time zones. Your slots are stored in UTC and automatically converted to each student's local time.</div>
+        </div>
+      </div>
     </div>`;
+}
+
+// ── SETTINGS ──
+let availSlots = []; // 로드된 faculty_availability 행
+
+const TZ_LIST = [
+  'Asia/Seoul','Asia/Tokyo','Asia/Shanghai','Asia/Hong_Kong',
+  'Asia/Singapore','Asia/Taipei','Asia/Bangkok','Asia/Jakarta',
+  'Asia/Almaty','Asia/Tashkent','Asia/Ulaanbaatar',
+  'Asia/Dhaka','Asia/Kolkata','Asia/Karachi','Asia/Dubai',
+  'Europe/London','Europe/Paris','Europe/Berlin','Europe/Moscow',
+  'Africa/Cairo','Africa/Nairobi',
+  'America/New_York','America/Chicago','America/Denver','America/Los_Angeles',
+  'America/Toronto','America/Sao_Paulo',
+  'Pacific/Auckland','Pacific/Honolulu',
+  'Australia/Sydney','Australia/Melbourne',
+  'UTC',
+];
+
+function markProfileDirty() {
+  const btn = document.getElementById('btn-save-profile');
+  if (btn) btn.disabled = false;
+  const status = document.getElementById('prof-save-status');
+  if (status) status.textContent = '';
+}
+
+async function saveProfile() {
+  const name = document.getElementById('prof-name')?.value.trim();
+  const tz   = document.getElementById('tz-select')?.value;
+  const btn  = document.getElementById('btn-save-profile');
+  const status = document.getElementById('prof-save-status');
+  if (!name) { showToast('Name cannot be empty.'); return; }
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+  try {
+    await sbUpdate('faculty_profiles', 'email', FACULTY_EMAIL, { name_en: name, timezone: tz });
+    FACULTY = name;
+    FACULTY_TIMEZONE = tz;
+    document.getElementById('nav-name').textContent    = FACULTY;
+    document.getElementById('dd-name').textContent     = FACULTY;
+    document.getElementById('nav-avatar').textContent  = initials(FACULTY);
+    if (status) { status.textContent = 'Saved ✓'; setTimeout(()=>{ status.textContent=''; },2500); }
+    showToast('Profile updated');
+  } catch(e) {
+    if (status) status.textContent = `Failed: ${e.message}`;
+  } finally {
+    if (btn) { btn.textContent = 'Save profile'; btn.disabled = true; }
+  }
+}
+  
+async function renderSettings() {
+  const el = document.getElementById('page-settings');
+
+  // faculty_profiles 정보 표시
+  const roleLabel = [IS_CHAIR ? 'Program Chair' : '', 'Advisor']
+    .filter(Boolean).join(' · ');
+
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px;">
+
+      <!-- AVAILABILITY -->
+      <div class="tbl-wrap" style="border-radius:var(--r-lg);">
+        <div style="padding:11px 16px;border-bottom:1px solid var(--border);
+          display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:17px;font-weight:600;">Weekly availability</div>
+            <div style="font-size:13px;color:var(--text3);margin-top:2px;">
+              Students see your active slots when requesting a meeting.
+            </div>
+          </div>
+          <span id="avail-count" class="bdg bdg-blue">— slots</span>
+        </div>
+        <div style="padding:16px;">
+          ${buildDayGrid()}
+          <div id="add-slot-form" style="display:none;"></div>
+          <div style="height:1px;background:var(--border);margin:14px 0;"></div>
+          <div style="font-size:13px;font-weight:600;color:var(--text3);
+            text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">
+            Slot details
+          </div>
+          <div id="slot-list"></div>
+        </div>
+        <div style="padding:10px 16px;background:var(--surface2);
+          border-top:1px solid var(--border);
+          display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;color:var(--text3);">
+            Changes apply to future requests only
+          </span>
+          <button class="btn-log" onclick="saveAvailability()">Save changes</button>
+        </div>
+      </div>
+
+<!-- MY PROFILE -->
+<div class="tbl-wrap" style="border-radius:var(--r-lg);">
+  <div style="padding:11px 16px;border-bottom:1px solid var(--border);">
+    <div style="font-size:17px;font-weight:600;">My profile</div>
+  </div>
+
+  <div class="settings-section-divider">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="8" width="10" height="6" rx="1.5"/><path d="M5 8V6a3 3 0 0 1 6 0v2"/></svg>
+    Managed by administrator
+  </div>
+  ${[['Email', FACULTY_EMAIL],['School', FACULTY_SCHOOL],['Role', roleLabel]].map(([l,v])=>`
+    <div class="settings-field-row">
+      <div class="settings-field-label">${l}</div>
+      <div class="settings-field-val">${esc(v)}</div>
+    </div>`).join('')}
+
+  <div class="settings-section-divider">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-8 8H3v-3l8-8z"/></svg>
+    Editable by you
+  </div>
+  <div class="settings-field-row editable">
+    <div class="settings-edit-bar"></div>
+    <div class="settings-field-label">Display name</div>
+    <div class="settings-field-input">
+      <input class="fi" id="prof-name" value="${esc(FACULTY)}"
+        style="height:30px;font-size:14px;" oninput="markProfileDirty()">
+    </div>
+  </div>
+  <div class="settings-field-row editable">
+    <div class="settings-edit-bar"></div>
+    <div class="settings-field-label">Timezone</div>
+    <div class="settings-field-input">
+      <select class="fsel" id="tz-select" onchange="markProfileDirty()"
+        style="height:30px;font-size:14px;width:100%;max-width:300px;">
+        ${TZ_LIST.map(tz=>
+          `<option value="${tz}" ${tz===FACULTY_TIMEZONE?'selected':''}>${tz}</option>`
+        ).join('')}
+      </select>
+    </div>
+  </div>
+
+  <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+    <span class="save-status" id="prof-save-status"></span>
+    <button class="btn-log" id="btn-save-profile" disabled onclick="saveProfile()">Save profile</button>
+  </div>
+</div>
+
+  </div>`;
+
+  await loadAvailability();
+}
+
+async function loadAvailability() {
+  try {
+    const rows = await sbGet(TBL_AVAIL,
+      `faculty_email=eq.${encodeURIComponent(FACULTY_EMAIL)}&order=day_of_week.asc,start_time.asc`
+    );
+    availSlots = rows;
+  } catch(e) {
+    availSlots = [];
+    console.warn('Availability load failed:', e.message);
+  }
+  renderSlotList();
+  updateAvailCount();
+}
+
+function buildDayGrid() {
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return `<div id="day-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:14px;">
+    ${days.map((d,i) => `
+      <div class="day-col">
+        <div style="font-size:12px;font-weight:500;text-align:center;padding-bottom:6px;
+          border-bottom:1px solid var(--border);margin-bottom:2px;
+          color:${(i===0||i===6)?'var(--text3)':'var(--text2)'};">${d}</div>
+        <button class="slot-chip add-btn" onclick="openAddSlotForm(${i})">+</button>
+      </div>`).join('')}
+  </div>`;
+}
+
+
+function renderSlotList() {
+  const list = document.getElementById('slot-list');
+  if (!list) return;
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  if (!availSlots.length) {
+    list.innerHTML = `<div style="padding:16px 0;text-align:center;
+      font-size:14px;color:var(--text3);">
+      No slots added yet — click + above to add your availability.
+    </div>`;
+    renderDayGridSlots();  // ← 추가 (그리드도 비워줌)
+    return;
+  }
+
+  list.innerHTML = availSlots.map((s,i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;
+      border-bottom:1px solid var(--border);">
+      <span class="bdg ${s.is_active?'bdg-blue':'bdg-gray'}">${days[s.day_of_week]}</span>
+      <span style="font-size:14px;font-weight:500;flex:1;
+        color:${s.is_active?'var(--text)':'var(--text3)'};">
+        ${s.start_time.slice(0,5)} – ${s.end_time.slice(0,5)}
+      </span>
+      <span style="font-size:13px;color:var(--text3);min-width:80px;">
+        ${s.meeting_type||'Zoom'}
+      </span>
+      <span style="font-size:13px;color:var(--text3);flex:1;
+        font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        ${s.note||''}
+      </span>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+        <input type="checkbox" ${s.is_active?'checked':''} 
+          onchange="toggleAvailSlot(${i},this.checked)"
+          style="accent-color:var(--blue);width:14px;height:14px;">
+        <span style="font-size:12px;color:var(--text3);">Active</span>
+      </label>
+      <button onclick="removeAvailSlot(${i})"
+        style="font-size:12px;padding:3px 9px;border-radius:6px;border:none;
+          background:var(--red-l);color:var(--red);cursor:pointer;">
+        Remove
+      </button>
+    </div>`).join('');
+  renderDayGridSlots(); // ← 추가
+}
+
+function renderDayGridSlots() {
+  const cols = document.querySelectorAll('.day-col');
+  if (!cols.length) return;
+
+  // 기존 슬롯 칩만 제거 (add-btn 유지)
+  cols.forEach(col => {
+    col.querySelectorAll('.slot-chip:not(.add-btn)').forEach(c => c.remove());
+  });
+
+  // availSlots 기반으로 칩 재생성
+  availSlots.forEach((s, i) => {
+    const col = cols[s.day_of_week];
+    if (!col) return;
+    const addBtn = col.querySelector('.add-btn');
+    const chip = document.createElement('div');
+    chip.className = `slot-chip ${s.is_active ? 'active' : 'inactive'}`;
+    chip.dataset.idx = i;
+    chip.innerHTML = `${s.start_time.slice(0,5)}<br>${s.end_time.slice(0,5)}`;
+    chip.onclick = function() {
+      const idx = parseInt(this.dataset.idx);
+      availSlots[idx].is_active = !availSlots[idx].is_active;
+      renderSlotList();
+    };
+    col.insertBefore(chip, addBtn);
+  });
+
+  updateAvailCount();
+}
+
+function updateAvailCount() {
+  const el = document.getElementById('avail-count');
+  if (!el) return;
+  const active = availSlots.filter(s=>s.is_active).length;
+  el.textContent = `${active} active slot${active!==1?'s':''}`;
+}
+
+function openAddSlotForm(day) {
+  const wrap = document.getElementById('add-slot-form');
+  if (!wrap) return;
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const times = ['06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00','24:00'];
+  wrap.style.display = 'block';
+  wrap.innerHTML = `
+    <div style="background:var(--surface2);border-radius:var(--r);
+      padding:12px 14px;margin-bottom:14px;border:1px solid var(--border-em);">
+      <div style="font-size:13px;font-weight:600;color:var(--text3);
+        text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">
+        Add new slot
+      </div>
+      <div class="rg3" style="margin-bottom:10px;">
+        <div class="fg">
+          <div class="fl">Day</div>
+          <select class="fsel" id="as-day">
+            ${days.map((d,i)=>
+              `<option value="${i}" ${i===day?'selected':''}>${d}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="fg">
+          <div class="fl">Start time</div>
+          <select class="fsel" id="as-start">
+            ${times.slice(0,-1).map(t=>
+              `<option ${t==='14:00'?'selected':''}>${t}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="fg">
+          <div class="fl">End time</div>
+          <select class="fsel" id="as-end">
+            ${times.slice(1).map(t=>
+              `<option ${t==='15:00'?'selected':''}>${t}</option>`
+            ).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="rg2" style="margin-bottom:10px;">
+        <div class="fg">
+          <div class="fl">Format</div>
+          <select class="fsel" id="as-format">
+            <option>Zoom</option><option>In-person</option><option>Both</option>
+          </select>
+        </div>
+        <div class="fg">
+          <div class="fl">Note (optional)</div>
+          <input class="fi" id="as-note" placeholder="e.g. Confirm 2 days before">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn-cancel" onclick="closeAddSlotForm()">Cancel</button>
+        <button class="btn-log" onclick="confirmAddSlot()">Add slot</button>
+      </div>
+    </div>`;
+}
+
+function closeAddSlotForm() {
+  const wrap = document.getElementById('add-slot-form');
+  if (wrap) { wrap.style.display='none'; wrap.innerHTML=''; }
+}
+
+async function confirmAddSlot() {
+  const day   = parseInt(document.getElementById('as-day').value);
+  const start = document.getElementById('as-start').value;
+  const end   = document.getElementById('as-end').value;
+  const fmt   = document.getElementById('as-format').value;
+  const note  = document.getElementById('as-note').value.trim();
+
+  const newSlot = {
+    faculty_email: FACULTY_EMAIL,
+    day_of_week:   day,
+    start_time:    start + ':00',
+    end_time:      end   + ':00',
+    meeting_type:  fmt,
+    note:          note,
+    is_active:     true,
+  };
+
+  // Optimistic update
+  availSlots.push({...newSlot});
+  availSlots.sort((a,b)=> a.day_of_week-b.day_of_week ||
+    a.start_time.localeCompare(b.start_time));
+  closeAddSlotForm();
+  renderSlotList();
+  updateAvailCount();
+
+  if (isSignedIn()) {
+    try {
+      await sbInsert(TBL_AVAIL, newSlot);
+      showToast('Slot added');
+    } catch(e) {
+      availSlots.pop();
+      renderSlotList();
+      showToast(`Failed to add slot: ${e.message}`);
+    }
+  }
+}
+
+function toggleAvailSlot(idx, active) {
+  availSlots[idx].is_active = active;
+  updateAvailCount();
+}
+
+async function removeAvailSlot(idx) {
+  if (!confirm('Remove this slot?')) return;
+  const slot = availSlots[idx];
+  availSlots.splice(idx, 1);
+  renderSlotList();
+  updateAvailCount();
+
+  if (isSignedIn() && slot.id) {
+    try {
+      await sbDelete(TBL_AVAIL, 'id', slot.id);
+      showToast('Slot removed');
+    } catch(e) {
+      // 롤백
+      availSlots.splice(idx, 0, slot);
+      renderSlotList();
+      updateAvailCount();
+      showToast(`Remove failed: ${e.message}`);
+    }
+  }
+}
+  
+async function saveAvailability() {
+  if (!isSignedIn()) { showToast('Sign in to save changes'); return; }
+  showToast('Saving availability…');
+  try {
+    // Delete all existing slots for this faculty, then re-insert
+    await sbDelete(TBL_AVAIL, 'faculty_email', FACULTY_EMAIL);
+    for (const s of availSlots) {
+      await sbInsert(TBL_AVAIL, {
+        faculty_email: FACULTY_EMAIL,
+        day_of_week:   s.day_of_week,
+        start_time:    s.start_time,
+        end_time:      s.end_time,
+        meeting_type:  s.meeting_type,
+        note:          s.note,
+        is_active:     s.is_active,
+      });
+    }
+    showToast('✓ Availability saved');
+  } catch(e) {
+    showToast(`Save failed: ${e.message}`);
+  }
 }
 
 // ── CROSS-PAGE NAV ──
@@ -1996,6 +2638,37 @@ const FALLBACK_STUDENTS = [{"id":"2023005","name":"Hoai Thu Luu","nameKr":"","em
 const FALLBACK_SESSIONS = [
   {logId:'LOG-001',date:'2026-03-12',faculty:'Jiyoung Kwahk',studentId:'2023097',studentName:'Yejoon Song',type:'Ad-hoc',format:'Zoom',disc:'The student is experiencing difficulty in choosing a career path due to having too many areas of interest.',conc:'The student had been considering a career in Finance but has recently become concerned that the field may already be saturated ("red ocean"). Given the current job market conditions, the student is considering exploring alternative fields.',advice:'Suggested that the student explore and study the topic of Complex Systems.',followUp:'N',nextDate:'',nextAgenda:'',majorChangeNote:''},
   {logId:'LOG-002',date:'2026-03-13',faculty:'Jiyoung Kwahk',studentId:'2023092',studentName:'Bandi Kim',type:'Ad-hoc',format:'Zoom',disc:"Reviewed the student's progress on the AIR Project.",conc:'The student requested guidance on the final outcome and capstone idea for the AIR Project. Expressed concern that the results may be too trivial. Uncertain about how to approach and structure the analysis method.',advice:'Suggested considering a data storytelling approach in the style of digital humanities.',followUp:'N',nextDate:'',nextAgenda:'',majorChangeNote:''}
+];
+
+const FALLBACK_MEETINGS = [
+  {
+    id: 1,
+    studentId: '2023092',
+    facultyEmail: 'kjy@taejae.ac.kr',
+    meetingDate: '2026-03-13',
+    meetingType: 'Ad-hoc',
+    meetingFormat: 'Zoom',
+    status: 'completed',
+    advisorConfirmed: true,
+    studentAgenda: '',
+    createdBy: 'advisor',
+    logId: 'LOG-002',
+    meetingLink: '',
+  },
+  {
+    id: 2,
+    studentId: '2023097',
+    facultyEmail: 'kjy@taejae.ac.kr',
+    meetingDate: '2026-03-12',
+    meetingType: 'Ad-hoc',
+    meetingFormat: 'Zoom',
+    status: 'completed',
+    advisorConfirmed: true,
+    studentAgenda: '',
+    createdBy: 'advisor',
+    logId: 'LOG-001',
+    meetingLink: '',
+  },
 ];
 
 // ── USER MENU ──
