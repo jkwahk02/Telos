@@ -777,6 +777,7 @@ async function handlePasswordChange() {
             'apikey': SUPABASE_KEY,
             'Authorization': `Bearer ${supabaseUser.access_token}`,
             'Content-Type': 'application/json',
+            'Prefer': 'return=representation',
           },
           body: JSON.stringify({ must_change_password: false }),
         }
@@ -788,7 +789,7 @@ async function handlePasswordChange() {
       // PATCH 성공했지만 실제로 업데이트된 행이 있는지 확인
       const patchResult = await patchRes.json().catch(()=>[]);
       if (!patchResult.length) {
-        console.warn('must_change_password PATCH returned empty — RLS may be blocking update');
+        throw new Error('Profile update failed — permission denied. Please contact the admin.');
       }
     }
 
@@ -799,9 +800,10 @@ async function handlePasswordChange() {
     document.getElementById('pw-submit').textContent = 'Set password & continue';
     document.getElementById('pw-wall-title').textContent = 'Set your password';
     document.getElementById('pw-wall-desc').textContent = 'This is your first sign-in.\nPlease set a new password to continue.';
+    const isFirstLogin = mode === 'first';
     document.getElementById('pw-change-wall').dataset.mode = 'first';
-    const mode2 = document.getElementById('pw-change-wall').dataset.mode;
-    showToast(mode2 === 'first' ? 'Password set — welcome!' : 'Password updated successfully');
+    showToast(isFirstLogin ? 'Password set — welcome!' : 'Password updated successfully');
+    
     if (!dataLoaded) await loadData();
 
   } catch(e) {
