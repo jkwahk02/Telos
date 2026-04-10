@@ -2471,8 +2471,8 @@ function openAddSlotForm(day) {
         <div class="fg">
           <div class="fl">Day</div>
           <select class="fsel" id="as-day">
-            ${days.slice(1,6).map((d,i)=>
-              `<option value="${i+1}" ${i+1===day?'selected':''}>${d}</option>`
+            ${days.map((d,i)=>
+              `<option value="${i}" ${i===day?'selected':''}>${d}</option>`
             ).join('')}
           </select>
         </div>
