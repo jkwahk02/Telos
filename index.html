@@ -2533,13 +2533,27 @@ function toggleAvailSlot(idx, active) {
   updateAvailCount();
 }
 
-function removeAvailSlot(idx) {
+async function removeAvailSlot(idx) {
   if (!confirm('Remove this slot?')) return;
-  availSlots.splice(idx,1);
+  const slot = availSlots[idx];
+  availSlots.splice(idx, 1);
   renderSlotList();
   updateAvailCount();
-}
 
+  if (isSignedIn() && slot.id) {
+    try {
+      await sbDelete(TBL_AVAIL, 'id', slot.id);
+      showToast('Slot removed');
+    } catch(e) {
+      // 롤백
+      availSlots.splice(idx, 0, slot);
+      renderSlotList();
+      updateAvailCount();
+      showToast(`Remove failed: ${e.message}`);
+    }
+  }
+}
+  
 async function saveAvailability() {
   if (!isSignedIn()) { showToast('Sign in to save changes'); return; }
   showToast('Saving availability…');
