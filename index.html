@@ -962,18 +962,25 @@ function getFacultyName(email) {
 
 function mapMeeting(r) {
   return {
-    id:              r.id,
-    studentId:       String(r.student_id || ''),
-    facultyEmail:    r.faculty_email || '',
-    meetingDate:     (r.meeting_date || '').slice(0,10),
-    meetingFormat:   r.meeting_format || 'Zoom',
-    meetingType:     r.meeting_type || 'Regular',
-    status:          r.status || 'scheduled',
+    id:               r.id,
+    studentId:        String(r.student_id || ''),
+    facultyEmail:     r.faculty_email || '',
+    meetingDate:      (r.meeting_date || '').slice(0,10),
+    meetingFormat:    r.meeting_format || 'Zoom',
+    meetingType:      r.meeting_type || 'Regular',
+    meetingDuration:  r.meeting_duration || 60,
+    proposedSlots:    Array.isArray(r.proposed_slots)
+      ? r.proposed_slots
+      : (typeof r.proposed_slots === 'string'
+          ? JSON.parse(r.proposed_slots || '[]')
+          : []),
+    status:           r.status || 'scheduled',
     advisorConfirmed: r.advisor_confirmed || false,
-    studentAgenda:   r.student_agenda || '',
-    createdBy:       r.created_by || 'advisor',
-    logId:           r.log_id || null,
-    meetingLink:     r.meeting_link || '',
+    studentAgenda:    r.student_agenda || '',
+    createdBy:        r.created_by || 'advisor',
+    createdAt:        r.created_at || '',
+    logId:            r.log_id || null,
+    meetingLink:      r.meeting_link || '',
   };
 }
   
@@ -1021,6 +1028,102 @@ function renderCurrent() {
   if (currentPage==='settings')  renderSettings();
 }
 
+function renderPendingRequestsCard(requests) {
+  if (!requests.length) return '';
+
+  return `
+    <div class="ov-card" style="margin-bottom:12px;border-color:var(--blue-b);">
+      <div class="ov-card-hd">
+        Pending meeting requests
+        <span class="text-muted" style="font-weight:400;font-size:13px;">
+          ${requests.length} request${requests.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+      <div class="ov-card-body">
+        ${requests.map(m => {
+          const st = students.find(s => s.id === m.studentId);
+          const proposed = (m.proposedSlots || []).map(slot => `
+            <div style="font-size:12px;color:var(--text2);margin-top:2px;">
+              • ${esc(slot.dateLabel || slot.dateStr || '')} ${esc(slot.start || '')}–${esc(slot.end || '')}
+            </div>
+          `).join('');
+
+          return `
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+              <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+                <div style="flex:1;">
+                  <div style="font-size:14px;font-weight:600;">${esc(st?.name || m.studentId)}</div>
+                  <div style="font-size:12px;color:var(--text3);margin-top:2px;">
+                    ${esc(m.meetingType)} · ${esc(m.meetingFormat)} · ${m.meetingDuration} min
+                  </div>
+                  ${m.studentAgenda ? `
+                    <div style="margin-top:8px;background:var(--blue-l);padding:8px 10px;border-radius:8px;font-size:12px;color:#0C447C;">
+                      ${esc(m.studentAgenda)}
+                    </div>` : ''}
+                  <div style="margin-top:8px;">
+                    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;">Proposed slots</div>
+                    ${proposed || '<div style="font-size:12px;color:var(--text3);">No proposed slots</div>'}
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;min-width:120px;">
+                  <button class="btn-log" onclick="confirmMeetingRequest(${m.id})">Confirm</button>
+                  <button class="btn-cancel" onclick="declineMeetingRequest(${m.id})">Decline</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}  
+
+async function confirmMeetingRequest(meetingId) {
+  const m = meetings.find(x => x.id === meetingId);
+  if (!m) return;
+
+  const chosenSlot = (m.proposedSlots && m.proposedSlots.length)
+    ? m.proposedSlots[0]
+    : null;
+
+  if (!chosenSlot) {
+    showToast('No proposed slot found.');
+    return;
+  }
+
+  try {
+    await sbUpdate(TBL_MEETING, 'id', meetingId, {
+      advisor_confirmed: true,
+      meeting_date: chosenSlot.dateStr || m.meetingDate,
+      status: 'scheduled'
+    });
+
+    m.advisorConfirmed = true;
+    m.meetingDate = chosenSlot.dateStr || m.meetingDate;
+
+    showToast('Meeting request confirmed');
+    renderCurrent();
+  } catch (e) {
+    showToast(`Confirm failed: ${e.message}`);
+  }
+}
+
+async function declineMeetingRequest(meetingId) {
+  try {
+    await sbUpdate(TBL_MEETING, 'id', meetingId, {
+      status: 'cancelled'
+    });
+
+    const m = meetings.find(x => x.id === meetingId);
+    if (m) m.status = 'cancelled';
+
+    showToast('Meeting request declined');
+    renderCurrent();
+  } catch (e) {
+    showToast(`Decline failed: ${e.message}`);
+  }
+}
+  
 // ── OVERVIEW ──
 function renderOverview() {
   const mine = myStudents();
@@ -1043,8 +1146,11 @@ function renderOverview() {
       <div class="stat-card"><div class="stat-val ok">${mySess.length}</div><div class="stat-lbl">Total sessions</div></div>
       <div class="stat-card"><div class="stat-val ${zeroSess>0?'bad':'ok'}">${zeroSess}</div><div class="stat-lbl">0-session students</div></div>
       <div class="stat-card"><div class="stat-val ${noNext>0?'warn':'ok'}">${noNext}</div><div class="stat-lbl">No next meeting</div></div>
-      <div class="stat-card"><div class="stat-val ${followUp>0?'warn':'ok'}">${followUp}</div><div class="stat-lbl">Follow-up pending</div></div>
+      <div class="stat-card"><div class="stat-val ${pendingRequests.length>0?'warn':'ok'}">${pendingRequests.length}</div><div class="stat-lbl">Pending requests</div></div>
     </div>
+    
+    ${renderPendingRequestsCard(pendingRequests)}
+
     <div class="overview-cards">
       <div class="ov-card">
         <div class="ov-card-hd">No next meeting set <span class="text-muted" style="font-weight:400;font-size:17px;">${noNext} students</span></div>
@@ -1069,6 +1175,8 @@ function renderOverview() {
     </div>
     ${IS_CHAIR ? renderProgramSummary() : ''}`;
 }
+
+
 
 // ── CHAIR DECISION BOARD ──
 
@@ -1736,15 +1844,14 @@ async function saveSession(studId){
       );
   
       if (linkedMeeting) {
-        await sbPatch(TBL_MEETING, 'id', linkedMeeting.id, {
+        await sbUpdate(TBL_MEETING, 'id', linkedMeeting.id, {
           status: 'completed',
           log_id: newSess.logId,
         });
-        // 로컬 상태도 업데이트
         linkedMeeting.status = 'completed';
         linkedMeeting.logId  = newSess.logId;
-      }
-  
+      }  
+      
       showToast(`✓ Session saved to database — ${st?.name}`);
   
     } catch(e) {
