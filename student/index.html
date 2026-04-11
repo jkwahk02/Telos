@@ -704,11 +704,10 @@ function renderOverview(){
   const s=studentData;
   const confirmed=scheduledMeetings.filter(m=>m.advisor_confirmed);
   const pending=scheduledMeetings.filter(m=>!m.advisor_confirmed);
-  const next=confirmed[0]||null;
   const pct=calcProfilePct(s);
 
   // Stat cards
-  const nextDateStr=next?new Date(next.meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
+  const nextDateStr=confirmed.length?new Date(confirmed[0].meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
   const pendingCount=pending.length;
   const statHtml=`
     <div class="stat-row">
@@ -718,23 +717,22 @@ function renderOverview(){
     </div>`;
 
   // Next meeting card
-  let nextHtml='';
-  if(next){
-    const fac=allFaculty.find(f=>f.email===next.faculty_email);
-    nextHtml=`<div class="card accent-teal">
+  const nextHtml=confirmed.length?confirmed.map(m=>{
+    const fac=allFaculty.find(f=>f.email===m.faculty_email);
+    return `<div class="card accent-teal" style="margin-bottom:10px;">
       <div class="card-hd teal-bg">
         <div><div class="card-title" style="color:#085041;">Upcoming meeting</div>
-        <div class="card-sub">${esc(fac?.name_en||next.faculty_email)}</div></div>
+        <div class="card-sub">${esc(fac?.name_en||m.faculty_email)}</div></div>
         <span class="bdg bdg-teal">Confirmed</span>
       </div>
       <div class="card-body">
-        <div style="font-size:15px;font-weight:600;margin-bottom:3px;">${formatDate(next.meeting_date)}</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">${esc(next.meeting_format||'Zoom')} · ${esc(next.meeting_type||'Regular')}</div>
-        ${next.student_agenda?`<div class="agenda-box"><div class="agenda-lbl">My agenda</div><div class="agenda-txt">${esc(next.student_agenda)}</div></div>`:''}
-        <button class="btn-sm-teal" onclick="goToMeetings()">View in Meetings →</button>
+        <div style="font-size:15px;font-weight:600;margin-bottom:3px;">${formatDate(m.meeting_date)}</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">${esc(m.meeting_format||'Zoom')} · ${esc(m.meeting_type||'Regular')}</div>
+        ${m.student_agenda?`<div class="agenda-box"><div class="agenda-lbl">My agenda</div><div class="agenda-txt">${esc(m.student_agenda)}</div></div>`:''}
+        <button class="btn-sm-teal" style="margin-top:${m.student_agenda?'8':'0'}px;width:fit-content;" onclick="goToMeetings()">View in Meetings →</button>
       </div>
     </div>`;
-  }
+  }).join(''):'' ;
 
   // Pending badge
 const pendingHtml=pending.length?`<div class="card accent-blue">
