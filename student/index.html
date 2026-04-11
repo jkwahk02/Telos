@@ -1064,36 +1064,6 @@ function renderMeetings(){
         <div class="btn-sm-teal" style="font-size:11px;padding:3px 9px;">Accept</div>
       </div>`).join('')}`:'' ;
   
-    // Edit request form (pre-filled)
-    const editFormHtml=isEditing?`
-      <div style="background:var(--surface2);border:1px solid var(--blue-b);border-radius:var(--r);overflow:hidden;margin-top:10px;">
-        <div style="padding:9px 13px;background:var(--blue-l);border-bottom:1px solid var(--blue-b);font-size:13px;font-weight:500;color:var(--blue);display:flex;justify-content:space-between;">
-          Edit request
-          <button onclick="editingRequestId=null;renderMeetings()" style="border:none;background:none;cursor:pointer;font-size:13px;color:var(--blue);">Cancel ×</button>
-        </div>
-        <div style="padding:12px 13px;display:flex;flex-direction:column;gap:10px;">
-          <div>
-            <div class="fta-lbl">Duration</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              ${[30,60,90,120].map(mn=>{
-                const lbl=mn===30?'30 min':mn===60?'1 hour':mn===90?'1.5 hours':'2 hours';
-                const cur=m.meeting_duration||60;
-                return `<button class="dur-chip ${cur===mn?'on':''}" style="font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid ${cur===mn?'var(--teal-b)':'var(--border-em)'};background:${cur===mn?'var(--teal-l)':'var(--surface2)'};color:${cur===mn?'var(--teal)':'var(--text2)'};cursor:pointer;font-family:inherit;"
-                  onclick="m_dur_${m.id}=${mn};renderMeetings()">${lbl}</button>`;
-              }).join('')}
-            </div>
-          </div>
-          <div>
-            <div class="fta-lbl">Agenda</div>
-            <textarea class="fta" id="edit-agenda-${m.id}" rows="3">${esc(m.student_agenda||'')}</textarea>
-          </div>
-          <div style="display:flex;justify-content:flex-end;gap:7px;">
-            <button class="btn-sm-out" onclick="editingRequestId=null;renderMeetings()">Cancel</button>
-            <button class="btn-sm-teal" onclick="saveEditRequest(${m.id})">Save changes</button>
-          </div>
-        </div>
-      </div>`:'' ;
-  
     const accentColor=isAdvProposed?'var(--teal-b)':'var(--blue-b)';
     const hdrBg=isAdvProposed?'var(--teal-l)':'var(--blue-l)';
     const titleColor=isAdvProposed?'#085041':'#0C447C';
@@ -1118,12 +1088,10 @@ function renderMeetings(){
             <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">My proposed slots</div>
             ${mySlotHtml}
           </div>`}
-        ${!isEditing?`
-          <div style="display:flex;gap:7px;">
-            <button class="btn-sm-out" onclick="editingRequestId=${m.id};renderMeetings()">✎ Edit request</button>
-            <button class="btn-sm-out" style="color:var(--red);border-color:var(--red-l);" onclick="withdrawRequest(${m.id})">Withdraw</button>
-          </div>`:''}
-        ${editFormHtml}
+        <div style="display:flex;gap:7px;">
+          <button class="btn-sm-out" onclick="openEditRequest(${m.id})">✎ Edit request</button>
+          <button class="btn-sm-out" style="color:var(--red);border-color:var(--red-l);" onclick="withdrawRequest(${m.id})">Withdraw</button>
+        </div>
       </div>
     </div>`;
   }).join(''):'' ;
@@ -1371,7 +1339,9 @@ function buildRequestForm(){
     const chairBadge=fac?.is_chair?`<span class="bdg bdg-blue" style="font-size:9px;">Chair</span>`:'';
     return `<div class="card accent-teal" style="margin-bottom:12px;">
       <div class="card-hd teal-bg">
-        <div><div class="card-title" style="color:#085041;">New meeting request</div></div>
+        <div><div class="card-title" style="color:#085041;">  
+          ${editingRequestId ? 'Edit meeting request' : 'New meeting request'}
+        </div></div>
         <button class="btn-sm-out" onclick="closeRequestForm()">Cancel ×</button>
       </div>
       <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
@@ -1414,7 +1384,10 @@ function buildRequestForm(){
         <span style="font-size:12px;color:var(--text3);">Advisor confirms one of your proposed times</span>
         <div style="display:flex;gap:7px;">
           <button class="btn-sm-out">Save draft</button>
-          <button class="btn-sm-teal" ${!selectedMeetingSlots.length?'disabled':''} onclick="submitRequest()">Submit request</button>
+          <button class="btn-sm-teal" ${!selectedMeetingSlots.length?'disabled':''}
+            onclick="${editingRequestId ? `saveEditRequest(${editingRequestId})` : 'submitRequest()'}">
+            ${editingRequestId ? 'Save changes' : 'Submit request'}
+          </button>
         </div>
       </div>
     </div>`;
@@ -1490,23 +1463,42 @@ function toggleMeetingSlot(dateStr,start,end,dateLabel){
   renderMeetings();
 }
 
-function openRequestForm(email){
-  requestFormOpen=true;
-  selectedFacultyEmail=email;
+function closeRequestForm(){
+  requestFormOpen=false;
+  editingRequestId=null;        // ← 추가
+  selectedFacultyEmail=null;
   selectedMeetingSlots=[];
-  meetingDuration=60;
+  renderMeetings();
+}
+
+// 신규 함수 — openEditRequest
+function openEditRequest(meetingId){
+  const m = scheduledMeetings.find(x => x.id === meetingId);
+  if (!m) return;
+  // request form을 edit 모드로 열기
+  editingRequestId      = meetingId;
+  requestFormOpen       = true;
+  selectedFacultyEmail  = m.faculty_email;
+  meetingDuration       = m.meeting_duration || 60;
+  // 기존 proposed_slots를 selectedMeetingSlots로 복원
+  const existing = m.proposed_slots
+    ? (typeof m.proposed_slots==='string' ? JSON.parse(m.proposed_slots) : m.proposed_slots)
+    : [];
+  selectedMeetingSlots = existing;
   renderMeetings();
   setTimeout(()=>{
     const form=document.querySelector('.card.accent-teal');
     if(form) form.scrollIntoView({behavior:'smooth',block:'nearest'});
   },100);
 }
+  
 function closeRequestForm(){
   requestFormOpen=false;
   selectedFacultyEmail=null;
   selectedMeetingSlots=[];
   renderMeetings();
 }
+  
 function selectRequestFaculty(email){
   selectedFacultyEmail=email;
   selectedMeetingSlots=[];
@@ -1579,18 +1571,25 @@ async function withdrawRequest(meetingId){
   }
 }
 
+// saveEditRequest 교체 — slots까지 저장
 async function saveEditRequest(meetingId) {
   const m = scheduledMeetings.find(x => x.id === meetingId);
   if (!m) return;
-  const agenda = document.getElementById(`edit-agenda-${meetingId}`)?.value.trim() || '';
+  const agenda = document.getElementById('req-agenda')?.value.trim() || '';
+  if (!selectedMeetingSlots.length) { showToast('Please select at least one slot.'); return; }
   try {
     await sbPatch(TBL_MEETING, 'id', meetingId, {
       student_agenda:   agenda,
-      meeting_duration: m.meeting_duration || 60,
-      // proposed_slots는 슬롯 재선택 기능 추가 시 여기에
+      meeting_duration: meetingDuration,
+      proposed_slots:   JSON.stringify(selectedMeetingSlots),
     });
-    m.student_agenda = agenda;
-    editingRequestId = null;
+    m.student_agenda     = agenda;
+    m.meeting_duration   = meetingDuration;
+    m.proposed_slots     = selectedMeetingSlots;
+    editingRequestId     = null;
+    requestFormOpen      = false;
+    selectedFacultyEmail = null;
+    selectedMeetingSlots = [];
     renderMeetings();
     showToast('Request updated');
   } catch(e) {
