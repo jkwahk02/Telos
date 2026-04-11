@@ -450,12 +450,14 @@ let sessionCount  = 0;
 let dataLoaded    = false;
 let currentPage   = 'overview';
 
+
 // Meetings 상태
 let selectedFacultyEmail  = null;
 let requestFormOpen       = false;
 let selectedOtherEmail    = null;
 let meetingDuration       = 60;   // minutes
 let selectedMeetingSlots  = [];   // [{dateStr, start, end, dateLabel}]
+let editingRequestId      = null;   // ← 추가: 수정 중인 pending request ID
 
 // ── UTILS ──
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -735,17 +737,31 @@ function renderOverview(){
   }
 
   // Pending badge
-  const pendingHtml=pending.length?`<div class="card accent-blue">
-    <div class="card-hd blue-bg">
-      <div><div class="card-title" style="color:#0C447C;">${pending.length} pending request${pending.length>1?'s':''}</div>
-      <div class="card-sub">Waiting for advisor confirmation</div></div>
-      <span class="bdg bdg-blue">Pending</span>
-    </div>
-    <div class="card-body">
-      ${pending.map(m=>{const fac=allFaculty.find(f=>f.email===m.faculty_email);return `<div style="font-size:13px;margin-bottom:4px;">→ ${esc(fac?.name_en||m.faculty_email)}</div>`;}).join('')}
-      <button class="btn-sm-out" style="margin-top:8px;" onclick="goToMeetings()">View in Meetings →</button>
-    </div>
-  </div>`:'' ;
+const pendingHtml=pending.length?`<div class="card accent-blue">
+  <div class="card-hd blue-bg">
+    <div><div class="card-title" style="color:#0C447C;">${pending.length} pending request${pending.length>1?'s':''}</div>
+    <div class="card-sub">Waiting for advisor confirmation</div></div>
+    <span class="bdg bdg-blue">Pending</span>
+  </div>
+  ${pending.map(m=>{
+    const fac=allFaculty.find(f=>f.email===m.faculty_email);
+    const slots=m.proposed_slots?(typeof m.proposed_slots==='string'?JSON.parse(m.proposed_slots):m.proposed_slots):[];
+    const isAdvProposed=m.created_by==='advisor';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:0.5px solid var(--border);">
+      <div class="ov-dot ${isAdvProposed?'dot-amber':'dot-blue'}" style="width:6px;height:6px;border-radius:50%;flex-shrink:0;background:${isAdvProposed?'var(--amber-b)':'var(--blue-m)'};"></div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">${esc(fac?.name_en||m.faculty_email)}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:1px;">
+          ${isAdvProposed?'Advisor proposed new times — action needed':slots.length?`${slots.length} slot${slots.length>1?'s':''} proposed · ${m.meeting_duration||60} min`:'No slots proposed'}
+        </div>
+      </div>
+      <span class="bdg ${isAdvProposed?'bdg-amber':'bdg-blue'}">${isAdvProposed?'Action needed':'Awaiting'}</span>
+    </div>`;
+  }).join('')}
+  <div class="card-foot" style="padding:9px 14px;background:var(--surface2);border-top:1px solid var(--border);display:flex;justify-content:flex-end;">
+    <button class="btn-sm-teal" onclick="goToMeetings()">View details →</button>
+  </div>
+</div>`:'' ;
 
   // Profile completion
   const fields=PROFILE_FIELDS;
@@ -1022,22 +1038,92 @@ function renderMeetings(){
   // Pending
   const pendingHtml=pending.length?pending.map(m=>{
     const fac=allFaculty.find(f=>f.email===m.faculty_email);
-    return `<div class="card accent-blue" style="margin-bottom:12px;">
-      <div class="card-hd blue-bg">
-        <div><div class="card-title" style="color:#0C447C;">Pending request</div>
-        <div class="card-sub">${esc(fac?.name_en||m.faculty_email)} · submitted ${new Date(m.created_at||m.meeting_date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div></div>
-        <span class="bdg bdg-blue">Awaiting confirmation</span>
+    const slots=m.proposed_slots?(typeof m.proposed_slots==='string'?JSON.parse(m.proposed_slots):m.proposed_slots):[];
+    const isAdvProposed=m.created_by==='advisor';
+    const isEditing=editingRequestId===m.id;
+  
+    const mySlotHtml=slots.length?slots.map(sl=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 11px;border:1px solid var(--blue-b);border-radius:var(--r);background:var(--blue-l);margin-bottom:5px;">
+        <div style="width:5px;height:5px;border-radius:50%;background:var(--blue);flex-shrink:0;"></div>
+        <div style="flex:1;font-size:13px;font-weight:500;color:#0C447C;">${esc(sl.dateLabel||sl.dateStr)}</div>
+        <div style="font-size:12px;color:var(--blue);">${esc(sl.start)}–${esc(sl.end)}</div>
+      </div>`).join('')
+      :'<div style="font-size:13px;color:var(--text3);font-style:italic;">No slots proposed</div>';
+  
+    const advSlotHtml=isAdvProposed&&slots.length?`
+      <div style="background:var(--teal-l);border-radius:var(--r);padding:9px 12px;margin-bottom:10px;font-size:13px;color:var(--teal);display:flex;align-items:center;gap:8px;">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".6" fill="currentColor"/></svg>
+        Advisor proposed new times. Select one to accept.
       </div>
-      <div class="card-body">
-        <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">${esc(m.meeting_format||'Zoom')} · proposed slots below</div>
-        ${m.student_agenda?`<div style="background:var(--blue-l);border-radius:var(--r);padding:9px 12px;margin-bottom:10px;">
-          <div style="font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">My agenda</div>
-          <div style="font-size:13px;color:#0C447C;line-height:1.55;">${esc(m.student_agenda)}</div>
-        </div>`:''}
-        <div style="display:flex;gap:7px;">
-          <button class="btn-sm-out">Edit request</button>
-          <button class="btn-danger" onclick="withdrawRequest(${m.id})">Withdraw</button>
+      ${slots.map((sl,i)=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 11px;border:1px solid var(--teal-b);border-radius:var(--r);background:var(--teal-l);margin-bottom:5px;cursor:pointer;"
+        onclick="acceptAdvisorSlot(${m.id},${i})">
+        <div style="width:5px;height:5px;border-radius:50%;background:var(--teal);flex-shrink:0;"></div>
+        <div style="flex:1;font-size:13px;font-weight:500;color:#085041;">${esc(sl.dateLabel||sl.dateStr||sl.day_of_week)}</div>
+        <div style="font-size:12px;color:var(--teal);">${esc(sl.start)}–${esc(sl.end)}</div>
+        <div class="btn-sm-teal" style="font-size:11px;padding:3px 9px;">Accept</div>
+      </div>`).join('')}`:'' ;
+  
+    // Edit request form (pre-filled)
+    const editFormHtml=isEditing?`
+      <div style="background:var(--surface2);border:1px solid var(--blue-b);border-radius:var(--r);overflow:hidden;margin-top:10px;">
+        <div style="padding:9px 13px;background:var(--blue-l);border-bottom:1px solid var(--blue-b);font-size:13px;font-weight:500;color:var(--blue);display:flex;justify-content:space-between;">
+          Edit request
+          <button onclick="editingRequestId=null;renderMeetings()" style="border:none;background:none;cursor:pointer;font-size:13px;color:var(--blue);">Cancel ×</button>
         </div>
+        <div style="padding:12px 13px;display:flex;flex-direction:column;gap:10px;">
+          <div>
+            <div class="fta-lbl">Duration</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              ${[30,60,90,120].map(mn=>{
+                const lbl=mn===30?'30 min':mn===60?'1 hour':mn===90?'1.5 hours':'2 hours';
+                const cur=m.meeting_duration||60;
+                return `<button class="dur-chip ${cur===mn?'on':''}" style="font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid ${cur===mn?'var(--teal-b)':'var(--border-em)'};background:${cur===mn?'var(--teal-l)':'var(--surface2)'};color:${cur===mn?'var(--teal)':'var(--text2)'};cursor:pointer;font-family:inherit;"
+                  onclick="m_dur_${m.id}=${mn};renderMeetings()">${lbl}</button>`;
+              }).join('')}
+            </div>
+          </div>
+          <div>
+            <div class="fta-lbl">Agenda</div>
+            <textarea class="fta" id="edit-agenda-${m.id}" rows="3">${esc(m.student_agenda||'')}</textarea>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:7px;">
+            <button class="btn-sm-out" onclick="editingRequestId=null;renderMeetings()">Cancel</button>
+            <button class="btn-sm-teal" onclick="saveEditRequest(${m.id})">Save changes</button>
+          </div>
+        </div>
+      </div>`:'' ;
+  
+    const accentColor=isAdvProposed?'var(--teal-b)':'var(--blue-b)';
+    const hdrBg=isAdvProposed?'var(--teal-l)':'var(--blue-l)';
+    const titleColor=isAdvProposed?'#085041':'#0C447C';
+    const badge=isAdvProposed?'<span class="bdg bdg-teal">Action needed</span>':'<span class="bdg bdg-blue">Awaiting confirmation</span>';
+  
+    return `<div class="card" style="margin-bottom:12px;border-color:${accentColor};">
+      <div class="card-hd" style="background:${hdrBg};">
+        <div>
+          <div class="card-title" style="color:${titleColor};">${esc(fac?.name_en||m.faculty_email)}</div>
+          <div class="card-sub">${esc(m.meeting_format||'Zoom')} · ${m.meeting_duration||60} min · submitted ${new Date(m.created_at||m.meeting_date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+        </div>
+        ${badge}
+      </div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+        ${m.student_agenda?`
+          <div style="background:var(--blue-l);border-left:3px solid var(--blue-m);border-radius:0 var(--r) var(--r) 0;padding:9px 12px;">
+            <div style="font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">My agenda</div>
+            <div style="font-size:13px;color:#0C447C;line-height:1.55;">${esc(m.student_agenda)}</div>
+          </div>`:''}
+        ${isAdvProposed?advSlotHtml:`
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">My proposed slots</div>
+            ${mySlotHtml}
+          </div>`}
+        ${!isEditing?`
+          <div style="display:flex;gap:7px;">
+            <button class="btn-sm-out" onclick="editingRequestId=${m.id};renderMeetings()">✎ Edit request</button>
+            <button class="btn-sm-out" style="color:var(--red);border-color:var(--red-l);" onclick="withdrawRequest(${m.id})">Withdraw</button>
+          </div>`:''}
+        ${editFormHtml}
       </div>
     </div>`;
   }).join(''):'' ;
@@ -1489,6 +1575,50 @@ async function withdrawRequest(meetingId){
     renderMeetings();
     showToast('Request withdrawn');
   }catch(e){
+    showToast(`Failed: ${e.message}`);
+  }
+}
+
+async function saveEditRequest(meetingId) {
+  const m = scheduledMeetings.find(x => x.id === meetingId);
+  if (!m) return;
+  const agenda = document.getElementById(`edit-agenda-${meetingId}`)?.value.trim() || '';
+  try {
+    await sbPatch(TBL_MEETING, 'id', meetingId, {
+      student_agenda:   agenda,
+      meeting_duration: m.meeting_duration || 60,
+      // proposed_slots는 슬롯 재선택 기능 추가 시 여기에
+    });
+    m.student_agenda = agenda;
+    editingRequestId = null;
+    renderMeetings();
+    showToast('Request updated');
+  } catch(e) {
+    showToast(`Update failed: ${e.message}`);
+  }
+}
+
+async function acceptAdvisorSlot(meetingId, slotIdx) {
+  const m = scheduledMeetings.find(x => x.id === meetingId);
+  if (!m) return;
+  const slots = m.proposed_slots
+    ? (typeof m.proposed_slots === 'string' ? JSON.parse(m.proposed_slots) : m.proposed_slots)
+    : [];
+  const sl = slots[slotIdx];
+  if (!sl) return;
+  if (!confirm(`Accept meeting on ${sl.dateLabel || sl.dateStr} ${sl.start}–${sl.end}?`)) return;
+  try {
+    await sbPatch(TBL_MEETING, 'id', meetingId, {
+      advisor_confirmed: true,
+      meeting_date:      sl.dateStr,
+      status:            'scheduled',
+    });
+    m.advisor_confirmed = true;
+    m.meeting_date = sl.dateStr;
+    renderMeetings();
+    renderOverview();
+    showToast(`✓ Meeting confirmed — ${sl.dateLabel || sl.dateStr} ${sl.start}`);
+  } catch(e) {
     showToast(`Failed: ${e.message}`);
   }
 }
