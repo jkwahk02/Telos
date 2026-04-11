@@ -712,7 +712,7 @@ function renderOverview(){
   const statHtml=`
     <div class="stat-row">
       <div class="stat-card"><div class="stat-val" style="color:var(--accent)">${sessionCount}</div><div class="stat-lbl">Sessions</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:${next?'var(--text)':'var(--text3)'};font-size:${next?'18px':'26px'}">${nextDateStr}</div><div class="stat-lbl">Next meeting</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:${confirmed.length?'var(--text)':'var(--text3)'};font-size:${confirmed.length?'18px':'26px'}">${nextDateStr}</div><div class="stat-lbl">Next meeting</div></div>
       <div class="stat-card"><div class="stat-val" style="color:${pendingCount>0?'var(--amber)':'var(--text3)'}">${pendingCount}</div><div class="stat-lbl">Pending requests</div></div>
     </div>`;
 
