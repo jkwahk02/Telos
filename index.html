@@ -364,6 +364,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
   <div class="nav-tabs">
     <button class="nav-tab active" data-page="overview">Overview</button>
     <button class="nav-tab" data-page="students">My Students</button>
+    <button class="nav-tab" data-page="meetings">Meetings</button>
     <button class="nav-tab" data-page="log">Session Log</button>
     <button class="nav-tab" data-page="codebook">Help & Guide</button>
     <button class="nav-tab" data-page="settings">Settings</button>
@@ -476,6 +477,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 <div class="main">
   <div class="page active" id="page-overview"></div>
   <div class="page" id="page-students"></div>
+  <div class="page" id="page-meetings"></div>
   <div class="page" id="page-log"></div>
   <div class="page" id="page-codebook"></div>
   <div class="page" id="page-settings"></div>
@@ -1027,6 +1029,7 @@ function renderCurrent() {
   if (!dataLoaded) return;
   if (currentPage==='overview') renderOverview();
   if (currentPage==='students') renderStudents();
+  if (currentPage==='meetings') renderMeetings();
   if (currentPage==='log') renderLog();
   if (currentPage==='codebook') renderCodebook();
   if (currentPage==='settings')  renderSettings();
@@ -2806,7 +2809,115 @@ async function saveAvailability() {
   }
 }
 
+
+  
 // ── CROSS-PAGE NAV ──
+
+function renderMeetings() {
+  const el = document.getElementById('page-meetings');
+  if (!el) return;
+
+  const allMtg = meetings.filter(m => m.facultyEmail === FACULTY_EMAIL)
+    .sort((a,b) => (a.meetingDate||'').localeCompare(b.meetingDate||''));
+
+  const upcoming = allMtg.filter(m => m.advisorConfirmed && m.status === 'scheduled');
+  const pending  = allMtg.filter(m => !m.advisorConfirmed && m.status === 'scheduled');
+  const past     = allMtg.filter(m => m.status === 'completed' || m.status === 'cancelled');
+
+  const counts = { all: allMtg.length, upcoming: upcoming.length, pending: pending.length, past: past.length };
+
+  function dateBlock(m, cat) {
+    const cls = cat==='upcoming'?'db-g':cat==='pending'?'db-a':'db-gr';
+    const mc  = cat==='upcoming'?'g':cat==='pending'?'a':'gr';
+    const date = m.meetingDate ? new Date(m.meetingDate+'T00:00:00') : null;
+    const mon  = date ? date.toLocaleDateString('en-US',{month:'short'}) : 'TBD';
+    const day  = date ? date.getDate() : '—';
+    return `<div class="date-block ${cls}">
+      <div class="d-mon ${mc}">${mon}</div>
+      <div class="d-day ${mc}" style="${!date?'font-size:11px;':''}">${day}</div>
+    </div>`;
+  }
+
+  function pill(cat, m) {
+    if (cat==='upcoming') return `<span class="bdg bdg-green">Confirmed</span>`;
+    if (cat==='pending')  return `<span class="bdg bdg-amber">${m.advisorConfirmed===false&&m.createdBy==='advisor'?'Action needed':'Pending'}</span>`;
+    return `<span class="bdg bdg-gray">${m.status==='completed'?'Completed':'Cancelled'}</span>`;
+  }
+
+  function zoomBadge(m) {
+    if (m.meetingLink) return `<span style="font-size:11px;color:var(--blue);cursor:pointer;" onclick="window.open('${m.meetingLink}','_blank')">Join Zoom →</span>`;
+    return `<span style="font-size:11px;color:var(--text3);border:1px dashed var(--border-em);border-radius:20px;padding:2px 8px;cursor:pointer;">+ Add Zoom link</span>`;
+  }
+
+  function buildRows(list, cat) {
+    if (!list.length) return `<div style="padding:20px 16px;text-align:center;font-size:14px;color:var(--text3);">No ${cat} meetings</div>`;
+    return list.map(m => {
+      const st = students.find(s => s.id === m.studentId);
+      const clickAction = cat==='pending'
+        ? `document.getElementById('pending-requests-card')?.scrollIntoView({behavior:'smooth',block:'start'});
+           document.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active',t.dataset.page==='overview'));
+           document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+           document.getElementById('page-overview').classList.add('active');
+           currentPage='overview'; renderOverview();`
+        : `goToStudent('${m.studentId}')`;
+      return `<div class="mtg-item" style="cursor:pointer;" onclick="${clickAction}">
+        ${dateBlock(m, cat)}
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--blue-l);color:var(--blue);font-size:10px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          ${initials(st?.name||m.studentId)}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:500;">${esc(st?.name||m.studentId)}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:1px;">
+            ${esc(shortMajor(st?.major1||''))} · ${esc(shortCohort(st?.cohort||''))} · ${esc(m.meetingType||'Regular')} · ${m.meetingDuration||60} min
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+          <div style="font-size:12px;font-weight:500;color:${cat==='upcoming'?'var(--green)':cat==='pending'?'var(--amber)':'var(--text3)'};">
+            ${m.meetingDate ? new Date(m.meetingDate+'T00:00:00').toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false}) : '—'}
+          </div>
+          ${pill(cat, m)}
+          ${cat==='upcoming' ? zoomBadge(m) : cat==='pending' ? `<span style="font-size:11px;color:var(--blue);">Review →</span>` : `<span style="font-size:11px;color:var(--blue);">View log →</span>`}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  el.innerHTML = `
+    <div style="font-size:20px;font-weight:600;letter-spacing:-0.02em;margin-bottom:4px;">Meetings</div>
+    <div style="font-size:14px;color:var(--text2);margin-bottom:14px;">Upcoming, pending, and past advising meetings.</div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;">
+      <div class="stat-card"><div class="stat-val ok">${upcoming.length}</div><div class="stat-lbl">Upcoming</div></div>
+      <div class="stat-card"><div class="stat-val ${pending.length>0?'warn':'ok'}">${pending.length}</div><div class="stat-lbl">Pending</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--blue)">${allMtg.length}</div><div class="stat-lbl">This semester</div></div>
+      <div class="stat-card"><div class="stat-val text-muted">${past.filter(m=>m.status==='cancelled').length}</div><div class="stat-lbl">No-show / cancelled</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:12px;">
+      <div style="display:flex;gap:5px;" id="mtg-filter-chips">
+        <button class="fchip active" onclick="filterMeetings('all',this)">All <span style="color:var(--text3);">(${counts.all})</span></button>
+        <button class="fchip" onclick="filterMeetings('upcoming',this)">Upcoming <span style="color:var(--text3);">(${counts.upcoming})</span></button>
+        <button class="fchip" onclick="filterMeetings('pending',this)">Pending <span style="color:var(--text3);">(${counts.pending})</span></button>
+        <button class="fchip" onclick="filterMeetings('past',this)">Past <span style="color:var(--text3);">(${counts.past})</span></button>
+      </div>
+    </div>
+
+    <div class="tbl-wrap" id="mtg-list-wrap">
+      <div id="mtg-rows-upcoming">${buildRows(upcoming,'upcoming')}</div>
+      <div id="mtg-rows-pending">${buildRows(pending,'pending')}</div>
+      <div id="mtg-rows-past" style="opacity:.7;">${buildRows(past,'past')}</div>
+    </div>`;
+}
+
+function filterMeetings(f, btn) {
+  document.querySelectorAll('#mtg-filter-chips .fchip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  ['upcoming','pending','past'].forEach(cat => {
+    const el = document.getElementById('mtg-rows-'+cat);
+    if (el) el.style.display = (f==='all'||f===cat) ? 'block' : 'none';
+  });
+}
+  
 function goToStudent(id){
   openStudId=id;showFormFor=null;
   document.querySelectorAll('.nav-tab').forEach(t=>{t.classList.toggle('active',t.dataset.page==='students');});
