@@ -946,6 +946,7 @@ async function saveSection(key,tagsCol,textCol){
     await sbPatch(TBL_STUDENTS,'id',studentData.id,{[tagsCol]:tags,[textCol]:text});
     studentData[tagsCol]=tags;
     studentData[textCol]=text;
+    if(btn){btn.textContent='Save';btn.disabled=true;}  // ← 추가 (저장 완료 후 변경 없으므로 disabled 유지)
     if(status){status.textContent='Saved ✓';setTimeout(()=>{status.textContent='';},2500);}
     showToast('Saved');
     // 프로필 완성도 갱신
@@ -1514,6 +1515,7 @@ async function saveAgenda(meetingId){
     await sbPatch(TBL_MEETING,'id',meetingId,{student_agenda:ta.value.trim()});
     const m=scheduledMeetings.find(x=>x.id===meetingId);
     if(m) m.student_agenda=ta.value.trim();
+    if(btn){btn.textContent='Save agenda';btn.disabled=true;}  // ← 추가: 텍스트 복원, disabled 유지 (변경 없으므로)
     if(status){status.textContent='Saved ✓';setTimeout(()=>{status.textContent='';},2500);}
     showToast('Agenda saved');
   }catch(e){
