@@ -1462,6 +1462,19 @@ function toggleMeetingSlot(dateStr,start,end,dateLabel){
   renderMeetings();
 }
 
+function openRequestForm(email){
+  requestFormOpen=true;
+  editingRequestId=null;
+  selectedFacultyEmail=email;
+  selectedMeetingSlots=[];
+  meetingDuration=60;
+  renderMeetings();
+  setTimeout(()=>{
+    const form=document.querySelector('.card.accent-teal');
+    if(form) form.scrollIntoView({behavior:'smooth',block:'nearest'});
+  },100);
+}
+  
 function closeRequestForm(){
   requestFormOpen=false;
   editingRequestId=null;        // ← 추가
@@ -1489,13 +1502,6 @@ function openEditRequest(meetingId){
     const form=document.querySelector('.card.accent-teal');
     if(form) form.scrollIntoView({behavior:'smooth',block:'nearest'});
   },100);
-}
-  
-function closeRequestForm(){
-  requestFormOpen=false;
-  selectedFacultyEmail=null;
-  selectedMeetingSlots=[];
-  renderMeetings();
 }
   
 function selectRequestFaculty(email){
