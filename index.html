@@ -1157,6 +1157,61 @@ function renderPendingRequestsCard(requests) {
     </div>`;
 }
 
+function goToMeetings() {
+  document.querySelectorAll('.nav-tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.page === 'meetings');
+  });
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-meetings').classList.add('active');
+  currentPage = 'meetings';
+  renderMeetings();
+}
+  
+function renderConfirmedMeetingsCard(list) {
+  if (!list.length) return '';
+
+  return `
+    <div class="ov-card" style="margin-bottom:12px;border-color:var(--green-b);">
+      <div class="ov-card-hd">
+        Confirmed upcoming meetings
+        <span class="text-muted" style="font-weight:400;font-size:13px;">
+          ${list.length} meeting${list.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+      <div class="ov-card-body">
+        ${list.slice(0, 6).map(m => {
+          const st = students.find(s => s.id === m.studentId);
+          const date = m.meetingDate
+            ? new Date(m.meetingDate + 'T00:00:00').toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric'
+              })
+            : 'TBD';
+
+          const timeText = (() => {
+            const slots = Array.isArray(m.proposedSlots) ? m.proposedSlots : [];
+            const slot = slots.find(sl => (sl.dateStr || '') === m.meetingDate) || slots[0];
+            return slot?.start ? `${slot.start}${slot.end ? '–' + slot.end : ''}` : '';
+          })();
+
+          return `
+            <div class="ov-item" onclick="goToMeetings()" style="cursor:pointer;">
+              <div class="ov-dot dot-green"></div>
+              <div class="ov-name">${esc(st?.name || m.studentId)}</div>
+              <div class="ov-detail">
+                ${date}
+                ${timeText ? ` · ${timeText}` : ''}
+                · ${esc(m.meetingFormat || 'Zoom')}
+                · ${m.meetingDuration || 60} min
+              </div>
+              <span class="go-link">View →</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
 async function confirmMeetingRequest(meetingId) {
   const m = meetings.find(x => x.id === meetingId);
   if (!m) return;
@@ -1257,6 +1312,7 @@ function renderOverview() {
     </div>
     
     ${renderPendingRequestsCard(pendingRequests)}
+    ${renderConfirmedMeetingsCard(confirmedUpcoming)}
 
     <div class="overview-cards">
       <div class="ov-card">
