@@ -2515,6 +2515,13 @@ async function renderSettings() {
         </div>
       </div>
 
+      <div id="mtg-cal-wrap" style="display:none;">
+        <!-- Calendar view — 추후 구현 -->
+        <div style="padding:40px;text-align:center;color:var(--text3);font-size:14px;">
+          Calendar view coming soon
+        </div>
+      </div>      
+
 <!-- MY PROFILE -->
 <div class="tbl-wrap" style="border-radius:var(--r-lg);">
   <div style="padding:11px 16px;border-bottom:1px solid var(--border);">
@@ -2926,6 +2933,10 @@ function renderMeetings() {
         <button class="fchip" onclick="filterMeetings('pending',this)">Pending <span style="color:var(--text3);">(${counts.pending})</span></button>
         <button class="fchip" onclick="filterMeetings('past',this)">Past <span style="color:var(--text3);">(${counts.past})</span></button>
       </div>
+      <div style="display:flex;gap:0;border:1px solid var(--border-em);border-radius:var(--r);overflow:hidden;" id="mtg-view-tabs">
+        <button class="fchip active" style="border-radius:0;border:none;border-right:1px solid var(--border-em);" onclick="switchMeetingView('list',this)">List</button>
+        <button class="fchip" style="border-radius:0;border:none;" onclick="switchMeetingView('cal',this)">Calendar</button>
+      </div>
     </div>
 
     <div class="tbl-wrap" id="mtg-list-wrap">
@@ -2956,6 +2967,16 @@ function goToStudent(id){
     if(r)r.scrollIntoView({behavior:'smooth',block:'center'});
   },100);
 }
+
+function switchMeetingView(v, btn) {
+  document.querySelectorAll('#mtg-view-tabs .fchip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('mtg-list-wrap').style.display = v==='list' ? 'block' : 'none';
+  const calWrap = document.getElementById('mtg-cal-wrap');
+  if (calWrap) calWrap.style.display = v==='cal' ? 'block' : 'none';
+}
+
+  
 function goToLog(logId){
   openLogId=logId;
   document.querySelectorAll('.nav-tab').forEach(t=>{t.classList.toggle('active',t.dataset.page==='log');});
