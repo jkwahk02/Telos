@@ -25,7 +25,7 @@ button,input,select,textarea{font-family:inherit;}
 /* NAV */
 .topnav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;height:52px;position:sticky;top:0;z-index:100;gap:0;}
 .nav-logo{font-size:17px;font-weight:600;color:var(--text);letter-spacing:-0.02em;margin-right:28px;white-space:nowrap;display:flex;align-items:center;gap:9px;}
-.nav-logo span{color:var(--blue);}
+.nav-logo .role-badge{font-size:10px;font-weight:600;background:var(--blue-l);color:var(--blue);padding:2px 7px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;}
 .nav-tabs{display:flex;height:100%;}
 .nav-tab{font-size:17px;font-weight:400;color:var(--text2);padding:0 15px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;transition:color .15s;white-space:nowrap;}
 .nav-tab:hover{color:var(--text);}
@@ -360,7 +360,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 <body>
 
 <nav class="topnav">
-  <div class="nav-logo">Telos <span style="font-weight:400;color:var(--text3);font-size:13px;letter-spacing:0;">for Professors</span></div>
+  <div class="nav-logo">Telos <span class="role-badge">Faculty</span></div>
   <div class="nav-tabs">
     <button class="nav-tab active" data-page="overview">Overview</button>
     <button class="nav-tab" data-page="students">My Students</button>
@@ -402,7 +402,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 <div id="login-wall" style="position:fixed;inset:0;background:#f7f6f3;z-index:300;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;">
   <div style="background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,0.1);width:100%;max-width:400px;overflow:hidden;margin:0 16px;">
     <div style="padding:32px 32px 24px;text-align:center;border-bottom:1px solid rgba(0,0,0,0.07);">
-      <div style="font-size:17px;font-weight:600;color:#185FA5;letter-spacing:-0.01em;margin-bottom:6px;">Telos <span style="color:#1a1916;font-weight:400;">for Professors</span></div>
+    <div style="font-size:17px;font-weight:600;color:#185FA5;letter-spacing:-0.01em;margin-bottom:6px;display:flex;align-items:center;gap:8px;">Telos <span style="font-size:10px;font-weight:600;background:var(--blue-l);color:var(--blue);padding:2px 7px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;">Faculty</span></div>
       <div style="font-size:22px;font-weight:600;color:#1a1916;letter-spacing:-0.02em;">Sign in</div>
       <div style="font-size:17px;color:#6b6960;margin-top:4px;">Use your Taejae faculty email to sign in</div>
     </div>
@@ -437,7 +437,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 <div id="pw-change-wall" style="display:none;position:fixed;inset:0;background:#f7f6f3;z-index:300;align-items:center;justify-content:center;flex-direction:column;">
   <div style="background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,0.1);width:100%;max-width:400px;overflow:hidden;margin:0 16px;">
     <div style="padding:28px 32px 20px;text-align:center;border-bottom:1px solid rgba(0,0,0,0.07);">
-      <div style="font-size:17px;font-weight:600;color:#185FA5;margin-bottom:6px;">Telos <span style="color:#1a1916;font-weight:400;">for Professors</span></div>
+    <div style="font-size:17px;font-weight:600;color:#185FA5;margin-bottom:6px;display:flex;align-items:center;gap:8px;">Telos <span style="font-size:10px;font-weight:600;background:var(--blue-l);color:var(--blue);padding:2px 7px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;">Faculty</span></div>
       <div id="pw-wall-title" style="font-size:22px;font-weight:600;color:#1a1916;letter-spacing:-0.02em;">Set your password</div>
       <div id="pw-wall-desc" style="font-size:17px;color:#6b6960;margin-top:6px;line-height:1.5;">This is your first sign-in.<br>Please set a new password to continue.</div>
     </div>
