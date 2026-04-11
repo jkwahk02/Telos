@@ -1306,7 +1306,6 @@ function renderOverview() {
       m.advisorConfirmed === true
     )
     .sort((a,b) => (a.meetingDate || '').localeCompare(b.meetingDate || ''));
-  const noNextList = mine.filter(s=>!s.nextMeeting);
   const recent = [...mySess].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
 
   document.getElementById('page-overview').innerHTML = `
@@ -1314,24 +1313,17 @@ function renderOverview() {
       <div class="stat-card"><div class="stat-val">${mine.length}</div><div class="stat-lbl">My students</div></div>
       <div class="stat-card"><div class="stat-val ok">${mySess.length}</div><div class="stat-lbl">Total sessions</div></div>
       <div class="stat-card"><div class="stat-val ${zeroSess>0?'bad':'ok'}">${zeroSess}</div><div class="stat-lbl">0-session students</div></div>
-      <div class="stat-card"><div class="stat-val ${noNext>0?'warn':'ok'}">${noNext}</div><div class="stat-lbl">No next meeting</div></div>
       <div class="stat-card"><div class="stat-val ${pendingRequests.length>0?'warn':'ok'}">${pendingRequests.length}</div><div class="stat-lbl">Pending requests</div></div>
+      <div class="stat-card">
+        <div class="stat-val ${confirmedUpcoming.length>0?'ok':'text-muted'}">${confirmedUpcoming.length}</div>
+        <div class="stat-lbl">Upcoming meetings</div>
+      </div>
     </div>
     
     ${renderPendingRequestsCard(pendingRequests)}
     ${renderConfirmedMeetingsCard(confirmedUpcoming)}
 
     <div class="overview-cards">
-      <div class="ov-card">
-        <div class="ov-card-hd">No next meeting set <span class="text-muted" style="font-weight:400;font-size:17px;">${noNext} students</span></div>
-        ${noNextList.map(s=>`
-        <div class="ov-item">
-          <div class="ov-dot dot-amber"></div>
-          <div class="ov-name">${esc(s.name)}</div>
-          <div class="ov-detail">${s.sessions} session${s.sessions!==1?'s':''} · ${s.lastMeeting||'never met'}</div>
-          <span class="go-link" onclick="goToStudent('${s.id}')">View →</span>
-        </div>`).join('')}
-      </div>
       <div class="ov-card">
         <div class="ov-card-hd">Recent sessions</div>
         ${recent.length ? recent.map(s=>`
