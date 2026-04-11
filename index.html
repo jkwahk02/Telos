@@ -1299,6 +1299,13 @@ function renderOverview() {
     !m.advisorConfirmed &&
     m.createdBy === 'student'
   );
+  const confirmedUpcoming = meetings
+    .filter(m =>
+      m.facultyEmail === FACULTY_EMAIL &&
+      m.status === 'scheduled' &&
+      m.advisorConfirmed === true
+    )
+    .sort((a,b) => (a.meetingDate || '').localeCompare(b.meetingDate || ''));
   const noNextList = mine.filter(s=>!s.nextMeeting);
   const recent = [...mySess].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
 
