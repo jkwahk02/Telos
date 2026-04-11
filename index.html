@@ -511,7 +511,10 @@ let students = [];
 let sessions = [];
 let meetings = [];  // ← 추가
 let dataLoaded = false;
-
+let pendingSelSlot   = {};   // { meetingId: slotIndex }
+let pendingPropose   = {};   // { meetingId: Set<availIndex> }
+let pendingPropMode  = {};   // { meetingId: boolean }
+  
 // ── AUTH STATE ──
 let supabaseUser = null;
 let IS_CHAIR = false;  // set from faculty_profiles.is_chair after login
@@ -519,6 +522,7 @@ let IS_CHAIR = false;  // set from faculty_profiles.is_chair after login
 let studFilter = 'my', studExtra = '', studSearch = '', studSort = {col:'name',dir:1};
 let openStudId = null, showFormFor = null, selTopics = [];
 let logFilter = 'all', logSearch = '', openLogId = null, editingLogId = null;
+
 
 // ── UTILS ──
 function bdg(t,c){return `<span class="bdg bdg-${c}">${t}</span>`;}
@@ -1039,88 +1043,173 @@ function renderPendingRequestsCard(requests) {
           ${requests.length} request${requests.length !== 1 ? 's' : ''}
         </span>
       </div>
-      <div class="ov-card-body">
-        ${requests.map(m => {
-          const st = students.find(s => s.id === m.studentId);
-          const proposed = (m.proposedSlots || []).map(slot => `
-            <div style="font-size:12px;color:var(--text2);margin-top:2px;">
-              • ${esc(slot.dateLabel || slot.dateStr || '')} ${esc(slot.start || '')}–${esc(slot.end || '')}
-            </div>
-          `).join('');
+      ${requests.map(m => {
+        const st = students.find(s => s.id === m.studentId);
+        const hasSlots = m.proposedSlots && m.proposedSlots.length > 0;
+        const sel = pendingSelSlot[m.id] ?? null;
+        const isProposeMode = pendingPropMode[m.id] || false;
+        const picked = pendingPropose[m.id] || new Set();
 
-          return `
-            <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
-              <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
-                <div style="flex:1;">
-                  <div style="font-size:14px;font-weight:600;">${esc(st?.name || m.studentId)}</div>
-                  <div style="font-size:12px;color:var(--text3);margin-top:2px;">
-                    ${esc(m.meetingType)} · ${esc(m.meetingFormat)} · ${m.meetingDuration} min
-                  </div>
-                  ${m.studentAgenda ? `
-                    <div style="margin-top:8px;background:var(--blue-l);padding:8px 10px;border-radius:8px;font-size:12px;color:#0C447C;">
-                      ${esc(m.studentAgenda)}
-                    </div>` : ''}
-                  <div style="margin-top:8px;">
-                    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;">Proposed slots</div>
-                    ${proposed || '<div style="font-size:12px;color:var(--text3);">No proposed slots</div>'}
-                  </div>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:6px;min-width:120px;">
-                  <button class="btn-log" onclick="confirmMeetingRequest(${m.id})">Confirm</button>
-                  <button class="btn-cancel" onclick="declineMeetingRequest(${m.id})">Decline</button>
-                </div>
+        // ── 학생이 제안한 slot 라디오 ──
+        const studentSlotsHtml = hasSlots ? `
+          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Select a slot to confirm</div>
+          ${m.proposedSlots.map((sl, i) => `
+            <label style="display:flex;align-items:center;gap:12px;padding:9px 13px;border:1px solid var(--border-em);border-radius:var(--r);background:${sel===i?'var(--blue-l)':'var(--surface2)'};cursor:pointer;margin-bottom:6px;transition:all .12s;${sel===i?'border-color:var(--blue-m);':''}"
+              onmouseover="if(${sel}!==${i})this.style.background='var(--blue-l)'" onmouseout="if(${sel}!==${i})this.style.background='var(--surface2)'">
+              <input type="radio" name="slot-${m.id}" value="${i}" ${sel===i?'checked':''} style="accent-color:var(--blue);flex-shrink:0;"
+                onchange="pendingSelSlot[${m.id}]=${i};renderOverview()">
+              <div style="flex:1;">
+                <div style="font-size:17px;font-weight:500;${sel===i?'color:#0C447C;':''}">${esc(sl.dateLabel || sl.dateStr)}</div>
+                <div style="font-size:17px;color:var(--text2);">${esc(sl.start)} – ${esc(sl.end)} · ${m.meetingDuration} min · ${esc(m.meetingFormat)}</div>
               </div>
+            </label>`).join('')}` : '';
+
+        // ── 교수 availability에서 slot 제안 패널 ──
+        const proposePanelHtml = isProposeMode ? `
+          <div style="border:1px solid var(--border-em);border-radius:var(--r);overflow:hidden;margin-bottom:14px;">
+            <div style="padding:8px 13px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:13px;font-weight:500;color:var(--text2);">
+              Your availability — select slots to propose to ${esc(st?.name?.split(' ')[0] || 'student')}
             </div>
-          `;
-        }).join('')}
-      </div>
-    </div>
-  `;
-}  
+            ${availSlots.filter(a => a.is_active).map((a, ai) => {
+              const isPicked = picked.has(ai);
+              const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+              return `
+              <div style="display:flex;align-items:center;gap:12px;padding:9px 13px;border-bottom:1px solid var(--border);cursor:pointer;background:${isPicked?'var(--blue-l)':'var(--surface)'};transition:background .12s;"
+                onmouseover="if(!${isPicked})this.style.background='var(--blue-l)'" onmouseout="if(!${isPicked})this.style.background='var(--surface)'"
+                onclick="
+                  if(!pendingPropose[${m.id}]) pendingPropose[${m.id}]=new Set();
+                  if(pendingPropose[${m.id}].has(${ai})) pendingPropose[${m.id}].delete(${ai});
+                  else pendingPropose[${m.id}].add(${ai});
+                  renderOverview()">
+                <div style="width:16px;height:16px;border-radius:3px;border:1.5px solid ${isPicked?'var(--blue)':'var(--border-em)'};background:${isPicked?'var(--blue)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  ${isPicked?`<svg width="9" height="9" viewBox="0 0 10 10"><polyline points="1.5,5 3.5,7.5 8.5,2.5" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`:''}
+                </div>
+                <div style="font-size:11px;font-weight:600;background:${isPicked?'var(--blue)':'var(--surface2)'};color:${isPicked?'#fff':'var(--text2)'};padding:2px 8px;border-radius:20px;flex-shrink:0;transition:all .15s;">
+                  ${days[a.day_of_week]}
+                </div>
+                <div style="flex:1;">
+                  <div style="font-size:17px;font-weight:500;${isPicked?'color:#0C447C;':''}">${esc(a.note||'')}</div>
+                  <div style="font-size:17px;color:var(--text2);">${a.start_time.slice(0,5)} – ${a.end_time.slice(0,5)}</div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>` : '';
+
+        // ── action row ──
+        let actionHtml = '';
+        if (hasSlots) {
+          actionHtml = `
+            <div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;">
+              <input id="zoom-${m.id}" class="fi" placeholder="Zoom link (optional)" style="flex:1;min-width:180px;height:34px;">
+              <button class="btn-log" onclick="confirmMeetingRequest(${m.id})" ${sel===null?'disabled style="opacity:.4;cursor:default;"':''}>✓ Confirm</button>
+              <button class="btn-cancel" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border-em);" onclick="rescheduleMeetingRequest(${m.id})">Ask to reschedule</button>
+            </div>`;
+        } else if (isProposeMode) {
+          actionHtml = `
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <button class="btn-log" onclick="sendProposal(${m.id})" ${picked.size===0?'disabled style="opacity:.4;cursor:default;"':''}>
+                Send proposal${picked.size>0?' ('+picked.size+')':''}
+              </button>
+              <button class="btn-cancel" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border-em);" onclick="pendingPropMode[${m.id}]=false;if(pendingPropose[${m.id}])pendingPropose[${m.id}].clear();renderOverview()">Cancel</button>
+            </div>`;
+        } else {
+          actionHtml = `
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <button class="btn-log" onclick="pendingPropMode[${m.id}]=true;renderOverview()">Propose a time</button>
+              <button class="btn-cancel" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border-em);" onclick="rescheduleMeetingRequest(${m.id})">Ask to reschedule</button>
+            </div>`;
+        }
+
+        return `
+          <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
+            <div style="font-size:17px;font-weight:600;margin-bottom:2px;">${esc(st?.name || m.studentId)}</div>
+            <div style="font-size:17px;color:var(--text3);margin-bottom:${m.studentAgenda?'10px':'12px'};">
+              ${esc(m.meetingType)} · ${esc(m.meetingFormat)} · ${m.meetingDuration} min
+            </div>
+            ${m.studentAgenda ? `
+              <div style="background:var(--blue-l);border-left:3px solid var(--blue-m);border-radius:0 var(--r) var(--r) 0;padding:9px 13px;margin-bottom:12px;">
+                <div style="font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">Student agenda</div>
+                <div style="font-size:17px;color:#0C447C;">${esc(m.studentAgenda)}</div>
+              </div>` : ''}
+            ${studentSlotsHtml}
+            ${proposePanelHtml}
+            ${actionHtml}
+          </div>`;
+      }).join('')}
+    </div>`;
+}
 
 async function confirmMeetingRequest(meetingId) {
   const m = meetings.find(x => x.id === meetingId);
   if (!m) return;
 
-  const chosenSlot = (m.proposedSlots && m.proposedSlots.length)
-    ? m.proposedSlots[0]
-    : null;
+  // radio에서 선택된 slot 읽기
+  const selIdx = pendingSelSlot[meetingId] ?? null;
+  if (selIdx === null) { showToast('Please select a slot to confirm.'); return; }
+  const chosenSlot = m.proposedSlots[selIdx];
+  if (!chosenSlot) { showToast('Slot not found.'); return; }
 
-  if (!chosenSlot) {
-    showToast('No proposed slot found.');
-    return;
-  }
+  const meetingLink = document.getElementById(`zoom-${meetingId}`)?.value.trim() || '';
+  if (!confirm(`Confirm meeting for ${chosenSlot.dateLabel || chosenSlot.dateStr} ${chosenSlot.start}–${chosenSlot.end}?`)) return;
 
   try {
     await sbUpdate(TBL_MEETING, 'id', meetingId, {
       advisor_confirmed: true,
-      meeting_date: chosenSlot.dateStr || m.meetingDate,
-      status: 'scheduled'
+      meeting_date:      chosenSlot.dateStr,
+      status:            'scheduled',
+      ...(meetingLink ? { meeting_link: meetingLink } : {}),
     });
-
     m.advisorConfirmed = true;
-    m.meetingDate = chosenSlot.dateStr || m.meetingDate;
-
-    showToast('Meeting request confirmed');
+    m.meetingDate = chosenSlot.dateStr;
+    if (meetingLink) m.meetingLink = meetingLink;
+    delete pendingSelSlot[meetingId];
+    showToast(`✓ Confirmed — ${chosenSlot.dateLabel || chosenSlot.dateStr} ${chosenSlot.start}`);
     renderCurrent();
-  } catch (e) {
+  } catch(e) {
     showToast(`Confirm failed: ${e.message}`);
   }
 }
 
-async function declineMeetingRequest(meetingId) {
-  try {
-    await sbUpdate(TBL_MEETING, 'id', meetingId, {
-      status: 'cancelled'
-    });
+// 기존 declineMeetingRequest 삭제하고 아래로 교체
 
+async function rescheduleMeetingRequest(meetingId) {
+  if (!confirm('Ask this student to propose a different time?')) return;
+  try {
+    await sbUpdate(TBL_MEETING, 'id', meetingId, { status: 'cancelled' });
     const m = meetings.find(x => x.id === meetingId);
     if (m) m.status = 'cancelled';
-
-    showToast('Meeting request declined');
+    delete pendingSelSlot[meetingId];
+    delete pendingPropMode[meetingId];
+    showToast('Student notified — asked to propose a different time');
     renderCurrent();
-  } catch (e) {
-    showToast(`Decline failed: ${e.message}`);
+  } catch(e) {
+    showToast(`Failed: ${e.message}`);
+  }
+}
+
+async function sendProposal(meetingId) {
+  const m = meetings.find(x => x.id === meetingId);
+  const picked = pendingPropose[meetingId];
+  if (!picked || picked.size === 0) { showToast('Select at least one slot.'); return; }
+
+  const proposedByAdvisor = Array.from(picked).map(ai => {
+    const a = availSlots[ai];
+    return { day_of_week: a.day_of_week, start: a.start_time.slice(0,5), end: a.end_time.slice(0,5) };
+  });
+
+  try {
+    await sbUpdate(TBL_MEETING, 'id', meetingId, {
+      status:          'scheduled',
+      proposed_slots:  JSON.stringify(proposedByAdvisor),
+      created_by:      'advisor',
+    });
+    if (m) { m.status = 'scheduled'; m.createdBy = 'advisor'; }
+    delete pendingPropMode[meetingId];
+    delete pendingPropose[meetingId];
+    showToast(`Proposal sent — ${picked.size} slot${picked.size>1?'s':''} proposed to student`);
+    renderCurrent();
+  } catch(e) {
+    showToast(`Failed: ${e.message}`);
   }
 }
   
