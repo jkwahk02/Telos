@@ -1223,7 +1223,7 @@ function renderOverview(){
               <div class="ov-adv-name">${esc(f.name_en)}</div>
               <div class="ov-adv-school">${esc(f.school||'')}</div>
             </div>
-            <button class="ov-adv-btn ${canRequest?'':'disabled'}"
+            <button class="btn-sm-teal"
               onclick="goToMeetings();openRequestForm('${f.email}')">
               Request meeting →
             </button>
