@@ -1175,6 +1175,7 @@ const pendingHtml=pending.length?`<div class="card accent-blue">
         <div class="meeting-stack">
           ${recent.map(m=>{
             const fac = allFaculty.find(f=>f.email===m.faculty_email);
+            const reflection = m.student_log?.reflection || '';
             return `
               <div class="hist-card" onclick="openMeetingHistoryFromOverview(${m.id})" style="cursor:pointer;">
                 <div class="hist-card-sum">
