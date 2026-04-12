@@ -261,6 +261,10 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .help-card-icon.green{background:var(--green-l);}
 .help-card-icon.amber{background:var(--amber-l);}
 .help-card-icon.gray{background:var(--gray-l);}
+.help-card-icon.purple{
+  background:rgba(124,58,237,0.12);
+  color:#7C3AED;
+}
 .help-card-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;}
 .help-card-body{font-size:13px;color:var(--text2);line-height:1.65;}
 .help-steps{display:flex;flex-direction:column;gap:0;}
@@ -2409,8 +2413,13 @@ function renderCodebook(){
           <div class="help-card-body">A list of all students assigned to you as Advisor 1 or Advisor 2. Click any row to expand the student's full session timeline. Use the "+ Log session" button to record a new advising session for that student.</div>
         </div>
         <div class="help-card">
-          <div class="help-card-icon" style="background:rgba(124,58,237,0.12); color:#7C3AED;">
-            📅
+          <div class="help-card-icon purple">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect x="3" y="5" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
+              <line x1="3" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="1.5"/>
+              <line x1="7" y1="3" x2="7" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="13" y1="3" x2="13" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
           </div>
           <div class="help-card-title">Meetings</div>
           <div class="help-card-body">
