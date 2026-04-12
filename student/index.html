@@ -1198,8 +1198,6 @@ const pendingHtml=pending.length?`<div class="card accent-blue">
   document.getElementById('page-overview').innerHTML=statHtml+nextHtml+pendingHtml+profHtml+histHtml;
 }
 
-let focusHistoryMeetingId = null;
-
 function openMeetingHistoryFromOverview(meetingId){
   focusHistoryMeetingId = meetingId;
   openHistoryMeetingId = meetingId; // 이미 사용 중인 변수
