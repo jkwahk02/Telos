@@ -909,7 +909,7 @@ async function loadData(){
 
     // 2. 병렬 로드
     const [meetingRows,histRows,facultyRows,studentLogRows] = await Promise.all([
-      sbGet(TBL_MEETING,`student_id=eq.${sid}&status=eq.scheduled&order=meeting_date.asc`),
+      sbGet(TBL_MEETING,`student_id=eq.${sid}&status=in.(scheduled,rescheduling)&order=meeting_date.asc`),
       sbGet(
         TBL_MEETING,
         `student_id=eq.${sid}&order=meeting_date.desc&select=id,meeting_date,faculty_email,meeting_format,meeting_type,status,student_agenda,student_log_id`
@@ -1007,13 +1007,14 @@ function renderCurrent(){
 // ── OVERVIEW ──
 function renderOverview(){
   const s=studentData;
-  const confirmed=scheduledMeetings.filter(m=>m.advisor_confirmed);
-  const pending=scheduledMeetings.filter(m=>!m.advisor_confirmed);
+  const confirmed     = scheduledMeetings.filter(m=>m.advisor_confirmed && m.status==='scheduled');
+  const pending       = scheduledMeetings.filter(m=>!m.advisor_confirmed && m.status==='scheduled');
+  const rescheduling  = scheduledMeetings.filter(m=>m.status==='rescheduling');
   const pct=calcProfilePct(s);
 
   // Stat cards
   const nextDateStr=confirmed.length?new Date(confirmed[0].meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
-  const pendingCount=pending.length;
+  const pendingCount=pending.length+rescheduling.length;
   const statHtml=`
     <div class="stat-row">
       <div class="stat-card"><div class="stat-val" style="color:var(--accent)">${sessionCount}</div><div class="stat-lbl">Meetings completed</div></div>
@@ -1138,7 +1139,7 @@ const pendingHtml=pending.length?`<div class="card accent-blue">
     </div>
   ` : '';
     
-  document.getElementById('page-overview').innerHTML=statHtml+nextHtml+pendingHtml+profHtml+histHtml;
+  document.getElementById('page-overview').innerHTML=statHtml+nextHtml+reschedulingHtml+pendingHtml+profHtml+histHtml;
 }
 
 function openMeetingHistoryFromOverview(meetingId){
@@ -1381,9 +1382,10 @@ async function saveStudentLog(meetingId){
 function renderMeetings(){
   const el=document.getElementById('page-meetings');
   const s=studentData;
-  const confirmed=scheduledMeetings.filter(m=>m.advisor_confirmed);
-  const pending=scheduledMeetings.filter(m=>!m.advisor_confirmed);
-
+  const confirmed     = scheduledMeetings.filter(m=>m.advisor_confirmed && m.status==='scheduled');
+  const pending       = scheduledMeetings.filter(m=>!m.advisor_confirmed && m.status==='scheduled');
+  const rescheduling  = scheduledMeetings.filter(m=>m.status==='rescheduling');
+    
   // Advisor cards
   const adv1=allFaculty.find(f=>f.email===s.advisor1_email);
   const adv2=allFaculty.find(f=>f.email===s.advisor2_email);
@@ -1464,6 +1466,55 @@ const upcomingHtml = confirmed.length ? `
 ` : '';
 
   // Pending
+
+const reschedulingHtml = rescheduling.length ? rescheduling.map(m=>{
+  const fac=allFaculty.find(f=>f.email===m.faculty_email);
+  return `<div class="card" style="margin-bottom:0;border-color:var(--amber-b);">
+    <div class="card-hd" style="background:var(--amber-l);">
+      <div>
+        <div class="card-title" style="color:#633806;">Reschedule needed — ${esc(fac?.name_en||m.faculty_email)}</div>
+        <div class="card-sub">Your advisor couldn't find a suitable time. Please propose new slots.</div>
+      </div>
+      <span class="bdg bdg-amber">Action needed</span>
+    </div>
+    <div class="card-body">
+      <button class="btn-sm-teal" onclick="openRescheduleRequest(${m.id})">Propose new time →</button>
+    </div>
+  </div>`;
+}).join('') : '';
+
+const reschedulingHtml2 = rescheduling.length ? `
+  <div class="meetings-section">
+    <div class="meetings-section-title" style="color:var(--amber);">Reschedule needed</div>
+    <div class="meeting-stack">
+      ${rescheduling.map(m=>{
+        const fac=allFaculty.find(f=>f.email===m.faculty_email);
+        return `<div class="card" style="margin-bottom:0;border-color:var(--amber-b);">
+          <div class="card-hd" style="background:var(--amber-l);">
+            <div>
+              <div class="card-title" style="color:#633806;">${esc(fac?.name_en||m.faculty_email)}</div>
+              <div class="card-sub">Advisor couldn't find a suitable time · ${esc(m.meeting_format||'Zoom')} · ${m.meeting_duration||60} min</div>
+            </div>
+            <span class="bdg bdg-amber">Action needed</span>
+          </div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+            ${m.student_agenda?`
+              <div style="background:var(--blue-l);border-left:3px solid var(--blue-m);border-radius:0 var(--r) var(--r) 0;padding:9px 12px;">
+                <div style="font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">My original agenda</div>
+                <div style="font-size:13px;color:#0C447C;line-height:1.55;">${esc(m.student_agenda)}</div>
+              </div>`:''}
+            <div style="font-size:13px;color:var(--text2);">Please propose new available times for this meeting.</div>
+            <div style="display:flex;gap:7px;">
+              <button class="btn-sm-teal" onclick="openRescheduleRequest(${m.id})">Propose new time →</button>
+              <button class="btn-sm-out" style="color:var(--red);border-color:var(--red-l);" onclick="withdrawRequest(${m.id})">Withdraw</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+` : '';
+
 const pendingHtml = pending.length ? `
   <div class="meetings-section">
     <div class="meetings-section-title">
@@ -1549,8 +1600,8 @@ const pendingHtml = pending.length ? `
   const formHtml=requestFormOpen?buildRequestForm():'';
 
   // History
-const historyMeetings = allMeetings.filter(m=>m.status!=='scheduled');
-
+const historyMeetings = allMeetings.filter(m=>m.status!=='scheduled'&&m.status!=='rescheduling');
+  
 const histHtml = historyMeetings.length ? `
   <div class="meetings-section">
     <div class="meetings-section-title">Meeting history</div>
@@ -1712,12 +1763,28 @@ el.innerHTML=`
   ${advisorCardsHtml}
   ${formHtml}
   ${upcomingHtml}
+  ${reschedulingHtml2}
   ${pendingHtml}
-  ${!confirmed.length && !pending.length ? emptyHtml : ''}
+  ${!confirmed.length && !pending.length && !rescheduling.length ? emptyHtml : ''}
   ${histHtml}
 `;
 }
 
+function openRescheduleRequest(meetingId) {
+  const m = scheduledMeetings.find(x=>x.id===meetingId);
+  if (!m) return;
+  editingRequestId      = meetingId;
+  requestFormOpen       = true;
+  selectedFacultyEmail  = m.faculty_email;
+  meetingDuration       = m.meeting_duration || 60;
+  selectedMeetingSlots  = [];
+  renderMeetings();
+  setTimeout(()=>{
+    const form=document.querySelector('.card.accent-teal');
+    if(form) form.scrollIntoView({behavior:'smooth',block:'nearest'});
+  },100);
+}
+  
 function buildOtherCard(){
   const s=studentData;
   const excluded=[s.advisor1_email,s.advisor2_email,allFaculty.find(f=>f.is_chair)?.email].filter(Boolean);
@@ -2156,21 +2223,39 @@ async function saveEditRequest(meetingId) {
   if (!m) return;
   const agenda = document.getElementById('req-agenda')?.value.trim() || '';
   if (!selectedMeetingSlots.length) { showToast('Please select at least one slot.'); return; }
+
+  const isRescheduling = m.status === 'rescheduling';
+
+  const patch = {
+    student_agenda:   agenda,
+    meeting_duration: meetingDuration,
+    proposed_slots:   JSON.stringify(selectedMeetingSlots),
+    ...(isRescheduling ? {
+      status:            'scheduled',
+      created_by:        'student',
+      advisor_confirmed: false,
+      meeting_date:      null,
+    } : {}),
+  };
+
   try {
-    await sbPatch(TBL_MEETING, 'id', meetingId, {
-      student_agenda:   agenda,
-      meeting_duration: meetingDuration,
-      proposed_slots:   JSON.stringify(selectedMeetingSlots),
-    });
+    await sbPatch(TBL_MEETING, 'id', meetingId, patch);
     m.student_agenda     = agenda;
     m.meeting_duration   = meetingDuration;
     m.proposed_slots     = selectedMeetingSlots;
+    if (isRescheduling) {
+      m.status            = 'scheduled';
+      m.created_by        = 'student';
+      m.advisor_confirmed = false;
+      m.meeting_date      = null;
+    }
     editingRequestId     = null;
     requestFormOpen      = false;
     selectedFacultyEmail = null;
     selectedMeetingSlots = [];
     renderMeetings();
-    showToast('Request updated');
+    renderOverview();
+    showToast(isRescheduling ? 'New time proposed — waiting for advisor confirmation' : 'Request updated');
   } catch(e) {
     showToast(`Update failed: ${e.message}`);
   }
