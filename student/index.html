@@ -1379,7 +1379,7 @@ function renderMeetings(){
 const upcomingHtml = confirmed.length ? `
   <div class="meetings-section">
     <div class="meetings-section-title">
-      Upcoming meeting${confirmed.length > 1 ? 's' : ''}
+      Upcoming meetings${confirmed.length > 1 ? 's' : ''}
     </div>
     <div class="meeting-stack">
       ${confirmed.map(m=>{
@@ -1420,7 +1420,7 @@ const upcomingHtml = confirmed.length ? `
 const pendingHtml = pending.length ? `
   <div class="meetings-section">
     <div class="meetings-section-title">
-      Pending request${pending.length > 1 ? 's' : ''}
+      Pending meeting requests${pending.length > 1 ? 's' : ''}
     </div>
     <div class="meeting-stack">
       ${pending.map(m=>{
