@@ -2139,7 +2139,7 @@ function buildRequestForm(){
         ${selSummary}
         <div>
           <div class="fta-lbl">Step 3 — Agenda *</div>
-          <textarea class="fta" id="req-agenda" rows="3" placeholder="Topics, questions, or decisions you need help with…"></textarea>
+          <textarea class="fta" id="req-agenda" rows="3" placeholder="Topics, questions, or decisions you need help with…">${editingRequestId ? esc(scheduledMeetings.find(x=>x.id===editingRequestId)?.student_agenda||'') : ''}</textarea>
         </div>
         <div>
           <div class="fta-lbl">Meeting type</div>
@@ -2196,7 +2196,7 @@ function buildRequestForm(){
       ${otherFacultyHtml?`<div><div class="fta-lbl" style="margin-bottom:8px;">Other professor</div>${otherFacultyHtml}</div>`:''}
       <div>
         <div class="fta-lbl">Agenda *</div>
-        <textarea class="fta" id="req-agenda" rows="3" placeholder="Topics, questions, or decisions you need help with…"></textarea>
+        <textarea class="fta" id="req-agenda" rows="3" placeholder="Topics, questions, or decisions you need help with…">${editingRequestId ? esc(scheduledMeetings.find(x=>x.id===editingRequestId)?.student_agenda||'') : ''}</textarea>
       </div>
       <div>
         <div class="fta-lbl">Meeting type</div>
