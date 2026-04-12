@@ -775,6 +775,7 @@ const TBL_LOG       = 'advising_log';
 const TBL_MEETING   = 'student_meeting';
 const TBL_AVAIL     = 'faculty_availability';
 const TBL_FACULTY   = 'faculty_profiles';
+const TBL_STUDENT_LOG = 'student_log';
 
 const PROFILE_FIELDS = [
   { key:'vision',   tags:'vision_tags',                text:'vision_text',               label:'My Mission',               theory:'Global Mission Alignment',     hint:'What kind of life, impact, or contribution do you imagine for yourself? What is your purpose?',
@@ -975,15 +976,25 @@ async function loadData(){
     const sid=studentData.id;
 
     // 2. 병렬 로드
-    const [meetingRows,histRows,facultyRows] = await Promise.all([
+    const [meetingRows,histRows,facultyRows,studentLogRows] = await Promise.all([
       sbGet(TBL_MEETING,`student_id=eq.${sid}&status=eq.scheduled&order=meeting_date.asc`),
       sbGet(
         TBL_MEETING,
         `student_id=eq.${sid}&order=meeting_date.desc&select=id,meeting_date,faculty_email,meeting_format,meeting_type,status,student_agenda,student_log_id`
       ),
       sbGet(TBL_FACULTY, `select=id,name_en,email,school,is_chair`),
+      sbGet(TBL_STUDENT_LOG, `student_id=eq.${sid}&select=student_log_id,meeting_id,reflection,key_takeaway,next_step`)
     ]);
+
+    const studentLogMap = {};
+    studentLogRows.forEach(log => {
+      studentLogMap[log.meeting_id] = log;
+    });
     
+    histRows.forEach(m => {
+      m.student_log = studentLogMap[m.id] || null;
+    });
+        
     scheduledMeetings = meetingRows;
     allMeetings       = histRows;
     sessionCount      = histRows.filter(m => m.status === 'completed').length;
@@ -1180,7 +1191,7 @@ const pendingHtml=pending.length?`<div class="card accent-blue">
                       ${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long', year:'numeric', month:'long', day:'numeric'})}
                     </div>
                     <div class="hist-main-preview">
-                      ${esc(m.student_agenda || 'Open Meetings to view details')}
+                      ${esc(reflection || m.student_agenda || 'No details available')}
                     </div>
                   </div>
   
@@ -1553,9 +1564,14 @@ const histHtml = historyMeetings.length ? `
       ${historyMeetings.map(m=>{
         const fac = allFaculty.find(f=>f.email===m.faculty_email);
         const isOpen = openHistoryMeetingId === m.id;
-        const discussion = m.discussion_summary || m.advisor_summary || '';
-        const studentAction = m.student_action_items || '';
-
+      
+        const slog = m.student_log || null;
+        const reflection = slog?.reflection || '';
+        const takeaway = slog?.key_takeaway || '';
+        const nextStep = slog?.next_step || '';
+        const hasStudentLog = !!slog;
+        const canWriteReflection = m.status === 'completed';
+      
         return `
           <div class="hist-card ${isOpen ? 'active' : ''}" onclick="toggleHistoryMeeting(${m.id})">
             <div class="hist-card-sum">
@@ -1572,7 +1588,7 @@ const histHtml = historyMeetings.length ? `
                   ${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long', year:'numeric', month:'long', day:'numeric'})}
                 </div>
                 <div class="hist-main-preview">
-                  ${esc(m.student_agenda || 'No additional details available')}
+                  ${esc(reflection || m.student_agenda || 'No additional details available')}
                 </div>
               </div>
 
@@ -1588,32 +1604,76 @@ const histHtml = historyMeetings.length ? `
                       ${m.student_agenda ? esc(m.student_agenda) : '<span class="text-muted">No agenda recorded</span>'}
                     </div>
                   </div>
-                
+            
                   <div class="hist-pane amber">
                     <div class="hist-pane-hd">My reflection</div>
                     <div class="hist-pane-bd">
-                      <span class="text-muted">No personal note yet</span>
+                      ${canWriteReflection ? `
+                        <textarea
+                          class="fta"
+                          id="reflection-${m.id}"
+                          rows="4"
+                          placeholder="What did you take away from this meeting?"
+                          oninput="markStudentLogDirty(${m.id})"
+                        >${esc(reflection)}</textarea>
+                      ` : `
+                        <span class="text-muted">Reflection is available only for completed meetings</span>
+                      `}
                     </div>
                   </div>
                 </div>
-                
+            
                 <div class="hist-meta-row">
                   <div class="hist-meta-box">
-                    <div class="hist-meta-lbl">My next step</div>
+                    <div class="hist-meta-lbl">Key takeaway</div>
                     <div class="hist-meta-val">
-                      <span class="text-muted">No next step recorded</span>
+                      ${canWriteReflection ? `
+                        <textarea
+                          class="fta"
+                          id="takeaway-${m.id}"
+                          rows="3"
+                          placeholder="What was the most important takeaway?"
+                          oninput="markStudentLogDirty(${m.id})"
+                        >${esc(takeaway)}</textarea>
+                      ` : `
+                        <span class="text-muted">Not available</span>
+                      `}
                     </div>
                   </div>
-                
+            
                   <div class="hist-meta-box">
-                    <div class="hist-meta-lbl">Personal note</div>
+                    <div class="hist-meta-lbl">Next step</div>
                     <div class="hist-meta-val">
-                      <span class="text-muted">You can add a personal note later</span>
+                      ${canWriteReflection ? `
+                        <textarea
+                          class="fta"
+                          id="nextstep-${m.id}"
+                          rows="3"
+                          placeholder="What will you do next?"
+                          oninput="markStudentLogDirty(${m.id})"
+                        >${esc(nextStep)}</textarea>
+                      ` : `
+                        <span class="text-muted">Not available</span>
+                      `}
                     </div>
                   </div>
                 </div>
+            
+                ${canWriteReflection ? `
+                  <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px;">
+                    <span class="save-status" id="studentlog-status-${m.id}"></span>
+                    <button
+                      class="btn-sm-teal"
+                      id="studentlog-btn-${m.id}"
+                      onclick="saveStudentLog(${m.id})"
+                    >
+                      ${hasStudentLog ? 'Save changes' : 'Save reflection'}
+                    </button>
+                  </div>
+                ` : ''}
               </div>
             </div>
+
           </div>
         `;
       }).join('')}
