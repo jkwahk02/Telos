@@ -282,6 +282,62 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .help-ref-row:last-child{border-bottom:none;}
 .help-ref-key{font-weight:500;min-width:110px;flex-shrink:0;color:var(--text);}
 .help-ref-val{color:var(--text2);line-height:1.5;}
+.help-hero-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.help-hero-copy{
+  flex:1;
+  min-width:0;
+}
+
+.help-hero-btn{
+  border:none;
+  background:transparent;
+  color:var(--blue);
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  padding:2px 0;
+  flex-shrink:0;
+}
+
+.help-hero-btn:hover{
+  color:#0C447C;
+  text-decoration:underline;
+}
+
+.help-hero-more{
+  overflow:hidden;
+  max-height:0;
+  opacity:0;
+  transition:max-height .32s ease, opacity .24s ease, margin-top .24s ease;
+}
+
+.help-hero-more.open{
+  max-height:520px;
+  opacity:1;
+  margin-top:14px;
+}
+
+.help-hero-more-inner{
+  padding-top:2px;
+  border-top:1px solid rgba(24,95,165,0.15);
+}
+
+.help-hero-p{
+  font-size:14px;
+  color:var(--text2);
+  line-height:1.75;
+  margin-bottom:10px;
+}
+
+.help-hero-p:last-child{
+  margin-bottom:0;
+}
 
 /* CHAIR DECISION BOARD */
 .db-divider{display:flex;align-items:center;gap:12px;margin:28px 0 20px;}
@@ -531,6 +587,7 @@ let dataLoaded = false;
 let pendingSelSlot   = {};   // { meetingId: slotIndex }
 let pendingPropose   = {};   // { meetingId: Set<availIndex> }
 let pendingPropMode  = {};   // { meetingId: boolean }
+let helpHeroOpen = false;
   
 // ── AUTH STATE ──
 let supabaseUser = null;
@@ -545,6 +602,11 @@ let logFilter = 'all', logSearch = '', openLogId = null, editingLogId = null;
 function bdg(t,c){return `<span class="bdg bdg-${c}">${t}</span>`;}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
+function toggleHelpHero() {
+  helpHeroOpen = !helpHeroOpen;
+  renderCodebook();
+}
+  
 function shortMajor(m){
   const map={'Data Science and AI':'DSAI','Humanities and Social Sciences':'HSS',
     'Natural Sciences':'NS','Business Innovation':'BI',
@@ -2298,8 +2360,34 @@ function renderLogList(){
 function renderCodebook(){
   document.getElementById('page-codebook').innerHTML=`
     <div class="help-hero">
-      <div class="help-hero-title">Help & Guide — Telos</div>
-      <div class="help-hero-sub">Telos is the advising portal for Taejae University faculty. Everything you enter here is saved to the shared database and accessible to the Program Chair.</div>
+      <div class="help-hero-top">
+        <div class="help-hero-copy">
+          <div class="help-hero-title">Help & Guide: Telos</div>
+          <div class="help-hero-sub">
+            Telos is the advising portal for Taejae University faculty. Everything you enter here is saved to the shared database and accessible to the Program Chair.
+          </div>
+        </div>
+        <button class="help-hero-btn" onclick="toggleHelpHero()">
+          ${helpHeroOpen ? 'Read less' : 'Read more'}
+        </button>
+      </div>
+    
+      <div class="help-hero-more ${helpHeroOpen ? 'open' : ''}">
+        <div class="help-hero-more-inner">
+          <p class="help-hero-p">
+            Telos is rooted in a deeper educational philosophy. In Taejae University’s Data & AI Program, student development is understood through a three-gear model for future readiness.
+          </p>
+          <p class="help-hero-p">
+            The first gear is Global Mission Alignment. The second is an AI-native, capability-based curriculum. The third is the Project Continuum, where students produce evidence of learning through projects and portfolio development.
+          </p>
+          <p class="help-hero-p">
+            Telos plays the foundational role in this system. It supports the Global Mission Alignment dimension, which serves as the starting point of the entire student advising journey. Before students decide what to learn or what to build, they are encouraged to clarify why they are learning and what kind of future they hope to create.
+          </p>
+          <p class="help-hero-p">
+            The name Telos comes from the ancient Greek word telos, meaning purpose, end, or ultimate goal. In this context, Telos represents the belief that education should begin with direction and meaning. It is not simply a scheduling or record-keeping tool. It is a platform that helps professors guide students from mission to learning, and from learning to evidence.
+          </p>
+        </div>
+      </div>
     </div>
 
     <div class="help-section">
@@ -2320,6 +2408,15 @@ function renderCodebook(){
           <div class="help-card-body">A list of all students assigned to you as Advisor 1 or Advisor 2. Click any row to expand the student's full session timeline. Use the "+ Log session" button to record a new advising session for that student.</div>
         </div>
         <div class="help-card">
+          <div class="help-card-icon" style="background:rgba(124,58,237,0.12); color:#7C3AED;">
+            📅
+          </div>
+          <div class="help-card-title">Meetings</div>
+          <div class="help-card-desc">
+            Manage student meeting requests based on your availability. Review incoming requests, confirm a time slot, and keep track of scheduled meetings.
+          </div>
+        </div>
+        <div class="help-card">
           <div class="help-card-icon amber">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 6h12M4 10h8M4 14h5" stroke="#854F0B" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
@@ -2337,6 +2434,56 @@ function renderCodebook(){
     </div>
 
     <div class="help-section">
+      <div class="help-section-title">How meetings work</div>
+      
+      <div class="help-steps">
+      
+        <div class="help-step">
+          <div class="help-step-num">1</div>
+          <div>
+            <div class="help-step-title">Set your availability</div>
+            <div class="help-step-desc">
+              Go to Settings and define your available time slots for meetings. Students can only request meetings within these times.
+            </div>
+          </div>
+        </div>
+      
+        <div class="help-step">
+          <div class="help-step-num">2</div>
+          <div>
+            <div class="help-step-title">Student submits a request</div>
+            <div class="help-step-desc">
+              The student selects an available time slot and submits a meeting request.
+            </div>
+          </div>
+        </div>
+      
+        <div class="help-step">
+          <div class="help-step-num">3</div>
+          <div>
+            <div class="help-step-title">Review requests in Meetings</div>
+            <div class="help-step-desc">
+              Open the Meetings tab to see incoming requests with selected time slots and student details.
+            </div>
+          </div>
+        </div>
+      
+        <div class="help-step">
+          <div class="help-step-num">4</div>
+          <div>
+            <div class="help-step-title">Confirm the meeting</div>
+            <div class="help-step-desc">
+              Click confirm to approve the request. Once confirmed, the meeting is scheduled and shared with the student.
+            </div>
+          </div>
+        </div>
+      
+      </div>
+      
+      <div class="help-note">
+        Responding to meeting requests promptly helps maintain a smooth advising workflow and avoids scheduling conflicts.
+      </div>
+    
       <div class="help-section-title">How to log an advising session</div>
       <div class="tbl-wrap" style="border-radius:var(--r-lg);overflow:hidden;">
         <div class="help-steps">
