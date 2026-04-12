@@ -1806,6 +1806,7 @@ function buildNsForm(st){
 
   // 날짜/타입/포맷: meeting이 있으면 자동값, 없으면 오늘/기본값
   const autoDate   = hasLinked ? linkedMeeting.meetingDate   : new Date().toISOString().split('T')[0];
+  const autoTime   = hasLinked ? linkedMeeting.confirmedStart : '';
   const autoType   = hasLinked ? linkedMeeting.meetingType   : 'Regular';
   const autoFormat = hasLinked ? linkedMeeting.meetingFormat : 'Zoom';
   const autoAgenda = hasLinked ? linkedMeeting.studentAgenda : '';
@@ -1849,36 +1850,42 @@ function buildNsForm(st){
       </div>
 
       <div class="rg3">
-        <!-- ── Date: meeting 있으면 자동 + 읽기전용, 없으면 수동 입력 -->
         <div class="fg"><div class="fl">Date <span class="req">*</span>
-          ${hasLinked?`<span style="font-size:10px;color:var(--accent);margin-left:4px;">
-            Auto-filled</span>`:''}
+          ${hasLinked?`<span style="font-size:10px;color:var(--accent);margin-left:4px;">Auto-filled</span>`:''}
         </div>
         <input class="fi ${hasLinked?'af':''}" type="date" id="ns-date"
           value="${autoDate}" ${hasLinked?'readonly':''}>
         </div>
-
-        <!-- ── Type: meeting 있으면 자동 + 읽기전용 -->
-        <div class="fg"><div class="fl">Type <span class="req">*</span></div>
-        ${hasLinked
-          ? `<div class="fi af">${esc(autoType)}</div>
-             <input type="hidden" id="ns-type" value="${esc(autoType)}">`
-          : `<select class="fsel" id="ns-type">
-               <option>Regular</option><option>Ad-hoc</option><option>Email</option>
-             </select>`}
+      
+        <div class="fg"><div class="fl">Time
+          ${hasLinked && autoTime ? `<span style="font-size:10px;color:var(--accent);margin-left:4px;">Auto-filled</span>` : ''}
         </div>
-
-        <!-- ── Format: meeting 있으면 자동 + 읽기전용 -->
-        <div class="fg"><div class="fl">Format <span class="req">*</span></div>
-        ${hasLinked
-          ? `<div class="fi af">${esc(autoFormat)}</div>
-             <input type="hidden" id="ns-format" value="${esc(autoFormat)}">`
-          : `<select class="fsel" id="ns-format">
-               <option>Zoom</option><option>In-person</option>
-               <option>Phone</option><option>Email</option>
-             </select>`}
+        <input class="fi ${hasLinked && autoTime ? 'af' : ''}" type="time" id="ns-time"
+          value="${autoTime}" ${hasLinked && autoTime ? 'readonly' : ''} placeholder="HH:MM">
         </div>
-      </div>
+  // Type + Format을 별도 rg2로 분리
+  </div>
+
+  <div class="rg2">
+    <div class="fg"><div class="fl">Type <span class="req">*</span></div>
+    ${hasLinked
+      ? `<div class="fi af">${esc(autoType)}</div>
+         <input type="hidden" id="ns-type" value="${esc(autoType)}">`
+      : `<select class="fsel" id="ns-type">
+           <option>Regular</option><option>Ad-hoc</option><option>Email</option>
+         </select>`}
+    </div>
+  
+    <div class="fg"><div class="fl">Format <span class="req">*</span></div>
+    ${hasLinked
+      ? `<div class="fi af">${esc(autoFormat)}</div>
+         <input type="hidden" id="ns-format" value="${esc(autoFormat)}">`
+      : `<select class="fsel" id="ns-format">
+           <option>Zoom</option><option>In-person</option>
+           <option>Phone</option><option>Email</option>
+         </select>`}
+    </div>
+  </div>
 
       <!-- ── 신규: student agenda 읽기전용 표시 -->
       ${agendaBlock}
