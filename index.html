@@ -1371,8 +1371,16 @@ function renderOverview() {
   const mine = myStudents();
   const mySess = sessions.filter(s=>s.faculty===FACULTY_EMAIL);
   const zeroSess = mine.filter(s=>s.sessions===0).length;
-  const noNext = mine.filter(s=>!s.nextMeeting).length;
-  const noNextList = mine.filter(s => !s.nextMeeting);
+  const noNext = mine.filter(s => !s.nextMeeting && !confirmedMeetingIds.has(s.id)).length;
+  const confirmedMeetingIds = new Set(
+    meetings.filter(m => m.advisorConfirmed && m.status === 'scheduled')
+            .map(m => m.studentId)
+  );
+  const needsAttention = mine.filter(s =>
+    s.sessions === 0 ||
+    (!s.nextMeeting && !confirmedMeetingIds.has(s.id)) ||
+    mySess.filter(x => x.studentId === s.id && x.followUp === 'Y').length > 0
+  );
   const followUp = mySess.filter(s=>s.followUp==='Y').length;
   const pendingRequests = meetings.filter(m =>
     m.facultyEmail === FACULTY_EMAIL &&
@@ -1431,7 +1439,7 @@ function renderOverview() {
 
     <div class="overview-cards">
       <div class="ov-card">
-        <div class="ov-card-hd">No next meeting set <span class="text-muted" style="font-weight:400;font-size:17px;">${noNext} students</span></div>
+        <div class="ov-card-hd">Needs attention <span class="text-muted" style="font-weight:400;font-size:17px;">${noNext} students</span></div>
         ${noNextList.map(s=>`
         <div class="ov-item">
           <div class="ov-dot dot-amber"></div>
