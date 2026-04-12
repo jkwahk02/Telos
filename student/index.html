@@ -1074,8 +1074,8 @@ function renderOverview(){
   const statHtml=`
     <div class="stat-row">
       <div class="stat-card"><div class="stat-val" style="color:var(--accent)">${sessionCount}</div><div class="stat-lbl">Meetings completed</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:${confirmed.length?'var(--text)':'var(--text3)'};font-size:${confirmed.length?'18px':'26px'}">${nextDateStr}</div><div class="stat-lbl">Next meeting</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:${pendingCount>0?'var(--amber)':'var(--text3)'}">${pendingCount}</div><div class="stat-lbl">Pending requests</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:${confirmed.length?'var(--text)':'var(--text3)'}">${nextDateStr}</div><div class="stat-lbl">Next meeting</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:${pendingCount>0?'var(--amber)':'var(--text3)'}">${pendingCount}</div><div class="stat-lbl">Pending requests</div></div>
     </div>`;
 
   // Next meeting card
@@ -1159,7 +1159,6 @@ const pendingHtml=pending.length?`<div class="card accent-blue">
     <div class="card">
       <div class="card-hd">
         <div class="card-title">Recent meetings</div>
-        <button class="btn-sm-out" onclick="goToMeetings()">View all</button>
       </div>
       <div class="card-body" style="padding:10px 16px;">
         <div class="meeting-stack">
@@ -1167,7 +1166,7 @@ const pendingHtml=pending.length?`<div class="card accent-blue">
             const fac = allFaculty.find(f=>f.email===m.faculty_email);
             return `
               <div class="hist-card" onclick="openMeetingHistoryFromOverview(${m.id})" style="cursor:pointer;">
-              <div class="hist-card-sum">
+                <div class="hist-card-sum">
                   <div class="hist-date-badge">
                     <div class="hist-date-mon">${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short'})}</div>
                     <div class="hist-date-day">${new Date(m.meeting_date+'T00:00:00').getDate()}</div>
@@ -1191,6 +1190,9 @@ const pendingHtml=pending.length?`<div class="card accent-blue">
             `;
           }).join('')}
         </div>
+      </div>
+      <div class="card-foot" style="padding:9px 14px;background:var(--surface2);border-top:1px solid var(--border);display:flex;justify-content:flex-end;">
+        <button class="btn-sm-teal" onclick="goToMeetings()">View details →</button>
       </div>
     </div>
   ` : '';
