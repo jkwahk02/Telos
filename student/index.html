@@ -1650,9 +1650,9 @@ const histHtml = historyMeetings.length ? `
         const hasStudentLog = !!slog;
         const canWriteReflection = m.status === 'completed';
       
-return `
-          <div class="hist-card ${isOpen ? 'active' : ''}" onclick="toggleHistoryMeeting(${m.id})">
-            <div class="hist-card-sum">
+        return `
+          <div class="hist-card ${isOpen?'active':''}" id="hist-card-${m.id}">
+            <div class="hist-card-sum" onclick="toggleHistoryMeeting(${m.id})" style="cursor:pointer;">
               <div class="hist-date-badge">
                 <div class="hist-date-mon">${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short'})}</div>
                 <div class="hist-date-day">${new Date(m.meeting_date+'T00:00:00').getDate()}</div>
