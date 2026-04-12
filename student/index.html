@@ -1066,7 +1066,9 @@ function renderOverview(){
 
   // ── Getting started ──
   const profileDone  = pct === 100;
-  const meetingDone  = sessionCount > 0;
+//  const meetingDone  = sessionCount > 0;
+  const meetingDone = scheduledMeetings.some(m => m.created_by === 'student')
+                 || allMeetings.some(m => m.created_by === 'student');
   const reflDone     = allMeetings.filter(m=>m.status==='completed'&&m.student_log?.reflection).length > 0;
   const allStepsDone = profileDone && meetingDone && reflDone;
   const doneCount    = [profileDone, meetingDone, reflDone].filter(Boolean).length;
