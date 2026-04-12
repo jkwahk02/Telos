@@ -972,6 +972,7 @@ function mapSession(r) {
     followUp:        r.follow_up_required || 'N',
     majorChangeNote: r.major_change_note   || '',
     mainTopic:       r.main_topic          || '',
+    meetingTime:     r.meeting_time        || '',
   };
 }
 
@@ -2093,11 +2094,12 @@ function buildEditForm(s) {
       <button class="ns-cancel" style="color:var(--text2);" onclick="event.stopPropagation();cancelEdit()">Cancel ×</button>
     </div>
     <div class="ns-body">
-      <div class="rg3">
-        <div class="fg"><div class="fl">Date <span class="req">*</span></div><input class="fi" type="date" id="ed-date" value="${esc(s.date)}"></div>
-        <div class="fg"><div class="fl">Type <span class="req">*</span></div><select class="fsel" id="ed-type">${typeOpts}</select></div>
-        <div class="fg"><div class="fl">Format <span class="req">*</span></div><select class="fsel" id="ed-format">${fmtOpts}</select></div>
-      </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;">
+      <div class="fg"><div class="fl">Date <span class="req">*</span></div><input class="fi" type="date" id="ed-date" value="${esc(s.date)}"></div>
+      <div class="fg"><div class="fl">Time</div><input class="fi" type="time" id="ed-time" value="${esc(s.meetingTime)}"></div>
+      <div class="fg"><div class="fl">Type <span class="req">*</span></div><select class="fsel" id="ed-type">${typeOpts}</select></div>
+      <div class="fg"><div class="fl">Format <span class="req">*</span></div><select class="fsel" id="ed-format">${fmtOpts}</select></div>
+    </div>
       <div class="prow">
         <div class="pbox disc">
           <div class="plbl disc">Discussion summary <span class="req">*</span></div>
@@ -2140,6 +2142,7 @@ async function saveEdit(logId) {
 
   const updated = {
     date:            document.getElementById('ed-date')?.value || '',
+    meetingTime:  document.getElementById('ed-time')?.value || '',
     type:            document.getElementById('ed-type')?.value || 'Regular',
     format:          document.getElementById('ed-format')?.value || 'Zoom',
     disc,
@@ -2167,6 +2170,7 @@ async function saveEdit(logId) {
     try {
       await sbUpdate(TBL_LOG, 'log_id', logId, {
         meeting_date:         updated.date,
+        meeting_time: updated.meetingTime || null,
         meeting_type:         updated.type,
         meeting_format:       updated.format,
         discussion_summary:   updated.disc,
