@@ -802,6 +802,7 @@ let sessionCount  = 0;
 let dataLoaded    = false;
 let currentPage   = 'overview';
 let openHistoryMeetingId = null;
+let focusHistoryMeetingId = null;
 
 // Meetings 상태
 let selectedFacultyEmail  = null;
@@ -974,21 +975,20 @@ async function loadData(){
     const sid=studentData.id;
 
     // 2. 병렬 로드
-    const [meetingRows,histRows,logRows,facultyRows] = await Promise.all([
+    const [meetingRows,histRows,facultyRows] = await Promise.all([
       sbGet(TBL_MEETING,`student_id=eq.${sid}&status=eq.scheduled&order=meeting_date.asc`),
       sbGet(
         TBL_MEETING,
-        `student_id=eq.${sid}&order=meeting_date.desc&select=id,meeting_date,faculty_email,meeting_format,meeting_type,status,student_agenda,student_log_id,log_id`
+        `student_id=eq.${sid}&order=meeting_date.desc&select=id,meeting_date,faculty_email,meeting_format,meeting_type,status,student_agenda,student_log_id`
       ),
-      sbGet(TBL_LOG, `student_id=eq.${sid}&select=log_id`),
       sbGet(TBL_FACULTY, `select=id,name_en,email,school,is_chair`),
     ]);
-
+    
     scheduledMeetings = meetingRows;
     allMeetings       = histRows;
-    sessionCount      = logRows.length;
+    sessionCount      = histRows.filter(m => m.status === 'completed').length;
     allFaculty        = facultyRows;
-
+    
     // 3. Availability 로드 (어드바이저 + chair 대상)
     const targetEmails=[studentData.advisor1_email,studentData.advisor2_email,
       facultyRows.find(f=>f.is_chair)?.email].filter(Boolean);
@@ -1027,7 +1027,7 @@ function loadFallback(){
   studentData=FALLBACK_STUDENT;
   scheduledMeetings=FALLBACK_SCHEDULED;
   allMeetings=FALLBACK_ALL_MEETINGS;
-  sessionCount=2;
+  sessionCount = FALLBACK_ALL_MEETINGS.filter(m => m.status === 'completed').length;
   allFaculty=FALLBACK_FACULTY;
   availMap=FALLBACK_AVAIL;
   const name=studentData.name_en||'Student';
@@ -1073,7 +1073,7 @@ function renderOverview(){
   const pendingCount=pending.length;
   const statHtml=`
     <div class="stat-row">
-      <div class="stat-card"><div class="stat-val" style="color:var(--accent)">${sessionCount}</div><div class="stat-lbl">Sessions</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--accent)">${sessionCount}</div><div class="stat-lbl">Meetings completed</div></div>
       <div class="stat-card"><div class="stat-val" style="color:${confirmed.length?'var(--text)':'var(--text3)'};font-size:${confirmed.length?'18px':'26px'}">${nextDateStr}</div><div class="stat-lbl">Next meeting</div></div>
       <div class="stat-card"><div class="stat-val" style="color:${pendingCount>0?'var(--amber)':'var(--text3)'}">${pendingCount}</div><div class="stat-lbl">Pending requests</div></div>
     </div>`;
@@ -1153,25 +1153,67 @@ const pendingHtml=pending.length?`<div class="card accent-blue">
   </div>`;
 
   // Recent history
-  const recent=allMeetings.filter(m=>m.status==='completed').slice(0,3);
-  const histHtml=recent.length?`<div class="card">
-    <div class="card-hd"><div class="card-title">Recent meetings</div></div>
-    <div class="card-body" style="padding:4px 16px;">
-      ${recent.map(m=>{
-        const fac=allFaculty.find(f=>f.email===m.faculty_email);
-        return `<div class="hist-row">
-          <div class="hist-date">${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
-          <div class="hist-who">${esc(fac?.name_en||m.faculty_email)}</div>
-          <span class="hist-fmt">${esc(m.meeting_format||'')}</span>
-          <span class="bdg bdg-green">Completed</span>
-        </div>`;
-      }).join('')}
+  const recent = allMeetings.filter(m => m.status === 'completed').slice(0, 3);
+  
+  const histHtml = recent.length ? `
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-title">Recent meetings</div>
+        <button class="btn-sm-out" onclick="goToMeetings()">View all</button>
+      </div>
+      <div class="card-body" style="padding:10px 16px;">
+        <div class="meeting-stack">
+          ${recent.map(m=>{
+            const fac = allFaculty.find(f=>f.email===m.faculty_email);
+            return `
+              <div class="hist-card" onclick="openMeetingHistoryFromOverview(${m.id})" style="cursor:pointer;">
+              <div class="hist-card-sum">
+                  <div class="hist-date-badge">
+                    <div class="hist-date-mon">${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short'})}</div>
+                    <div class="hist-date-day">${new Date(m.meeting_date+'T00:00:00').getDate()}</div>
+                  </div>
+  
+                  <div class="hist-main">
+                    <div class="hist-main-title">
+                      ${esc(fac?.name_en||m.faculty_email)} · ${esc(m.meeting_format||'Zoom')} · Completed
+                    </div>
+                    <div class="hist-main-sub">
+                      ${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long', year:'numeric', month:'long', day:'numeric'})}
+                    </div>
+                    <div class="hist-main-preview">
+                      ${esc(m.student_agenda || 'Open Meetings to view details')}
+                    </div>
+                  </div>
+  
+                  <div class="hist-chevron">→</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
     </div>
-  </div>`:'' ;
-
+  ` : '';
+    
   document.getElementById('page-overview').innerHTML=statHtml+nextHtml+pendingHtml+profHtml+histHtml;
 }
 
+let focusHistoryMeetingId = null;
+
+function openMeetingHistoryFromOverview(meetingId){
+  focusHistoryMeetingId = meetingId;
+  openHistoryMeetingId = meetingId; // 이미 사용 중인 변수
+
+  goToMeetings();
+
+  setTimeout(()=>{
+    const el = document.getElementById(`hist-detail-${meetingId}`);
+    if(el){
+      el.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }
+  }, 120);
+}
+  
 // ── MY PROFILE ──
 function calcProfilePct(s){
   const filled=PROFILE_FIELDS.filter(f=>isFilled(s,f)).length;
@@ -1512,7 +1554,6 @@ const histHtml = historyMeetings.length ? `
         const fac = allFaculty.find(f=>f.email===m.faculty_email);
         const isOpen = openHistoryMeetingId === m.id;
         const discussion = m.discussion_summary || m.advisor_summary || '';
-        const advice = m.advisor_advice || '';
         const studentAction = m.student_action_items || '';
 
         return `
@@ -1531,7 +1572,7 @@ const histHtml = historyMeetings.length ? `
                   ${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long', year:'numeric', month:'long', day:'numeric'})}
                 </div>
                 <div class="hist-main-preview">
-                  ${esc(m.student_agenda || discussion || 'No additional details available')}
+                  ${esc(m.student_agenda || 'No additional details available')}
                 </div>
               </div>
 
@@ -1547,27 +1588,27 @@ const histHtml = historyMeetings.length ? `
                       ${m.student_agenda ? esc(m.student_agenda) : '<span class="text-muted">No agenda recorded</span>'}
                     </div>
                   </div>
-
+                
                   <div class="hist-pane amber">
-                    <div class="hist-pane-hd">What we discussed</div>
+                    <div class="hist-pane-hd">My reflection</div>
                     <div class="hist-pane-bd">
-                      ${discussion ? esc(discussion) : '<span class="text-muted">No summary available</span>'}
+                      <span class="text-muted">No personal note yet</span>
                     </div>
                   </div>
                 </div>
-
+                
                 <div class="hist-meta-row">
-                  <div class="hist-meta-box">
-                    <div class="hist-meta-lbl">Key advice</div>
-                    <div class="hist-meta-val">
-                      ${advice ? esc(advice) : '<span class="text-muted">No advice recorded</span>'}
-                    </div>
-                  </div>
-
                   <div class="hist-meta-box">
                     <div class="hist-meta-lbl">My next step</div>
                     <div class="hist-meta-val">
-                      ${studentAction ? esc(studentAction) : '<span class="text-muted">No next step recorded</span>'}
+                      <span class="text-muted">No next step recorded</span>
+                    </div>
+                  </div>
+                
+                  <div class="hist-meta-box">
+                    <div class="hist-meta-lbl">Personal note</div>
+                    <div class="hist-meta-val">
+                      <span class="text-muted">You can add a personal note later</span>
                     </div>
                   </div>
                 </div>
