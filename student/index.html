@@ -1194,9 +1194,6 @@ const pendingHtml=pending.length?`<div class="card accent-blue">
                     <div class="hist-main-sub">
                       ${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long', year:'numeric', month:'long', day:'numeric'})}
                     </div>
-                    <div class="hist-main-preview">
-                      ${esc(reflection || m.student_agenda || 'No details available')}
-                    </div>
                   </div>
   
                   <div class="hist-chevron">→</div>
@@ -1577,95 +1574,108 @@ const histHtml = historyMeetings.length ? `
         const canWriteReflection = m.status === 'completed';
       
         return `
-          <div class="hist-card ${isOpen ? 'active' : ''}" onclick="toggleHistoryMeeting(${m.id})">
-            <div class="hist-card-sum">
-              <div class="hist-date-badge">
-                <div class="hist-date-mon">${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short'})}</div>
-                <div class="hist-date-day">${new Date(m.meeting_date+'T00:00:00').getDate()}</div>
-              </div>
-
-              <div class="hist-main">
-                <div class="hist-main-title">
-                  ${esc(fac?.name_en||m.faculty_email)} · ${esc(m.meeting_format||'Zoom')} · ${esc(m.status==='completed'?'Completed':'Cancelled')}
-                </div>
-                <div class="hist-main-sub">
-                  ${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long', year:'numeric', month:'long', day:'numeric'})}
-                </div>
-                <div class="hist-main-preview">
-                  ${esc(reflection || m.student_agenda || 'No additional details available')}
-                </div>
-              </div>
-
-              <div class="hist-chevron">${isOpen ? '▴' : '▾'}</div>
-            </div>
-
-            <div class="hist-detail-wrap ${isOpen ? 'open' : ''}" id="hist-detail-${m.id}">
-              <div class="hist-detail">
-            
-                ${!canWriteReflection && m.student_agenda ? `
-                  <div style="padding:10px 12px;margin-top:12px;background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);font-size:13px;color:#0C447C;line-height:1.6;">
-                    <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--blue);display:block;margin-bottom:4px;">My agenda</span>
-                    ${esc(m.student_agenda)}
-                  </div>
-                ` : ''}
-            
-                <div style="margin-top:12px;">
-                  <div class="hist-pane amber">
-                    <div class="hist-pane-hd">My reflection</div>
-                    <div class="hist-pane-bd">
-                      ${canWriteReflection ? `
-                        <textarea class="fta" id="reflection-${m.id}" rows="4"
-                          placeholder="What did you take away from this meeting?"
-                          oninput="markStudentLogDirty(${m.id})"
-                        >${esc(reflection)}</textarea>
-                      ` : `<span class="text-muted">Reflection is available only for completed meetings</span>`}
+                  <div class="hist-card ${isOpen ? 'active' : ''}" onclick="toggleHistoryMeeting(${m.id})">
+                    <div class="hist-card-sum">
+                      <div class="hist-date-badge">
+                        <div class="hist-date-mon">${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short'})}</div>
+                        <div class="hist-date-day">${new Date(m.meeting_date+'T00:00:00').getDate()}</div>
+                      </div>
+        
+                      <div class="hist-main">
+                        <div class="hist-main-title">
+                          ${esc(fac?.name_en||m.faculty_email)} · ${esc(m.meeting_format||'Zoom')} · ${esc(m.status==='completed'?'Completed':'Cancelled')}
+                        </div>
+                        <div class="hist-main-sub">
+                          ${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long', year:'numeric', month:'long', day:'numeric'})}
+                        </div>
+                      </div>
+        
+                      <div class="hist-chevron">${isOpen ? '▴' : '▾'}</div>
                     </div>
-                  </div>
-                </div>
-            
-                <div class="hist-meta-row">
-                  <div class="hist-meta-box">
-                    <div class="hist-meta-lbl">Key takeaway</div>
-                    <div class="hist-meta-val">
-                      ${canWriteReflection ? `
-                        <textarea class="fta" id="takeaway-${m.id}" rows="3"
-                          placeholder="What was the most important takeaway?"
-                          oninput="markStudentLogDirty(${m.id})"
-                          style="border:none;background:transparent;padding:0;resize:vertical;"
-                        >${esc(takeaway)}</textarea>
-                      ` : `<span class="text-muted">Not available</span>`}
+        
+                    <div class="hist-detail-wrap ${isOpen ? 'open' : ''}" id="hist-detail-${m.id}">
+                      <div class="hist-detail">
+        
+                        <div class="hist-pane blue" style="margin-top:12px;">
+                          <div class="hist-pane-hd">My agenda</div>
+                          <div class="hist-pane-bd">
+                            ${m.student_agenda ? esc(m.student_agenda) : '<span class="text-muted">No agenda recorded</span>'}
+                          </div>
+                        </div>
+        
+                        <div class="hist-pane amber" style="margin-top:10px;">
+                          <div class="hist-pane-hd">My reflection</div>
+                          <div class="hist-pane-bd">
+                            ${canWriteReflection ? `
+                              <textarea
+                                class="fta"
+                                id="reflection-${m.id}"
+                                rows="4"
+                                placeholder="What did you take away from this meeting?"
+                                oninput="markStudentLogDirty(${m.id})"
+                                onclick="event.stopPropagation()"
+                              >${esc(reflection)}</textarea>
+                            ` : `
+                              <span class="text-muted">Reflection is available only for completed meetings</span>
+                            `}
+                          </div>
+                        </div>
+        
+                        <div class="hist-meta-row">
+                          <div class="hist-meta-box">
+                            <div class="hist-meta-lbl">Key takeaway</div>
+                            <div class="hist-meta-val">
+                              ${canWriteReflection ? `
+                              <textarea class="fta" id="takeaway-${m.id}" rows="3"
+                                placeholder="What was the most important takeaway?"
+                                oninput="markStudentLogDirty(${m.id})"
+                                onclick="event.stopPropagation()"
+                                style="border:none;background:transparent;padding:0;resize:vertical;"
+                              >${esc(takeaway)}</textarea>
+                              ` : `
+                                <span class="text-muted">Not available</span>
+                              `}
+                            </div>
+                          </div>
+        
+                          <div class="hist-meta-box">
+                            <div class="hist-meta-lbl">Next step</div>
+                            <div class="hist-meta-val">
+                              ${canWriteReflection ? `
+                                <textarea
+                                  class="fta"
+                                  id="nextstep-${m.id}"
+                                  rows="3"
+                                  placeholder="What will you do next?"
+                                  oninput="markStudentLogDirty(${m.id})"
+                                  onclick="event.stopPropagation()"
+                                  style="border:none;background:transparent;padding:0;resize:vertical;"
+                                >${esc(nextStep)}</textarea>
+                              ` : `
+                                <span class="text-muted">Not available</span>
+                              `}
+                            </div>
+                          </div>
+                        </div>
+        
+                        ${canWriteReflection ? `
+                          <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px;">
+                            <span class="save-status" id="studentlog-status-${m.id}"></span>
+                            <button
+                              class="btn-sm-teal"
+                              id="studentlog-btn-${m.id}"
+                              onclick="event.stopPropagation();saveStudentLog(${m.id})"
+                            >
+                              ${hasStudentLog ? 'Save changes' : 'Save reflection'}
+                            </button>
+                          </div>
+                        ` : ''}
+        
+                      </div>
                     </div>
+        
                   </div>
-            
-                  <div class="hist-meta-box">
-                    <div class="hist-meta-lbl">Next step</div>
-                    <div class="hist-meta-val">
-                      ${canWriteReflection ? `
-                        <textarea class="fta" id="nextstep-${m.id}" rows="3"
-                          placeholder="What will you do next?"
-                          oninput="markStudentLogDirty(${m.id})"
-                          style="border:none;background:transparent;padding:0;resize:vertical;"
-                        >${esc(nextStep)}</textarea>
-                      ` : `<span class="text-muted">Not available</span>`}
-                    </div>
-                  </div>
-                </div>
-            
-                ${canWriteReflection ? `
-                  <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px;">
-                    <span class="save-status" id="studentlog-status-${m.id}"></span>
-                    <button class="btn-sm-teal" id="studentlog-btn-${m.id}"
-                      onclick="event.stopPropagation();saveStudentLog(${m.id})">
-                      ${hasStudentLog ? 'Save changes' : 'Save reflection'}
-                    </button>
-                  </div>
-                ` : ''}
-            
-              </div>
-            </div>
-
-          </div>
-        `;
+                `;
       }).join('')}
     </div>
   </div>
