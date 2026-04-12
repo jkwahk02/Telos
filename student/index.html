@@ -978,7 +978,7 @@ async function loadData(){
       sbGet(TBL_MEETING,`student_id=eq.${sid}&status=eq.scheduled&order=meeting_date.asc`),
       sbGet(
         TBL_MEETING,
-        `student_id=eq.${sid}&order=meeting_date.desc&select=id,meeting_date,faculty_email,meeting_format,meeting_type,status,student_agenda,discussion_summary,advisor_summary,advisor_advice,student_action_items`
+        `student_id=eq.${sid}&order=meeting_date.desc&select=id,meeting_date,faculty_email,meeting_format,meeting_type,status,student_agenda,student_log_id,log_id`
       ),
       sbGet(TBL_LOG, `student_id=eq.${sid}&select=log_id`),
       sbGet(TBL_FACULTY, `select=id,name_en,email,school,is_chair`),
