@@ -444,10 +444,10 @@ button,input,select,textarea{font-family:inherit;}
   margin-top:10px;
 }
 .hist-meta-box{
-  background:var(--surface2);
+  background:var(--surface);
   border:1px solid var(--border);
   border-radius:var(--r);
-  padding:10px 12px;
+  overflow:hidden;
 }
 .hist-meta-lbl{
   font-size:11px;
@@ -455,12 +455,15 @@ button,input,select,textarea{font-family:inherit;}
   color:var(--text3);
   text-transform:uppercase;
   letter-spacing:.05em;
-  margin-bottom:4px;
+  padding:7px 10px 5px;
+  background:var(--surface2);
+  border-bottom:1px solid var(--border);
 }
 .hist-meta-val{
   font-size:13px;
   color:var(--text);
   line-height:1.5;
+  padding:8px 10px;
 }
 
 /* HELP & GUIDE */
@@ -1598,28 +1601,24 @@ const histHtml = historyMeetings.length ? `
 
             <div class="hist-detail-wrap ${isOpen ? 'open' : ''}" id="hist-detail-${m.id}">
               <div class="hist-detail">
-                <div class="hist-detail-grid">
-                  <div class="hist-pane blue">
-                    <div class="hist-pane-hd">My agenda</div>
-                    <div class="hist-pane-bd">
-                      ${m.student_agenda ? esc(m.student_agenda) : '<span class="text-muted">No agenda recorded</span>'}
-                    </div>
-                  </div>
             
+                ${!canWriteReflection && m.student_agenda ? `
+                  <div style="padding:10px 12px;margin-top:12px;background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);font-size:13px;color:#0C447C;line-height:1.6;">
+                    <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--blue);display:block;margin-bottom:4px;">My agenda</span>
+                    ${esc(m.student_agenda)}
+                  </div>
+                ` : ''}
+            
+                <div style="margin-top:12px;">
                   <div class="hist-pane amber">
                     <div class="hist-pane-hd">My reflection</div>
                     <div class="hist-pane-bd">
                       ${canWriteReflection ? `
-                        <textarea
-                          class="fta"
-                          id="reflection-${m.id}"
-                          rows="4"
+                        <textarea class="fta" id="reflection-${m.id}" rows="4"
                           placeholder="What did you take away from this meeting?"
                           oninput="markStudentLogDirty(${m.id})"
                         >${esc(reflection)}</textarea>
-                      ` : `
-                        <span class="text-muted">Reflection is available only for completed meetings</span>
-                      `}
+                      ` : `<span class="text-muted">Reflection is available only for completed meetings</span>`}
                     </div>
                   </div>
                 </div>
@@ -1629,16 +1628,12 @@ const histHtml = historyMeetings.length ? `
                     <div class="hist-meta-lbl">Key takeaway</div>
                     <div class="hist-meta-val">
                       ${canWriteReflection ? `
-                        <textarea
-                          class="fta"
-                          id="takeaway-${m.id}"
-                          rows="3"
+                        <textarea class="fta" id="takeaway-${m.id}" rows="3"
                           placeholder="What was the most important takeaway?"
                           oninput="markStudentLogDirty(${m.id})"
+                          style="border:none;background:transparent;padding:0;resize:vertical;"
                         >${esc(takeaway)}</textarea>
-                      ` : `
-                        <span class="text-muted">Not available</span>
-                      `}
+                      ` : `<span class="text-muted">Not available</span>`}
                     </div>
                   </div>
             
@@ -1646,16 +1641,12 @@ const histHtml = historyMeetings.length ? `
                     <div class="hist-meta-lbl">Next step</div>
                     <div class="hist-meta-val">
                       ${canWriteReflection ? `
-                        <textarea
-                          class="fta"
-                          id="nextstep-${m.id}"
-                          rows="3"
+                        <textarea class="fta" id="nextstep-${m.id}" rows="3"
                           placeholder="What will you do next?"
                           oninput="markStudentLogDirty(${m.id})"
+                          style="border:none;background:transparent;padding:0;resize:vertical;"
                         >${esc(nextStep)}</textarea>
-                      ` : `
-                        <span class="text-muted">Not available</span>
-                      `}
+                      ` : `<span class="text-muted">Not available</span>`}
                     </div>
                   </div>
                 </div>
@@ -1663,15 +1654,13 @@ const histHtml = historyMeetings.length ? `
                 ${canWriteReflection ? `
                   <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px;">
                     <span class="save-status" id="studentlog-status-${m.id}"></span>
-                    <button
-                      class="btn-sm-teal"
-                      id="studentlog-btn-${m.id}"
-                      onclick="saveStudentLog(${m.id})"
-                    >
+                    <button class="btn-sm-teal" id="studentlog-btn-${m.id}"
+                      onclick="event.stopPropagation();saveStudentLog(${m.id})">
                       ${hasStudentLog ? 'Save changes' : 'Save reflection'}
                     </button>
                   </div>
                 ` : ''}
+            
               </div>
             </div>
 
