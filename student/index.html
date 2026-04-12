@@ -300,6 +300,169 @@ button,input,select,textarea{font-family:inherit;}
 .rg2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .rg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
 
+.meetings-section{
+  margin-bottom:16px;
+}
+
+.meetings-section-title{
+  font-size:15px;
+  font-weight:600;
+  color:var(--text);
+  margin-bottom:8px;
+}
+
+.meeting-stack{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.hist-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  overflow:hidden;
+  cursor:pointer;
+  transition:border-color .12s, background .12s;
+}
+.hist-card:hover{
+  border-color:var(--border-em);
+}
+.hist-card.active{
+  border-color:var(--teal-b);
+  box-shadow:0 0 0 1px var(--teal-b) inset;
+}
+.hist-card-sum{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 14px;
+}
+.hist-date-badge{
+  width:42px;
+  border-radius:8px;
+  background:var(--surface2);
+  padding:5px 0;
+  text-align:center;
+  flex-shrink:0;
+}
+.hist-date-mon{
+  font-size:10px;
+  text-transform:uppercase;
+  color:var(--text3);
+  font-weight:600;
+  line-height:1.1;
+}
+.hist-date-day{
+  font-size:16px;
+  font-weight:600;
+  line-height:1.1;
+  color:var(--text);
+}
+.hist-main{
+  flex:1;
+  min-width:0;
+}
+.hist-main-title{
+  font-size:13px;
+  font-weight:600;
+  color:var(--text);
+  margin-bottom:2px;
+}
+.hist-main-sub{
+  font-size:12px;
+  color:var(--text2);
+}
+.hist-main-preview{
+  font-size:12px;
+  color:var(--text3);
+  margin-top:4px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.hist-chevron{
+  font-size:12px;
+  color:var(--text3);
+  flex-shrink:0;
+}
+
+.hist-detail-wrap{
+  overflow:hidden;
+  max-height:0;
+  transition:max-height .28s ease;
+}
+.hist-detail-wrap.open{
+  max-height:700px;
+}
+.hist-detail{
+  padding:0 14px 14px;
+  border-top:1px solid var(--border);
+  background:var(--surface);
+}
+.hist-detail-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px;
+}
+.hist-pane{
+  border-radius:var(--r);
+  overflow:hidden;
+}
+.hist-pane.blue{
+  border:1px solid var(--blue-b);
+}
+.hist-pane.amber{
+  border:1px solid var(--amber-b);
+}
+.hist-pane-hd{
+  font-size:11px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  padding:8px 10px 6px;
+}
+.hist-pane.blue .hist-pane-hd{
+  background:var(--blue-l);
+  color:var(--blue);
+}
+.hist-pane.amber .hist-pane-hd{
+  background:var(--amber-l);
+  color:var(--amber);
+}
+.hist-pane-bd{
+  background:#fff;
+  padding:10px;
+  font-size:13px;
+  line-height:1.6;
+}
+.hist-meta-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+}
+.hist-meta-box{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:10px 12px;
+}
+.hist-meta-lbl{
+  font-size:11px;
+  font-weight:600;
+  color:var(--text3);
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  margin-bottom:4px;
+}
+.hist-meta-val{
+  font-size:13px;
+  color:var(--text);
+  line-height:1.5;
+}
+
 /* HELP & GUIDE */
 .help-hero{
   background:var(--blue-l);
@@ -638,6 +801,7 @@ let availMap      = {};      // { faculty_email: [slots] }
 let sessionCount  = 0;
 let dataLoaded    = false;
 let currentPage   = 'overview';
+let openHistoryMeetingId = null;
 
 // Meetings 상태
 let selectedFacultyEmail  = null;
@@ -812,7 +976,10 @@ async function loadData(){
     // 2. 병렬 로드
     const [meetingRows,histRows,logRows,facultyRows] = await Promise.all([
       sbGet(TBL_MEETING,`student_id=eq.${sid}&status=eq.scheduled&order=meeting_date.asc`),
-      sbGet(TBL_MEETING,`student_id=eq.${sid}&order=meeting_date.desc&select=id,meeting_date,faculty_email,meeting_format,status`),
+      sbGet(
+        TBL_MEETING,
+        `student_id=eq.${sid}&order=meeting_date.desc&select=id,meeting_date,faculty_email,meeting_format,meeting_type,status,student_agenda,discussion_summary,advisor_summary,advisor_advice,student_action_items`
+      )
       sbGet(TBL_LOG,    `student_id=eq.${sid}&select=log_id`),
       sbGet(TBL_FACULTY,`select=id,name_en,email,school,is_chair`),
     ]);
@@ -1153,6 +1320,17 @@ async function saveSection(key,tagsCol,textCol){
 }
 
 // ── MEETINGS ──
+function toggleHistoryMeeting(meetingId){
+  openHistoryMeetingId = openHistoryMeetingId === meetingId ? null : meetingId;
+  renderMeetings();
+  if(openHistoryMeetingId){
+    setTimeout(()=>{
+      const el = document.getElementById(`hist-detail-${meetingId}`);
+      if(el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }, 80);
+  }
+}
+
 function renderMeetings(){
   const el=document.getElementById('page-meetings');
   const s=studentData;
@@ -1198,97 +1376,114 @@ function renderMeetings(){
     </div>`;
 
   // Upcoming confirmed
-  const upcomingHtml=confirmed.length?confirmed.map(m=>{
-    const fac=allFaculty.find(f=>f.email===m.faculty_email);
-    return `<div class="card accent-teal" style="margin-bottom:12px;">
-      <div class="card-hd teal-bg">
-        <div><div class="card-title" style="color:#085041;">Upcoming meeting</div>
-        <div class="card-sub">${esc(fac?.name_en||m.faculty_email)}</div></div>
-        <span class="bdg bdg-teal">Confirmed</span>
-      </div>
-      <div class="card-body">
-        <div class="meeting-date-big">${formatDate(m.meeting_date)}</div>
-        <div class="meeting-meta">${esc(m.meeting_format||'Zoom')} · ${esc(m.meeting_type||'Regular')}</div>
-        ${m.student_agenda?`<div class="agenda-box"><div class="agenda-lbl">My agenda</div><div class="agenda-txt">${esc(m.student_agenda)}</div></div>`:''}
-        <div class="fta-lbl" style="margin-top:${m.student_agenda?0:4}px;">Update agenda</div>
-        <textarea class="fta" id="agenda-ta-${m.id}" rows="2"
-          oninput="document.getElementById('agenda-btn-${m.id}').disabled=false;"
-        >${esc(m.student_agenda||'')}</textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:8px;">
-          <span class="save-status" id="agenda-status-${m.id}"></span>
-          <button class="btn-sm-teal" id="agenda-btn-${m.id}" disabled
-            onclick="saveAgenda(${m.id})">Save agenda</button>
-        </div>
-        ${m.meeting_link?`<div style="margin-top:10px;display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--r);padding:8px 12px;">
-          <div style="width:28px;height:28px;background:#2D8CFF;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="white"><path d="M3 7h10a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zm11 2.5 4-2.5v6l-4-2.5V9.5z"/></svg>
+const upcomingHtml = confirmed.length ? `
+  <div class="meetings-section">
+    <div class="meetings-section-title">
+      Upcoming meeting${confirmed.length > 1 ? 's' : ''}
+    </div>
+    <div class="meeting-stack">
+      ${confirmed.map(m=>{
+        const fac=allFaculty.find(f=>f.email===m.faculty_email);
+        return `<div class="card accent-teal" style="margin-bottom:0;">
+          <div class="card-hd teal-bg">
+            <div>
+              <div class="card-title" style="color:#085041;">${esc(fac?.name_en||m.faculty_email)}</div>
+              <div class="card-sub">${formatDate(m.meeting_date)} · ${esc(m.meeting_format||'Zoom')} · ${esc(m.meeting_type||'Regular')}</div>
+            </div>
+            <span class="bdg bdg-teal">Confirmed</span>
           </div>
-          <a href="${esc(m.meeting_link)}" target="_blank" style="font-size:13px;color:var(--blue);">Join Zoom meeting</a>
-        </div>`:''}
-      </div>
-    </div>`;
-  }).join(''):'' ;
+          <div class="card-body">
+            ${m.student_agenda?`<div class="agenda-box"><div class="agenda-lbl">My agenda</div><div class="agenda-txt">${esc(m.student_agenda)}</div></div>`:''}
+            <div class="fta-lbl" style="margin-top:${m.student_agenda?0:4}px;">Update agenda</div>
+            <textarea class="fta" id="agenda-ta-${m.id}" rows="2"
+              oninput="document.getElementById('agenda-btn-${m.id}').disabled=false;"
+            >${esc(m.student_agenda||'')}</textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:8px;">
+              <span class="save-status" id="agenda-status-${m.id}"></span>
+              <button class="btn-sm-teal" id="agenda-btn-${m.id}" disabled
+                onclick="saveAgenda(${m.id})">Save agenda</button>
+            </div>
+            ${m.meeting_link?`<div style="margin-top:10px;display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--r);padding:8px 12px;">
+              <div style="width:28px;height:28px;background:#2D8CFF;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="white"><path d="M3 7h10a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zm11 2.5 4-2.5v6l-4-2.5V9.5z"/></svg>
+              </div>
+              <a href="${esc(m.meeting_link)}" target="_blank" style="font-size:13px;color:var(--blue);">Join Zoom meeting</a>
+            </div>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+` : '';
 
   // Pending
-  const pendingHtml=pending.length?pending.map(m=>{
-    const fac=allFaculty.find(f=>f.email===m.faculty_email);
-    const slots=m.proposed_slots?(typeof m.proposed_slots==='string'?JSON.parse(m.proposed_slots):m.proposed_slots):[];
-    const isAdvProposed=m.created_by==='advisor';
-    const isEditing=editingRequestId===m.id;
-  
-    const mySlotHtml=slots.length?slots.map(sl=>`
-      <div style="display:flex;align-items:center;gap:10px;padding:7px 11px;border:1px solid var(--blue-b);border-radius:var(--r);background:var(--blue-l);margin-bottom:5px;">
-        <div style="width:5px;height:5px;border-radius:50%;background:var(--blue);flex-shrink:0;"></div>
-        <div style="flex:1;font-size:13px;font-weight:500;color:#0C447C;">${esc(sl.dateLabel||sl.dateStr)}</div>
-        <div style="font-size:12px;color:var(--blue);">${esc(sl.start)}–${esc(sl.end)}</div>
-      </div>`).join('')
-      :'<div style="font-size:13px;color:var(--text3);font-style:italic;">No slots proposed</div>';
-  
-    const advSlotHtml=isAdvProposed&&slots.length?`
-      <div style="background:var(--teal-l);border-radius:var(--r);padding:9px 12px;margin-bottom:10px;font-size:13px;color:var(--teal);display:flex;align-items:center;gap:8px;">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".6" fill="currentColor"/></svg>
-        Advisor proposed new times. Select one to accept.
-      </div>
-      ${slots.map((sl,i)=>`
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 11px;border:1px solid var(--teal-b);border-radius:var(--r);background:var(--teal-l);margin-bottom:5px;cursor:pointer;"
-        onclick="acceptAdvisorSlot(${m.id},${i})">
-        <div style="width:5px;height:5px;border-radius:50%;background:var(--teal);flex-shrink:0;"></div>
-        <div style="flex:1;font-size:13px;font-weight:500;color:#085041;">${esc(sl.dateLabel||sl.dateStr||sl.day_of_week)}</div>
-        <div style="font-size:12px;color:var(--teal);">${esc(sl.start)}–${esc(sl.end)}</div>
-        <div class="btn-sm-teal" style="font-size:11px;padding:3px 9px;">Accept</div>
-      </div>`).join('')}`:'' ;
-  
-    const accentColor=isAdvProposed?'var(--teal-b)':'var(--blue-b)';
-    const hdrBg=isAdvProposed?'var(--teal-l)':'var(--blue-l)';
-    const titleColor=isAdvProposed?'#085041':'#0C447C';
-    const badge=isAdvProposed?'<span class="bdg bdg-teal">Action needed</span>':'<span class="bdg bdg-blue">Awaiting confirmation</span>';
-  
-    return `<div class="card" style="margin-bottom:12px;border-color:${accentColor};">
-      <div class="card-hd" style="background:${hdrBg};">
-        <div>
-          <div class="card-title" style="color:${titleColor};">${esc(fac?.name_en||m.faculty_email)}</div>
-          <div class="card-sub">${esc(m.meeting_format||'Zoom')} · ${m.meeting_duration||60} min · submitted ${new Date(m.created_at||m.meeting_date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
-        </div>
-        ${badge}
-      </div>
-      <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
-        ${m.student_agenda?`
-          <div style="background:var(--blue-l);border-left:3px solid var(--blue-m);border-radius:0 var(--r) var(--r) 0;padding:9px 12px;">
-            <div style="font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">My agenda</div>
-            <div style="font-size:13px;color:#0C447C;line-height:1.55;">${esc(m.student_agenda)}</div>
-          </div>`:''}
-        ${isAdvProposed?advSlotHtml:`
-          <div>
-            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">My proposed slots</div>
-            ${mySlotHtml}
-          </div>`}
-        <div style="display:flex;gap:7px;">
-          <button class="btn-sm-out" onclick="openEditRequest(${m.id})">✎ Edit request</button>
-          <button class="btn-sm-out" style="color:var(--red);border-color:var(--red-l);" onclick="withdrawRequest(${m.id})">Withdraw</button>
-        </div>
-      </div>
-    </div>`;
-  }).join(''):'' ;
+const pendingHtml = pending.length ? `
+  <div class="meetings-section">
+    <div class="meetings-section-title">
+      Pending request${pending.length > 1 ? 's' : ''}
+    </div>
+    <div class="meeting-stack">
+      ${pending.map(m=>{
+        const fac=allFaculty.find(f=>f.email===m.faculty_email);
+        const slots=m.proposed_slots?(typeof m.proposed_slots==='string'?JSON.parse(m.proposed_slots):m.proposed_slots):[];
+        const isAdvProposed=m.created_by==='advisor';
+
+        const mySlotHtml=slots.length?slots.map(sl=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 11px;border:1px solid var(--blue-b);border-radius:var(--r);background:var(--blue-l);margin-bottom:5px;">
+            <div style="width:5px;height:5px;border-radius:50%;background:var(--blue);flex-shrink:0;"></div>
+            <div style="flex:1;font-size:13px;font-weight:500;color:#0C447C;">${esc(sl.dateLabel||sl.dateStr)}</div>
+            <div style="font-size:12px;color:var(--blue);">${esc(sl.start)}–${esc(sl.end)}</div>
+          </div>`).join('')
+          :'<div style="font-size:13px;color:var(--text3);font-style:italic;">No slots proposed</div>';
+
+        const advSlotHtml=isAdvProposed&&slots.length?`
+          <div style="background:var(--teal-l);border-radius:var(--r);padding:9px 12px;margin-bottom:10px;font-size:13px;color:var(--teal);display:flex;align-items:center;gap:8px;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".6" fill="currentColor"/></svg>
+            Advisor proposed new times. Select one to accept.
+          </div>
+          ${slots.map((sl,i)=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 11px;border:1px solid var(--teal-b);border-radius:var(--r);background:var(--teal-l);margin-bottom:5px;cursor:pointer;"
+            onclick="acceptAdvisorSlot(${m.id},${i})">
+            <div style="width:5px;height:5px;border-radius:50%;background:var(--teal);flex-shrink:0;"></div>
+            <div style="flex:1;font-size:13px;font-weight:500;color:#085041;">${esc(sl.dateLabel||sl.dateStr||sl.day_of_week)}</div>
+            <div style="font-size:12px;color:var(--teal);">${esc(sl.start)}–${esc(sl.end)}</div>
+            <div class="btn-sm-teal" style="font-size:11px;padding:3px 9px;">Accept</div>
+          </div>`).join('')}`:'';
+
+        const accentColor=isAdvProposed?'var(--teal-b)':'var(--blue-b)';
+        const hdrBg=isAdvProposed?'var(--teal-l)':'var(--blue-l)';
+        const titleColor=isAdvProposed?'#085041':'#0C447C';
+        const badge=isAdvProposed?'<span class="bdg bdg-teal">Action needed</span>':'<span class="bdg bdg-blue">Awaiting confirmation</span>';
+
+        return `<div class="card" style="margin-bottom:0;border-color:${accentColor};">
+          <div class="card-hd" style="background:${hdrBg};">
+            <div>
+              <div class="card-title" style="color:${titleColor};">${esc(fac?.name_en||m.faculty_email)}</div>
+              <div class="card-sub">${esc(m.meeting_format||'Zoom')} · ${m.meeting_duration||60} min · submitted ${new Date(m.created_at||m.meeting_date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+            </div>
+            ${badge}
+          </div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+            ${m.student_agenda?`
+              <div style="background:var(--blue-l);border-left:3px solid var(--blue-m);border-radius:0 var(--r) var(--r) 0;padding:9px 12px;">
+                <div style="font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">My agenda</div>
+                <div style="font-size:13px;color:#0C447C;line-height:1.55;">${esc(m.student_agenda)}</div>
+              </div>`:''}
+            ${isAdvProposed?advSlotHtml:`
+              <div>
+                <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">My proposed slots</div>
+                ${mySlotHtml}
+              </div>`}
+            <div style="display:flex;gap:7px;">
+              <button class="btn-sm-out" onclick="openEditRequest(${m.id})">✎ Edit request</button>
+              <button class="btn-sm-out" style="color:var(--red);border-color:var(--red-l);" onclick="withdrawRequest(${m.id})">Withdraw</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+` : '';
 
   // Empty state
   const emptyHtml=!confirmed.length&&!pending.length?`<div class="card" style="margin-bottom:12px;">
@@ -1307,37 +1502,100 @@ function renderMeetings(){
   const formHtml=requestFormOpen?buildRequestForm():'';
 
   // History
-  const historyMeetings=allMeetings.filter(m=>m.status!=='scheduled');
-  const histHtml=historyMeetings.length?`<div class="card">
-    <div class="card-hd"><div class="card-title">Meeting history</div>
-    <span style="font-size:12px;color:var(--text3);">${historyMeetings.length} meetings</span></div>
-    <div class="card-body" style="padding:4px 16px;">
+const historyMeetings = allMeetings.filter(m=>m.status!=='scheduled');
+
+const histHtml = historyMeetings.length ? `
+  <div class="meetings-section">
+    <div class="meetings-section-title">Meeting history</div>
+    <div class="meeting-stack">
       ${historyMeetings.map(m=>{
-        const fac=allFaculty.find(f=>f.email===m.faculty_email);
-        const bdgCls=m.status==='completed'?'bdg-green':'bdg-gray';
-        const bdgTxt=m.status==='completed'?'Completed':'Cancelled';
-        return `<div class="hist-row">
-          <div class="hist-date">${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
-          <div class="hist-who">${esc(fac?.name_en||m.faculty_email)}</div>
-          <span class="hist-fmt">${esc(m.meeting_format||'')}</span>
-          <span class="bdg ${bdgCls}">${bdgTxt}</span>
-        </div>`;
+        const fac = allFaculty.find(f=>f.email===m.faculty_email);
+        const isOpen = openHistoryMeetingId === m.id;
+        const discussion = m.discussion_summary || m.advisor_summary || '';
+        const advice = m.advisor_advice || '';
+        const studentAction = m.student_action_items || '';
+
+        return `
+          <div class="hist-card ${isOpen ? 'active' : ''}" onclick="toggleHistoryMeeting(${m.id})">
+            <div class="hist-card-sum">
+              <div class="hist-date-badge">
+                <div class="hist-date-mon">${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short'})}</div>
+                <div class="hist-date-day">${new Date(m.meeting_date+'T00:00:00').getDate()}</div>
+              </div>
+
+              <div class="hist-main">
+                <div class="hist-main-title">
+                  ${esc(fac?.name_en||m.faculty_email)} · ${esc(m.meeting_format||'Zoom')} · ${esc(m.status==='completed'?'Completed':'Cancelled')}
+                </div>
+                <div class="hist-main-sub">
+                  ${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long', year:'numeric', month:'long', day:'numeric'})}
+                </div>
+                <div class="hist-main-preview">
+                  ${esc(m.student_agenda || discussion || 'No additional details available')}
+                </div>
+              </div>
+
+              <div class="hist-chevron">${isOpen ? '▴' : '▾'}</div>
+            </div>
+
+            <div class="hist-detail-wrap ${isOpen ? 'open' : ''}" id="hist-detail-${m.id}">
+              <div class="hist-detail">
+                <div class="hist-detail-grid">
+                  <div class="hist-pane blue">
+                    <div class="hist-pane-hd">My agenda</div>
+                    <div class="hist-pane-bd">
+                      ${m.student_agenda ? esc(m.student_agenda) : '<span class="text-muted">No agenda recorded</span>'}
+                    </div>
+                  </div>
+
+                  <div class="hist-pane amber">
+                    <div class="hist-pane-hd">What we discussed</div>
+                    <div class="hist-pane-bd">
+                      ${discussion ? esc(discussion) : '<span class="text-muted">No summary available</span>'}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="hist-meta-row">
+                  <div class="hist-meta-box">
+                    <div class="hist-meta-lbl">Key advice</div>
+                    <div class="hist-meta-val">
+                      ${advice ? esc(advice) : '<span class="text-muted">No advice recorded</span>'}
+                    </div>
+                  </div>
+
+                  <div class="hist-meta-box">
+                    <div class="hist-meta-lbl">My next step</div>
+                    <div class="hist-meta-val">
+                      ${studentAction ? esc(studentAction) : '<span class="text-muted">No next step recorded</span>'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
       }).join('')}
     </div>
-  </div>`:'' ;
+  </div>
+` : '';
 
-  el.innerHTML=`
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;">
-      <div><div style="font-size:20px;font-weight:600;letter-spacing:-0.02em;">Meetings</div>
-      <div style="font-size:13px;color:var(--text2);margin-top:2px;">Your advising team and meeting schedule.</div></div>
-      <button class="btn-teal" onclick="openRequestForm(null)">+ Request meeting</button>
+el.innerHTML=`
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;">
+    <div>
+      <div style="font-size:20px;font-weight:600;letter-spacing:-0.02em;">Meetings</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:2px;">Your advising team and meeting schedule.</div>
     </div>
-    ${advisorCardsHtml}
-    ${formHtml}
-    ${upcomingHtml}
-    ${pendingHtml}
-    ${emptyHtml}
-    ${histHtml}`;
+    <button class="btn-teal" onclick="openRequestForm(null)">+ Request meeting</button>
+  </div>
+
+  ${advisorCardsHtml}
+  ${formHtml}
+  ${upcomingHtml}
+  ${pendingHtml}
+  ${!confirmed.length && !pending.length ? emptyHtml : ''}
+  ${histHtml}
+`;
 }
 
 function buildOtherCard(){
