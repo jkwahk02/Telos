@@ -659,6 +659,17 @@ button,input,select,textarea{font-family:inherit;}
 
 .text-muted{color:var(--text3);}
 .mono{font-family:'DM Mono',monospace;}
+
+.slog-card{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-top:10px;}
+.slog-hd{padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.slog-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);}
+.slog-body{padding:10px 12px;background:var(--surface);}
+.slog-val{font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap;}
+.slog-val.empty{color:var(--text3);font-style:italic;}
+.slog-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.btn-edit-slog{font-size:11px;padding:2px 9px;border-radius:var(--r);border:1px solid var(--border-em);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .12s;}
+.btn-edit-slog:hover{background:var(--surface2);}
+
 </style>
 </head>
 <body>
@@ -1385,6 +1396,68 @@ function toggleHistoryMeeting(meetingId){
   }
 }
 
+function showSlogEdit(mid) {
+  document.getElementById('slog-view-'+mid)?.style.setProperty('display','none');
+  document.getElementById('slog-view2-'+mid)?.style.setProperty('display','none');
+  document.getElementById('slog-edit-'+mid).style.display='block';
+}
+function hideSlogEdit(mid) {
+  document.getElementById('slog-view-'+mid)?.style.setProperty('display','block');
+  document.getElementById('slog-view2-'+mid)?.style.setProperty('display','grid');
+  document.getElementById('slog-edit-'+mid).style.display='none';
+}
+function showSlogNew(mid) {
+  document.getElementById('slog-add-'+mid).style.display='none';
+  document.getElementById('slog-edit-'+mid).style.display='block';
+}
+function hideSlogNew(mid) {
+  document.getElementById('slog-add-'+mid).style.display='block';
+  document.getElementById('slog-edit-'+mid).style.display='none';
+}
+
+async function saveStudentLog(meetingId) {
+  const reflection = document.getElementById(`reflection-${meetingId}`)?.value.trim() || '';
+  const takeaway   = document.getElementById(`takeaway-${meetingId}`)?.value.trim()   || '';
+  const nextStep   = document.getElementById(`nextstep-${meetingId}`)?.value.trim()   || '';
+  const btn    = document.getElementById(`studentlog-btn-${meetingId}`);
+  const status = document.getElementById(`studentlog-status-${meetingId}`);
+
+  if (!reflection) { showToast('Please write a reflection before saving.'); return; }
+  if (btn) { btn.textContent='Saving…'; btn.disabled=true; }
+
+  const m = allMeetings.find(x => x.id === meetingId);
+  const existing = m?.student_log || null;
+
+  try {
+    if (existing) {
+      // UPDATE
+      await sbPatch(TBL_STUDENT_LOG, 'student_log_id', existing.student_log_id, {
+        reflection, key_takeaway: takeaway, next_step: nextStep,
+      });
+      existing.reflection   = reflection;
+      existing.key_takeaway = takeaway;
+      existing.next_step    = nextStep;
+    } else {
+      // INSERT
+      const inserted = await sbInsert(TBL_STUDENT_LOG, {
+        student_id:   studentData.id,
+        meeting_id:   meetingId,
+        reflection,
+        key_takeaway: takeaway,
+        next_step:    nextStep,
+      });
+      if (m) m.student_log = inserted?.[0] || { reflection, key_takeaway: takeaway, next_step: nextStep };
+    }
+    if (status) { status.textContent='Saved ✓'; setTimeout(()=>{ status.textContent=''; },2500); }
+    if (btn)    { btn.textContent = existing ? 'Save changes' : 'Save reflection'; btn.disabled=false; }
+    showToast('Reflection saved');
+    renderMeetings();
+  } catch(e) {
+    if (status) status.textContent=`Failed: ${e.message}`;
+    if (btn)    { btn.textContent = existing ? 'Save changes' : 'Save reflection'; btn.disabled=false; }
+  }
+}
+
 function renderMeetings(){
   const el=document.getElementById('page-meetings');
   const s=studentData;
@@ -1573,109 +1646,166 @@ const histHtml = historyMeetings.length ? `
         const hasStudentLog = !!slog;
         const canWriteReflection = m.status === 'completed';
       
-        return `
-                  <div class="hist-card ${isOpen ? 'active' : ''}" onclick="toggleHistoryMeeting(${m.id})">
-                    <div class="hist-card-sum">
-                      <div class="hist-date-badge">
-                        <div class="hist-date-mon">${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short'})}</div>
-                        <div class="hist-date-day">${new Date(m.meeting_date+'T00:00:00').getDate()}</div>
-                      </div>
-        
-                      <div class="hist-main">
-                        <div class="hist-main-title">
-                          ${esc(fac?.name_en||m.faculty_email)} · ${esc(m.meeting_format||'Zoom')} · ${esc(m.status==='completed'?'Completed':'Cancelled')}
-                        </div>
-                        <div class="hist-main-sub">
-                          ${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long', year:'numeric', month:'long', day:'numeric'})}
-                        </div>
-                      </div>
-        
-                      <div class="hist-chevron">${isOpen ? '▴' : '▾'}</div>
-                    </div>
-        
-                    <div class="hist-detail-wrap ${isOpen ? 'open' : ''}" id="hist-detail-${m.id}">
-                      <div class="hist-detail">
-        
-                        <div class="hist-pane blue" style="margin-top:12px;">
-                          <div class="hist-pane-hd">My agenda</div>
-                          <div class="hist-pane-bd">
-                            ${m.student_agenda ? esc(m.student_agenda) : '<span class="text-muted">No agenda recorded</span>'}
-                          </div>
-                        </div>
-        
-                        <div class="hist-pane amber" style="margin-top:10px;">
-                          <div class="hist-pane-hd">My reflection</div>
-                          <div class="hist-pane-bd">
-                            ${canWriteReflection ? `
-                              <textarea
-                                class="fta"
-                                id="reflection-${m.id}"
-                                rows="4"
-                                placeholder="What did you take away from this meeting?"
-                                oninput="markStudentLogDirty(${m.id})"
-                                onclick="event.stopPropagation()"
-                              >${esc(reflection)}</textarea>
-                            ` : `
-                              <span class="text-muted">Reflection is available only for completed meetings</span>
-                            `}
-                          </div>
-                        </div>
-        
-                        <div class="hist-meta-row">
-                          <div class="hist-meta-box">
-                            <div class="hist-meta-lbl">Key takeaway</div>
-                            <div class="hist-meta-val">
-                              ${canWriteReflection ? `
-                              <textarea class="fta" id="takeaway-${m.id}" rows="3"
-                                placeholder="What was the most important takeaway?"
-                                oninput="markStudentLogDirty(${m.id})"
-                                onclick="event.stopPropagation()"
-                                style="border:none;background:transparent;padding:0;resize:vertical;"
-                              >${esc(takeaway)}</textarea>
-                              ` : `
-                                <span class="text-muted">Not available</span>
-                              `}
-                            </div>
-                          </div>
-        
-                          <div class="hist-meta-box">
-                            <div class="hist-meta-lbl">Next step</div>
-                            <div class="hist-meta-val">
-                              ${canWriteReflection ? `
-                                <textarea
-                                  class="fta"
-                                  id="nextstep-${m.id}"
-                                  rows="3"
-                                  placeholder="What will you do next?"
-                                  oninput="markStudentLogDirty(${m.id})"
-                                  onclick="event.stopPropagation()"
-                                  style="border:none;background:transparent;padding:0;resize:vertical;"
-                                >${esc(nextStep)}</textarea>
-                              ` : `
-                                <span class="text-muted">Not available</span>
-                              `}
-                            </div>
-                          </div>
-                        </div>
-        
-                        ${canWriteReflection ? `
-                          <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px;">
-                            <span class="save-status" id="studentlog-status-${m.id}"></span>
-                            <button
-                              class="btn-sm-teal"
-                              id="studentlog-btn-${m.id}"
-                              onclick="event.stopPropagation();saveStudentLog(${m.id})"
-                            >
-                              ${hasStudentLog ? 'Save changes' : 'Save reflection'}
-                            </button>
-                          </div>
-                        ` : ''}
-        
-                      </div>
-                    </div>
-        
+return `
+          <div class="hist-card ${isOpen ? 'active' : ''}" onclick="toggleHistoryMeeting(${m.id})">
+            <div class="hist-card-sum">
+              <div class="hist-date-badge">
+                <div class="hist-date-mon">${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short'})}</div>
+                <div class="hist-date-day">${new Date(m.meeting_date+'T00:00:00').getDate()}</div>
+              </div>
+              <div class="hist-main">
+                <div class="hist-main-title">
+                  ${esc(fac?.name_en||m.faculty_email)} · ${esc(m.meeting_format||'Zoom')} · ${esc(m.status==='completed'?'Completed':'Cancelled')}
+                </div>
+                <div class="hist-main-sub">
+                  ${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
+                </div>
+              </div>
+              <div class="hist-chevron">${isOpen?'▴':'▾'}</div>
+            </div>
+
+            <div class="hist-detail-wrap ${isOpen?'open':''}" id="hist-detail-${m.id}">
+              <div class="hist-detail">
+
+                <!-- My Agenda — 항상 읽기 전용 -->
+                <div class="hist-pane blue" style="margin-top:12px;">
+                  <div class="hist-pane-hd">My agenda</div>
+                  <div class="hist-pane-bd">
+                    ${m.student_agenda ? esc(m.student_agenda) : '<span class="text-muted">No agenda recorded</span>'}
                   </div>
-                `;
+                </div>
+
+                <!-- My Reflection + Key Takeaway + Next Step -->
+                ${canWriteReflection ? `
+
+                  ${hasStudentLog ? `
+                    <!-- 기록 있음 — 읽기 모드, Edit 버튼 -->
+                    <div class="slog-card" id="slog-view-${m.id}">
+                      <div class="slog-hd">
+                        <span class="slog-lbl">My reflection</span>
+                        <button class="btn-edit-slog" onclick="event.stopPropagation();showSlogEdit(${m.id})">Edit</button>
+                      </div>
+                      <div class="slog-body">
+                        <div class="slog-val ${reflection?'':'empty'}">${reflection ? esc(reflection) : 'No reflection written'}</div>
+                      </div>
+                    </div>
+                    <div class="slog-two" id="slog-view2-${m.id}">
+                      <div class="slog-card" style="margin-top:0;">
+                        <div class="slog-hd"><span class="slog-lbl">Key takeaway</span></div>
+                        <div class="slog-body">
+                          <div class="slog-val ${takeaway?'':'empty'}">${takeaway ? esc(takeaway) : 'Not recorded'}</div>
+                        </div>
+                      </div>
+                      <div class="slog-card" style="margin-top:0;">
+                        <div class="slog-hd"><span class="slog-lbl">Next step</span></div>
+                        <div class="slog-body">
+                          <div class="slog-val ${nextStep?'':'empty'}">${nextStep ? esc(nextStep) : 'Not recorded'}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 편집 모드 (기본 hidden) -->
+                    <div id="slog-edit-${m.id}" style="display:none;">
+                      <div class="slog-card">
+                        <div class="slog-hd"><span class="slog-lbl" style="color:var(--accent);">My reflection</span></div>
+                        <div class="slog-body">
+                          <textarea class="fta" id="reflection-${m.id}" rows="4"
+                            placeholder="What did you take away from this meeting?"
+                            onclick="event.stopPropagation()"
+                          >${esc(reflection)}</textarea>
+                        </div>
+                      </div>
+                      <div class="slog-two">
+                        <div class="slog-card" style="margin-top:0;">
+                          <div class="slog-hd"><span class="slog-lbl" style="color:var(--accent);">Key takeaway</span></div>
+                          <div class="slog-body">
+                            <textarea class="fta" id="takeaway-${m.id}" rows="3"
+                              placeholder="What was the most important takeaway?"
+                              onclick="event.stopPropagation()"
+                              style="border:none;background:transparent;padding:0;resize:vertical;"
+                            >${esc(takeaway)}</textarea>
+                          </div>
+                        </div>
+                        <div class="slog-card" style="margin-top:0;">
+                          <div class="slog-hd"><span class="slog-lbl" style="color:var(--accent);">Next step</span></div>
+                          <div class="slog-body">
+                            <textarea class="fta" id="nextstep-${m.id}" rows="3"
+                              placeholder="What will you do next?"
+                              onclick="event.stopPropagation()"
+                              style="border:none;background:transparent;padding:0;resize:vertical;"
+                            >${esc(nextStep)}</textarea>
+                          </div>
+                        </div>
+                      </div>
+                      <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px;">
+                        <button class="btn-edit-slog" onclick="event.stopPropagation();hideSlogEdit(${m.id})">Cancel</button>
+                        <span class="save-status" id="studentlog-status-${m.id}"></span>
+                        <button class="btn-sm-teal" id="studentlog-btn-${m.id}"
+                          onclick="event.stopPropagation();saveStudentLog(${m.id})">Save changes</button>
+                      </div>
+                    </div>
+
+                  ` : `
+                    <!-- 기록 없음 — Add reflection 버튼 -->
+                    <div id="slog-add-${m.id}">
+                      <div style="margin-top:12px;padding:16px;border:1px dashed var(--border-em);border-radius:var(--r);text-align:center;">
+                        <div style="font-size:13px;color:var(--text3);margin-bottom:10px;">No reflection recorded for this meeting yet.</div>
+                        <button class="btn-sm-teal" onclick="event.stopPropagation();showSlogNew(${m.id})">+ Add reflection</button>
+                      </div>
+                    </div>
+
+                    <!-- 신규 입력 폼 (기본 hidden) -->
+                    <div id="slog-edit-${m.id}" style="display:none;">
+                      <div class="slog-card">
+                        <div class="slog-hd"><span class="slog-lbl" style="color:var(--accent);">My reflection</span></div>
+                        <div class="slog-body">
+                          <textarea class="fta" id="reflection-${m.id}" rows="4"
+                            placeholder="What did you take away from this meeting?"
+                            onclick="event.stopPropagation()"
+                          ></textarea>
+                        </div>
+                      </div>
+                      <div class="slog-two">
+                        <div class="slog-card" style="margin-top:0;">
+                          <div class="slog-hd"><span class="slog-lbl" style="color:var(--accent);">Key takeaway</span></div>
+                          <div class="slog-body">
+                            <textarea class="fta" id="takeaway-${m.id}" rows="3"
+                              placeholder="What was the most important takeaway?"
+                              onclick="event.stopPropagation()"
+                              style="border:none;background:transparent;padding:0;resize:vertical;"
+                            ></textarea>
+                          </div>
+                        </div>
+                        <div class="slog-card" style="margin-top:0;">
+                          <div class="slog-hd"><span class="slog-lbl" style="color:var(--accent);">Next step</span></div>
+                          <div class="slog-body">
+                            <textarea class="fta" id="nextstep-${m.id}" rows="3"
+                              placeholder="What will you do next?"
+                              onclick="event.stopPropagation()"
+                              style="border:none;background:transparent;padding:0;resize:vertical;"
+                            ></textarea>
+                          </div>
+                        </div>
+                      </div>
+                      <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px;">
+                        <button class="btn-edit-slog" onclick="event.stopPropagation();hideSlogNew(${m.id})">Cancel</button>
+                        <span class="save-status" id="studentlog-status-${m.id}"></span>
+                        <button class="btn-sm-teal" id="studentlog-btn-${m.id}"
+                          onclick="event.stopPropagation();saveStudentLog(${m.id})">Save reflection</button>
+                      </div>
+                    </div>
+                  `}
+
+                ` : `
+                  <div style="margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--r);font-size:13px;color:var(--text3);">
+                    Reflection is available only for completed meetings.
+                  </div>
+                `}
+
+              </div>
+            </div>
+          </div>
+        `;
       }).join('')}
     </div>
   </div>
