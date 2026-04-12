@@ -300,6 +300,193 @@ button,input,select,textarea{font-family:inherit;}
 .rg2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .rg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
 
+/* HELP & GUIDE */
+.help-hero{
+  background:var(--blue-l);
+  border:1px solid var(--blue-b);
+  border-radius:var(--r-lg);
+  padding:22px 26px;
+  margin-bottom:24px;
+}
+.help-hero-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+.help-hero-copy{
+  flex:1;
+  min-width:0;
+}
+.help-hero-title{
+  font-size:18px;
+  font-weight:600;
+  color:#0C447C;
+  margin-bottom:6px;
+  letter-spacing:-0.01em;
+}
+.help-hero-sub{
+  font-size:13px;
+  color:var(--blue);
+  line-height:1.7;
+}
+.help-hero-btn{
+  border:none;
+  background:transparent;
+  color:var(--blue);
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  padding:2px 0;
+  flex-shrink:0;
+}
+.help-hero-btn:hover{
+  color:#0C447C;
+  text-decoration:underline;
+}
+.help-hero-more{
+  overflow:hidden;
+  max-height:0;
+  opacity:0;
+  transition:max-height .32s ease, opacity .24s ease, margin-top .24s ease;
+}
+.help-hero-more.open{
+  max-height:520px;
+  opacity:1;
+  margin-top:14px;
+}
+.help-hero-more-inner{
+  padding-top:10px;
+  border-top:1px solid rgba(24,95,165,0.15);
+}
+.help-hero-p{
+  font-size:13px;
+  color:var(--text2);
+  line-height:1.7;
+  margin-bottom:10px;
+}
+.help-hero-p:last-child{
+  margin-bottom:0;
+}
+
+.help-section{
+  margin-bottom:28px;
+}
+.help-section-title{
+  font-size:16px;
+  font-weight:600;
+  color:var(--text);
+  margin-bottom:12px;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+}
+
+.help-cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px;
+}
+.help-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  padding:18px 20px;
+}
+.help-card-icon{
+  width:36px;
+  height:36px;
+  border-radius:var(--r);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:12px;
+  font-size:18px;
+}
+.help-card-icon.blue{background:var(--blue-l);}
+.help-card-icon.green{background:var(--green-l);}
+.help-card-icon.purple{background:rgba(124,58,237,0.12); color:#7C3AED;}
+.help-card-title{
+  font-size:15px;
+  font-weight:600;
+  color:var(--text);
+  margin-bottom:6px;
+}
+.help-card-body{
+  font-size:13px;
+  color:var(--text2);
+  line-height:1.65;
+}
+
+.help-steps-wrap{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  overflow:hidden;
+}
+.help-steps{
+  display:flex;
+  flex-direction:column;
+  gap:0;
+}
+.help-step{
+  display:flex;
+  gap:16px;
+  padding:14px 16px;
+  border-bottom:1px solid var(--border);
+}
+.help-step:last-child{
+  border-bottom:none;
+}
+.help-step-num{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:var(--accent);
+  color:white;
+  font-size:13px;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  margin-top:1px;
+}
+.help-step-content{
+  flex:1;
+}
+.help-step-title{
+  font-size:14px;
+  font-weight:600;
+  color:var(--text);
+  margin-bottom:4px;
+}
+.help-step-body{
+  font-size:13px;
+  color:var(--text2);
+  line-height:1.65;
+}
+
+.help-tip{
+  background:var(--amber-l);
+  border:1px solid var(--amber-b);
+  border-radius:var(--r);
+  padding:12px 16px;
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  margin-top:12px;
+}
+.help-tip-icon{
+  font-size:15px;
+  flex-shrink:0;
+  margin-top:1px;
+}
+.help-tip-text{
+  font-size:13px;
+  color:var(--amber-d);
+  line-height:1.6;
+}
+  
 /* TOAST */
 .toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;font-size:13px;font-weight:500;padding:10px 18px;border-radius:var(--r);z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;}
 .toast.show{opacity:1;transform:translateY(0);}
@@ -317,6 +504,7 @@ button,input,select,textarea{font-family:inherit;}
     <button class="nav-tab active" data-page="overview">Overview</button>
     <button class="nav-tab" data-page="profile">My Profile</button>
     <button class="nav-tab" data-page="meetings">Meetings</button>
+    <button class="nav-tab" data-page="help">Help & Guide</button>
   </div>
   <div class="nav-right">
     <div class="nav-source">
@@ -409,6 +597,7 @@ button,input,select,textarea{font-family:inherit;}
   <div class="page active" id="page-overview"></div>
   <div class="page" id="page-profile"></div>
   <div class="page" id="page-meetings"></div>
+  <div class="page" id="page-help"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -450,7 +639,6 @@ let sessionCount  = 0;
 let dataLoaded    = false;
 let currentPage   = 'overview';
 
-
 // Meetings 상태
 let selectedFacultyEmail  = null;
 let requestFormOpen       = false;
@@ -458,6 +646,7 @@ let selectedOtherEmail    = null;
 let meetingDuration       = 60;   // minutes
 let selectedMeetingSlots  = [];   // [{dateStr, start, end, dateLabel}]
 let editingRequestId      = null;   // ← 추가: 수정 중인 pending request ID
+let helpHeroOpen = false;
 
 // ── UTILS ──
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -479,6 +668,11 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('show'),2800);
 }
 
+function toggleHelpHero(){
+  helpHeroOpen = !helpHeroOpen;
+  renderHelp();
+}
+  
 // ── SUPABASE HELPERS ──
 function sbHeaders(extra={}){
   return {'apikey':SUPABASE_KEY,'Authorization':`Bearer ${supabaseUser?.access_token||SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=representation',...extra};
@@ -697,6 +891,7 @@ function renderCurrent(){
   if(currentPage==='overview') renderOverview();
   if(currentPage==='profile')  renderProfile();
   if(currentPage==='meetings') renderMeetings();
+  if(currentPage==='help')     renderHelp();
 }
 
 // ── OVERVIEW ──
@@ -1628,6 +1823,205 @@ async function acceptAdvisorSlot(meetingId, slotIdx) {
   }
 }
 
+function renderHelp(){
+  const el = document.getElementById('page-help');
+  if(!el) return;
+
+  el.innerHTML = `
+    <div class="help-hero">
+      <div class="help-hero-top">
+        <div class="help-hero-copy">
+          <div class="help-hero-title">Help & Guide: Telos</div>
+          <div class="help-hero-sub">
+            Telos helps you prepare for advising, request meetings, and keep track of your progress.
+            Your advisor can see your profile and meeting context to support you better.
+          </div>
+        </div>
+        <button class="help-hero-btn" onclick="toggleHelpHero()">
+          ${helpHeroOpen ? 'Read less' : 'Read more'}
+        </button>
+      </div>
+
+      <div class="help-hero-more ${helpHeroOpen ? 'open' : ''}">
+        <div class="help-hero-more-inner">
+          <p class="help-hero-p">
+            Telos is more than a scheduling tool. It is part of Taejae University’s advising model, where purpose, learning, and reflection are connected.
+          </p>
+          <p class="help-hero-p">
+            For students, Telos is the place to clarify goals, prepare for conversations with advisors, and make advising more meaningful and continuous.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">What each page does</div>
+      <div class="help-cards">
+        <div class="help-card">
+          <div class="help-card-icon blue">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect x="3" y="3" width="6" height="6" rx="1.5" fill="#185FA5"/>
+              <rect x="11" y="3" width="6" height="6" rx="1.5" fill="#185FA5" opacity=".4"/>
+              <rect x="3" y="11" width="6" height="6" rx="1.5" fill="#185FA5" opacity=".4"/>
+              <rect x="11" y="11" width="6" height="6" rx="1.5" fill="#185FA5" opacity=".4"/>
+            </svg>
+          </div>
+          <div class="help-card-title">Overview</div>
+          <div class="help-card-body">
+            A quick view of your advising progress. Check upcoming meetings, pending requests, and profile completion.
+          </div>
+        </div>
+
+        <div class="help-card">
+          <div class="help-card-icon green">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="7" r="3.5" stroke="#3B6D11" stroke-width="1.5"/>
+              <path d="M4 17c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="#3B6D11" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="help-card-title">My Profile</div>
+          <div class="help-card-body">
+            Share your goals, interests, strengths, and concerns with your advisor. Keeping this updated helps them understand you better.
+          </div>
+        </div>
+
+        <div class="help-card">
+          <div class="help-card-icon purple">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect x="3" y="5" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
+              <line x1="3" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="1.5"/>
+              <line x1="7" y1="3" x2="7" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="13" y1="3" x2="13" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="help-card-title">Meetings</div>
+          <div class="help-card-body">
+            Request meetings based on your advisor’s availability. Select time slots, add your agenda, and track confirmations.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">How meetings work</div>
+      <div class="help-steps-wrap">
+        <div class="help-steps">
+          <div class="help-step">
+            <div class="help-step-num">1</div>
+            <div class="help-step-content">
+              <div class="help-step-title">Choose who you want to meet</div>
+              <div class="help-step-body">
+                Go to Meetings and select your advisor, chair, or another professor.
+              </div>
+            </div>
+          </div>
+
+          <div class="help-step">
+            <div class="help-step-num">2</div>
+            <div class="help-step-content">
+              <div class="help-step-title">Pick available time slots</div>
+              <div class="help-step-body">
+                Select one or more time slots based on the professor’s availability. You can propose multiple options.
+              </div>
+            </div>
+          </div>
+
+          <div class="help-step">
+            <div class="help-step-num">3</div>
+            <div class="help-step-content">
+              <div class="help-step-title">Add your agenda</div>
+              <div class="help-step-body">
+                Briefly explain what you want to discuss. This helps your professor prepare for the meeting.
+              </div>
+            </div>
+          </div>
+
+          <div class="help-step">
+            <div class="help-step-num">4</div>
+            <div class="help-step-content">
+              <div class="help-step-title">Wait for confirmation</div>
+              <div class="help-step-body">
+                Your professor will confirm one of the proposed times or suggest a new one.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-tip">
+        <div class="help-tip-icon">💡</div>
+        <div class="help-tip-text">
+          Proposing two or three slots usually makes scheduling faster.
+        </div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">What happens after confirmation</div>
+      <div class="help-steps-wrap">
+        <div class="help-steps">
+          <div class="help-step">
+            <div class="help-step-num">1</div>
+            <div class="help-step-content">
+              <div class="help-step-title">Update your agenda if needed</div>
+              <div class="help-step-body">
+                You can revise your agenda before the meeting so your professor has the latest context.
+              </div>
+            </div>
+          </div>
+
+          <div class="help-step">
+            <div class="help-step-num">2</div>
+            <div class="help-step-content">
+              <div class="help-step-title">Join the meeting</div>
+              <div class="help-step-body">
+                If a Zoom link is provided, it will appear in the meeting card.
+              </div>
+            </div>
+          </div>
+
+          <div class="help-step">
+            <div class="help-step-num">3</div>
+            <div class="help-step-content">
+              <div class="help-step-title">Check your meeting history</div>
+              <div class="help-step-body">
+                After the meeting, it will move into your history so you can keep track of past advising conversations.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">Why your profile matters</div>
+      <div class="help-steps-wrap">
+        <div class="help-steps">
+          <div class="help-step">
+            <div class="help-step-num">1</div>
+            <div class="help-step-content">
+              <div class="help-step-title">It gives your advisor context</div>
+              <div class="help-step-body">
+                Your profile helps your advisor understand your goals, interests, strengths, and current concerns.
+              </div>
+            </div>
+          </div>
+
+          <div class="help-step">
+            <div class="help-step-num">2</div>
+            <div class="help-step-content">
+              <div class="help-step-title">It makes meetings more meaningful</div>
+              <div class="help-step-body">
+                When your profile is updated, advising can focus less on background and more on actual guidance.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+  
 // ── CROSS-PAGE NAV ──
 function goToProfile(){
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active',t.dataset.page==='profile'));
