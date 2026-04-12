@@ -1231,8 +1231,8 @@ async function confirmMeetingRequest(meetingId) {
     await sbUpdate(TBL_MEETING, 'id', meetingId, {
       advisor_confirmed: true,
       meeting_date:      chosenSlot.dateStr,
-      confirmed_start_time: chosenSlot.start + ':00',  // ← 추가
-      confirmed_end_time:   chosenSlot.end   + ':00',  // ← 추가
+      confirmed_start_time: chosenSlot.start ? chosenSlot.start + ':00' : null,
+      confirmed_end_time:   chosenSlot.end   ? chosenSlot.end   + ':00' : null,
       status:            'scheduled',
       ...(meetingLink ? { meeting_link: meetingLink } : {}),
     });
