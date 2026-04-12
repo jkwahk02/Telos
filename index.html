@@ -1013,6 +1013,7 @@ async function insertSession(row) {
   const dbRow = {
     log_id:                row.logId,
     meeting_date:          row.date,
+    meeting_time: row.meetingTime || null,
     faculty_email:         FACULTY_EMAIL,     // ← email로 변경
     student_id:            row.studentId,
     student_name:          row.studentName,
@@ -1982,7 +1983,8 @@ async function saveSession(studId){
   if(!disc){showToast('Discussion summary is required.');return;}
 
   const st=students.find(s=>s.id===studId);
-  const date=document.getElementById('ns-date')?.value||new Date().toISOString().split('T')[0];
+  const date     = document.getElementById('ns-date')?.value || new Date().toISOString().split('T')[0];
+  const meetTime = document.getElementById('ns-time')?.value || '';
   const type=document.getElementById('ns-type')?.value||'Regular';
   const format=document.getElementById('ns-format')?.value||'Zoom';
   const conc=document.getElementById('ns-conc')?.value.trim()||'';
@@ -2001,7 +2003,10 @@ async function saveSession(studId){
   const logId = `LOG-${String(nextNum).padStart(3,'0')}`;
 
   // Optimistic local update first
-  const newSess = {logId,date,faculty:FACULTY_EMAIL,studentId:studId,studentName:st?.name||'',
+  const newSess = {
+    logId,date,
+    meetingTime: meetTime,   // ← 추가
+    faculty:FACULTY_EMAIL,studentId:studId,studentName:st?.name||'',
     type,format,disc,conc,advice,studentAction,followUp,majorChangeNote,
     mainTopic:selTopics.join(', ')};
   sessions.push(newSess);
