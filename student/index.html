@@ -1194,9 +1194,14 @@ function renderOverview(){
   </div>` : '';
 
   // ── Advisor cards ──
+  const schoolChair = allFaculty.find(f=>f.is_chair && f.school===s.school);
+  const chairExtra = schoolChair &&
+    schoolChair.email !== s.advisor1_email &&
+    schoolChair.email !== s.advisor2_email ? schoolChair : null;
   const myAdvisors = [
     allFaculty.find(f=>f.email===s.advisor1_email),
     allFaculty.find(f=>f.email===s.advisor2_email),
+    chairExtra,
   ].filter(Boolean);
   // const canRequest = profileDone; 
   // const canRequest = pct > 0;
@@ -1518,9 +1523,9 @@ function renderMeetings(){
   // Advisor cards
   const adv1=allFaculty.find(f=>f.email===s.advisor1_email);
   const adv2=allFaculty.find(f=>f.email===s.advisor2_email);
-  const chair=allFaculty.find(f=>f.is_chair);
-  const chairSeparate=chair&&chair.email!==s.advisor1_email&&chair.email!==s.advisor2_email;
-  const cards=[adv1,adv2,chairSeparate?chair:null].filter(Boolean);
+  const chair = allFaculty.find(f=>f.is_chair && f.school === s.school);
+  const chairSeparate = chair && chair.email !== s.advisor1_email && chair.email !== s.advisor2_email;
+  const cards = [adv1, adv2, chairSeparate ? chair : null].filter(Boolean);
   // 선택된 other professor가 있으면 카드 수 +1 (선택 카드 + + 카드)
   const extraCols=selectedOtherEmail?2:1;
   const cols=Math.min(5,cards.length+extraCols);
