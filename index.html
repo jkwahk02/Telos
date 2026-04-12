@@ -995,6 +995,8 @@ function mapMeeting(r) {
       : (typeof r.proposed_slots === 'string'
           ? JSON.parse(r.proposed_slots || '[]')
           : []),
+    confirmedStart: r.confirmed_start_time?.slice(0,5) || '',
+    confirmedEnd:   r.confirmed_end_time?.slice(0,5)   || '',
     status:           r.status || 'scheduled',
     advisorConfirmed: r.advisor_confirmed || false,
     studentAgenda:    r.student_agenda || '',
@@ -1229,6 +1231,8 @@ async function confirmMeetingRequest(meetingId) {
     await sbUpdate(TBL_MEETING, 'id', meetingId, {
       advisor_confirmed: true,
       meeting_date:      chosenSlot.dateStr,
+      confirmed_start_time: chosenSlot.start + ':00',  // ← 추가
+      confirmed_end_time:   chosenSlot.end   + ':00',  // ← 추가
       status:            'scheduled',
       ...(meetingLink ? { meeting_link: meetingLink } : {}),
     });
@@ -1242,8 +1246,6 @@ async function confirmMeetingRequest(meetingId) {
     showToast(`Confirm failed: ${e.message}`);
   }
 }
-
-// 기존 declineMeetingRequest 삭제하고 아래로 교체
 
 async function rescheduleMeetingRequest(meetingId) {
   if (!confirm('Ask this student to propose a different time?')) return;
@@ -2992,7 +2994,7 @@ function renderMeetings() {
       <div class="stat-card"><div class="stat-val text-muted">${past.filter(m=>m.status==='cancelled').length}</div><div class="stat-lbl">No-show / cancelled</div></div>
     </div>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:12px;">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:12px;">
       <div style="display:flex;gap:5px;" id="mtg-filter-chips">
         <button class="fchip active" onclick="filterMeetings('all',this)">All <span style="color:var(--text3);">(${counts.all})</span></button>
         <button class="fchip" onclick="filterMeetings('upcoming',this)">Upcoming <span style="color:var(--text3);">(${counts.upcoming})</span></button>
@@ -3009,6 +3011,28 @@ function renderMeetings() {
       <div id="mtg-rows-upcoming">${buildRows(upcoming,'upcoming')}</div>
       <div id="mtg-rows-pending">${buildRows(pending,'pending')}</div>
       <div id="mtg-rows-past" style="opacity:.7;">${buildRows(past,'past')}</div>
+    </div>
+
+    <div id="mtg-cal-wrap" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);">
+        <span style="font-size:17px;font-weight:600;" id="cal-month-label"></span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-cls" onclick="moveCal(-1)">‹</button>
+          <button class="fchip" onclick="moveCal(0)" style="padding:2px 10px;">Today</button>
+          <button class="btn-cls" onclick="moveCal(1)">›</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);">
+        ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`
+          <div style="font-size:11px;font-weight:600;color:var(--text3);text-align:center;padding:7px 0;text-transform:uppercase;letter-spacing:.05em;">${d}</div>
+        `).join('')}
+      </div>
+      <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);"></div>
+      <div style="display:flex;align-items:center;gap:14px;padding:8px 16px;border-top:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);"><div style="width:10px;height:10px;border-radius:2px;background:var(--green-l);border:1px solid var(--green-b);"></div>Confirmed</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);"><div style="width:10px;height:10px;border-radius:2px;background:var(--amber-l);border:1px solid var(--amber-b);"></div>Pending</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);"><div style="width:10px;height:10px;border-radius:2px;background:var(--gray-l);border:1px solid var(--border-em);"></div>Completed</div>
+      </div>
     </div>`;
 }
 
@@ -3019,6 +3043,118 @@ function filterMeetings(f, btn) {
     const el = document.getElementById('mtg-rows-'+cat);
     if (el) el.style.display = (f==='all'||f===cat) ? 'block' : 'none';
   });
+}
+
+// 현재 캘린더 연월 상태
+let calYear  = new Date().getFullYear();
+let calMonth = new Date().getMonth(); // 0-indexed
+let calFilter = 'all';
+
+function switchMeetingView(v, btn) {
+  document.querySelectorAll('#mtg-view-tabs .fchip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('mtg-list-wrap').style.display = v==='list' ? 'block' : 'none';
+  document.getElementById('mtg-cal-wrap').style.display  = v==='cal'  ? 'block' : 'none';
+  if (v==='cal') buildCalendar();
+}
+
+function moveCal(dir) {
+  if (dir === 0) { calYear = new Date().getFullYear(); calMonth = new Date().getMonth(); }
+  else { calMonth += dir; if (calMonth > 11) { calMonth=0; calYear++; } else if (calMonth < 0) { calMonth=11; calYear--; } }
+  buildCalendar();
+}
+
+function buildCalendar() {
+  const grid  = document.getElementById('cal-grid');
+  const label = document.getElementById('cal-month-label');
+  if (!grid || !label) return;
+
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  label.textContent = `${monthNames[calMonth]} ${calYear}`;
+
+  // 해당 월 미팅 필터링
+  const allMtg = meetings.filter(m => m.facultyEmail === FACULTY_EMAIL);
+  const upcoming = allMtg.filter(m => m.advisorConfirmed && m.status==='scheduled');
+  const pending  = allMtg.filter(m => !m.advisorConfirmed && m.status==='scheduled');
+  const past     = allMtg.filter(m => m.status==='completed'||m.status==='cancelled');
+
+  function getEventsForDay(day) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const evs = [];
+    if (calFilter==='all'||calFilter==='upcoming')
+      upcoming.filter(m=>m.meetingDate===dateStr).forEach(m=>evs.push({m,cat:'upcoming'}));
+    if (calFilter==='all'||calFilter==='pending')
+      pending.filter(m=>m.meetingDate===dateStr).forEach(m=>evs.push({m,cat:'pending'}));
+    if (calFilter==='all'||calFilter==='past')
+      past.filter(m=>m.meetingDate===dateStr).forEach(m=>evs.push({m,cat:'past'}));
+    return evs;
+  }
+
+  const firstDay  = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayStr = today.toISOString().slice(0,10);
+
+  let html = '';
+
+  // 이전 달 빈 칸
+  const prevDays = new Date(calYear, calMonth, 0).getDate();
+  for (let i = firstDay-1; i >= 0; i--) {
+    html += `<div style="min-height:80px;padding:5px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);opacity:.3;">
+      <div style="font-size:12px;color:var(--text3);">${prevDays-i}</div>
+    </div>`;
+  }
+
+  // 이번 달
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isToday = dateStr === todayStr;
+    const evs = getEventsForDay(day);
+
+    const evHtml = evs.map(({m, cat}) => {
+      const st = students.find(s => s.id === m.studentId);
+      const name = st?.name?.split(' ').slice(-1)[0] || m.studentId; // 성만
+      const time = m.confirmedStart || (m.proposedSlots?.[0]?.start) || '';
+      const bg   = cat==='upcoming'?'var(--green-l)':cat==='pending'?'var(--amber-l)':'var(--gray-l)';
+      const border = cat==='upcoming'?'var(--green-b)':cat==='pending'?'var(--amber-b)':'var(--border-em)';
+      const color  = cat==='upcoming'?'var(--green)':cat==='pending'?'var(--amber)':'var(--text3)';
+      const clickFn = cat==='pending' ? `goToOverviewPending()` : `goToStudent('${m.studentId}')`;
+      return `<div onclick="event.stopPropagation();${clickFn}"
+        style="font-size:11px;padding:2px 5px;border-radius:3px;margin-bottom:2px;background:${bg};border:1px solid ${border};color:${color};cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        ${time?time+' ':''}${esc(name)}
+      </div>`;
+    }).join('');
+
+    html += `<div style="min-height:80px;padding:5px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:${isToday?'var(--blue-l)':'var(--surface)'};cursor:pointer;"
+      onclick="switchMeetingView('list',document.querySelector('#mtg-view-tabs .fchip'))">
+      <div style="font-size:12px;font-weight:${isToday?'600':'400'};color:${isToday?'var(--blue)':'var(--text2)'};margin-bottom:3px;">${day}</div>
+      ${evHtml}
+    </div>`;
+  }
+
+  // 다음 달 빈 칸
+  const total = firstDay + daysInMonth;
+  const remaining = (7 - total%7) % 7;
+  for (let i = 1; i <= remaining; i++) {
+    html += `<div style="min-height:80px;padding:5px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);opacity:.3;">
+      <div style="font-size:12px;color:var(--text3);">${i}</div>
+    </div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+function filterMeetings(f, btn) {
+  calFilter = f;
+  document.querySelectorAll('#mtg-filter-chips .fchip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  // list view
+  ['upcoming','pending','past'].forEach(cat => {
+    const el = document.getElementById('mtg-rows-'+cat);
+    if (el) el.style.display = (f==='all'||f===cat) ? 'block' : 'none';
+  });
+  // calendar view (열려있으면 재렌더)
+  if (document.getElementById('mtg-cal-wrap')?.style.display !== 'none') buildCalendar();
 }
   
 function goToStudent(id){
