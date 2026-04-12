@@ -1013,6 +1013,22 @@ function renderOverview(){
   const rescheduling  = scheduledMeetings.filter(m=>m.status==='rescheduling');
   const pct=calcProfilePct(s);
 
+  const reschedulingHtml = rescheduling.length ? rescheduling.map(m=>{
+  const fac=allFaculty.find(f=>f.email===m.faculty_email);
+  return `<div class="card" style="margin-bottom:10px;border-color:var(--amber-b);">
+    <div class="card-hd" style="background:var(--amber-l);">
+      <div>
+        <div class="card-title" style="color:#633806;">Reschedule needed — ${esc(fac?.name_en||m.faculty_email)}</div>
+        <div class="card-sub">Your advisor couldn't find a suitable time. Please propose new slots.</div>
+      </div>
+      <span class="bdg bdg-amber">Action needed</span>
+    </div>
+    <div class="card-body">
+      <button class="btn-sm-teal" onclick="goToMeetings()">Propose new time →</button>
+    </div>
+  </div>`;
+}).join('') : '';
+
   // Stat cards
   const nextDateStr=confirmed.length?new Date(confirmed[0].meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
   const pendingCount=pending.length+rescheduling.length;
@@ -1040,25 +1056,6 @@ function renderOverview(){
       </div>
     </div>`;
   }).join(''):'' ;
-
-// rescheduling 필터 (confirmed/pending과 같은 위치에)
-const rescheduling = scheduledMeetings.filter(m=>m.status==='rescheduling');
-
-const reschedulingHtml = rescheduling.length ? rescheduling.map(m=>{
-  const fac=allFaculty.find(f=>f.email===m.faculty_email);
-  return `<div class="card" style="margin-bottom:10px;border-color:var(--amber-b);">
-    <div class="card-hd" style="background:var(--amber-l);">
-      <div>
-        <div class="card-title" style="color:#633806;">Reschedule needed — ${esc(fac?.name_en||m.faculty_email)}</div>
-        <div class="card-sub">Your advisor couldn't find a suitable time. Please propose new slots.</div>
-      </div>
-      <span class="bdg bdg-amber">Action needed</span>
-    </div>
-    <div class="card-body">
-      <button class="btn-sm-teal" onclick="goToMeetings()">Propose new time →</button>
-    </div>
-  </div>`;
-}).join('') : '';
   
   // Pending badge
 const pendingHtml=pending.length?`<div class="card accent-blue">
