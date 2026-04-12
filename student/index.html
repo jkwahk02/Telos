@@ -1198,7 +1198,9 @@ function renderOverview(){
     allFaculty.find(f=>f.email===s.advisor1_email),
     allFaculty.find(f=>f.email===s.advisor2_email),
   ].filter(Boolean);
-  const canRequest = profileDone;
+  // const canRequest = profileDone; 
+  // const canRequest = pct > 0;
+  const canRequest = true;
 
   const advHtml = myAdvisors.length ? `
     <div style="margin-bottom:10px;">
