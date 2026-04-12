@@ -1225,7 +1225,7 @@ function renderOverview(){
               <div class="ov-adv-school">${esc(f.school||'')}</div>
             </div>
             <button class="ov-adv-btn ${canRequest?'':'disabled'}"
-              onclick="openRequestForm('${f.email}')">
+              onclick="goToMeetings();openRequestForm('${f.email}')">
               Request meeting →
             </button>
           </div>
