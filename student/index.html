@@ -587,7 +587,39 @@ button,input,select,textarea{font-family:inherit;}
 .slog-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
 .btn-edit-slog{font-size:11px;padding:2px 9px;border-radius:var(--r);border:1px solid var(--border-em);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .12s;}
 .btn-edit-slog:hover{background:var(--surface2);}
-
+.welcome-banner{background:var(--teal-l);border:1px solid var(--teal-b);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.welcome-name{font-size:15px;font-weight:600;color:#085041;margin-bottom:2px;}
+.welcome-sub{font-size:12px;color:var(--teal);line-height:1.5;}
+.welcome-av{width:36px;height:36px;border-radius:50%;background:var(--teal-b);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#085041;flex-shrink:0;}
+.gs-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:10px;}
+.gs-hd{padding:9px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+.gs-hd:hover{background:var(--surface2);}
+.gs-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);}
+.gs-pct{font-size:11px;color:var(--teal);font-weight:500;}
+.gs-body{overflow:hidden;max-height:0;transition:max-height .28s ease;}
+.gs-body.open{max-height:500px;}
+.gs-step{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);}
+.gs-step:last-child{border-bottom:none;}
+.gs-num{width:20px;height:20px;border-radius:50%;background:var(--surface2);border:1px solid var(--border-em);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--text3);flex-shrink:0;margin-top:1px;}
+.gs-num.done{background:var(--teal);border-color:var(--teal);color:#fff;}
+.gs-num.active{background:var(--teal-l);border-color:var(--teal-b);color:var(--teal);}
+.gs-step-title{font-size:12px;font-weight:500;margin-bottom:2px;}
+.gs-step-title.done{color:var(--text3);text-decoration:line-through;font-weight:400;}
+.gs-step-title.active{color:#085041;}
+.gs-step-title.todo{color:var(--text3);}
+.gs-step-desc{font-size:11px;color:var(--text2);line-height:1.5;}
+.gs-step-desc.todo{color:var(--text3);}
+.ov-adv-card{background:var(--surface);border:1.5px solid var(--teal-b);border-radius:var(--r-lg);overflow:hidden;margin-bottom:8px;}
+.ov-adv-hd{padding:6px 12px;background:var(--teal-l);border-bottom:1px solid var(--teal-b);display:flex;align-items:center;justify-content:space-between;}
+.ov-adv-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--teal);}
+.ov-adv-body{padding:10px 12px;display:flex;align-items:center;gap:10px;}
+.ov-adv-av{width:32px;height:32px;border-radius:50%;background:var(--teal-l);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#085041;flex-shrink:0;}
+.ov-adv-name{font-size:13px;font-weight:500;}
+.ov-adv-school{font-size:11px;color:var(--text2);}
+.ov-adv-btn{margin-left:auto;font-size:11px;padding:5px 12px;border-radius:var(--r);border:1.5px solid var(--teal-b);background:var(--teal-l);color:#085041;cursor:pointer;font-family:inherit;font-weight:500;white-space:nowrap;transition:all .12s;}
+.ov-adv-btn:hover{background:var(--teal);color:#fff;border-color:var(--teal);}
+.ov-adv-btn.disabled{opacity:.35;cursor:default;pointer-events:none;}
+.ov-adv-section-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px;padding:0 2px;}
 </style>
 </head>
 <body>
@@ -1006,42 +1038,102 @@ function renderCurrent(){
 
 // ── OVERVIEW ──
 function renderOverview(){
-  const s=studentData;
-// 확인 필요
-  const confirmed = scheduledMeetings.filter(m=>m.advisor_confirmed && m.status==='scheduled');
-  const pending   = scheduledMeetings.filter(m=>!m.advisor_confirmed && m.status==='scheduled');
-  const rescheduling  = scheduledMeetings.filter(m=>m.status==='rescheduling');
-  const pct=calcProfilePct(s);
+  const s = studentData;
+  const confirmed    = scheduledMeetings.filter(m=>m.advisor_confirmed && m.status==='scheduled');
+  const pending      = scheduledMeetings.filter(m=>!m.advisor_confirmed && m.status==='scheduled');
+  const rescheduling = scheduledMeetings.filter(m=>m.status==='rescheduling');
+  const pct          = calcProfilePct(s);
 
-  const reschedulingHtml = rescheduling.length ? rescheduling.map(m=>{
-  const fac=allFaculty.find(f=>f.email===m.faculty_email);
-  return `<div class="card" style="margin-bottom:10px;border-color:var(--amber-b);">
-    <div class="card-hd" style="background:var(--amber-l);">
-      <div>
-        <div class="card-title" style="color:#633806;">Reschedule needed — ${esc(fac?.name_en||m.faculty_email)}</div>
-        <div class="card-sub">Your advisor couldn't find a suitable time. Please propose new slots.</div>
-      </div>
-      <span class="bdg bdg-amber">Action needed</span>
-    </div>
-    <div class="card-body">
-      <button class="btn-sm-teal" onclick="goToMeetings()">View in Meetings →</button>
-    </div>
-  </div>`;
-}).join('') : '';
-
-  // Stat cards
-  const nextDateStr=confirmed.length?new Date(confirmed[0].meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
-  const pendingCount=pending.length+rescheduling.length;
-  const statHtml=`
+  // ── Stat cards ──
+  const nextDateStr  = confirmed.length ? new Date(confirmed[0].meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '—';
+  const pendingCount = pending.length + rescheduling.length;
+  const statHtml = `
     <div class="stat-row">
       <div class="stat-card"><div class="stat-val" style="color:var(--accent)">${sessionCount}</div><div class="stat-lbl">Meetings completed</div></div>
-        <div class="stat-card"><div class="stat-val" style="color:${confirmed.length?'var(--text)':'var(--text3)'}">${nextDateStr}</div><div class="stat-lbl">Next meeting</div></div>
-        <div class="stat-card"><div class="stat-val" style="color:${pendingCount>0?'var(--amber)':'var(--text3)'}">${pendingCount}</div><div class="stat-lbl">Pending requests</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:${confirmed.length?'var(--text)':'var(--text3)'}">${nextDateStr}</div><div class="stat-lbl">Next meeting</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:${pendingCount>0?'var(--amber)':'var(--text3)'}">${pendingCount}</div><div class="stat-lbl">Pending requests</div></div>
     </div>`;
 
-  // Next meeting card
-  const nextHtml=confirmed.length?confirmed.map(m=>{
-    const fac=allFaculty.find(f=>f.email===m.faculty_email);
+  // ── Welcome banner ──
+  const initials = (s.name_en||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const welcomeHtml = `
+    <div class="welcome-banner">
+      <div>
+        <div class="welcome-name">Welcome, ${esc(s.name_en||'')}</div>
+        <div class="welcome-sub">${esc(s.school||'')} · ${esc(s.cohort||'')} · Taejae University</div>
+      </div>
+      <div class="welcome-av">${initials}</div>
+    </div>`;
+
+  // ── Getting started ──
+  const profileDone  = pct === 100;
+  const meetingDone  = sessionCount > 0;
+  const reflDone     = allMeetings.filter(m=>m.status==='completed'&&m.student_log?.reflection).length > 0;
+  const allStepsDone = profileDone && meetingDone && reflDone;
+  const doneCount    = [profileDone, meetingDone, reflDone].filter(Boolean).length;
+
+  const gsSteps = [
+    {
+      title: 'Complete your profile',
+      desc:  'Add your career goals, research interests, and strengths so your advisor can prepare.',
+      done:  profileDone,
+      active: !profileDone,
+      btn:   !profileDone ? `<button class="btn-sm-teal" onclick="goToProfile()" style="margin-top:6px;">Go to My Profile →</button>` : '',
+    },
+    {
+      title: 'Request your first meeting',
+      desc:  'Propose a time with your advisor from the Meetings tab.',
+      done:  meetingDone,
+      active: profileDone && !meetingDone,
+      btn:   profileDone && !meetingDone ? `<button class="btn-sm-teal" onclick="goToMeetings()" style="margin-top:6px;">Go to Meetings →</button>` : '',
+    },
+    {
+      title: 'Write a reflection',
+      desc:  'After your first meeting, record what you took away and your next steps.',
+      done:  reflDone,
+      active: meetingDone && !reflDone,
+      btn:   meetingDone && !reflDone ? `<button class="btn-sm-teal" onclick="goToMeetings()" style="margin-top:6px;">Go to Meetings →</button>` : '',
+    },
+  ];
+
+  const gsStepsHtml = gsSteps.map((st,i) => {
+    const numCls = st.done ? 'done' : st.active ? 'active' : '';
+    const titleCls = st.done ? 'done' : st.active ? 'active' : 'todo';
+    const descCls  = st.done || st.active ? '' : 'todo';
+    return `<div class="gs-step">
+      <div class="gs-num ${numCls}">${st.done ? '✓' : i+1}</div>
+      <div style="flex:1;">
+        <div class="gs-step-title ${titleCls}">${st.title}</div>
+        ${!st.done ? `<div class="gs-step-desc ${descCls}">${st.desc}</div>` : ''}
+        ${st.btn||''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const gsSummary = allStepsDone
+    ? `<div style="padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--teal);">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,8 6,12 14,4"/></svg>
+        All steps complete — keep up the momentum!
+       </div>`
+    : `<div class="gs-body open" id="gs-body">${gsStepsHtml}</div>`;
+
+  const gsHtml = `
+    <div class="gs-card">
+      <div class="gs-hd" onclick="toggleGs()">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="gs-title">Getting started</span>
+          <span class="gs-pct">${doneCount} of 3 done</span>
+        </div>
+        <span id="gs-chev" style="font-size:11px;color:var(--text3);transition:transform .2s;">▾</span>
+      </div>
+      ${allStepsDone
+        ? gsSummary
+        : `<div class="gs-body open" id="gs-body">${gsStepsHtml}</div>`}
+    </div>`;
+
+  // ── Upcoming meetings ──
+  const nextHtml = confirmed.length ? confirmed.map(m=>{
+    const fac = allFaculty.find(f=>f.email===m.faculty_email);
     return `<div class="card accent-teal" style="margin-bottom:10px;">
       <div class="card-hd teal-bg">
         <div><div class="card-title" style="color:#085041;">Upcoming meeting</div>
@@ -1055,110 +1147,128 @@ function renderOverview(){
         <button class="btn-sm-teal" style="margin-top:${m.student_agenda?'8':'0'}px;width:fit-content;" onclick="goToMeetings()">View in Meetings →</button>
       </div>
     </div>`;
-  }).join(''):'' ;
-  
-  // Pending badge
-const pendingHtml=pending.length?`<div class="card accent-blue">
-  <div class="card-hd blue-bg">
-    <div><div class="card-title" style="color:#0C447C;">${pending.length} pending request${pending.length>1?'s':''}</div>
-    <div class="card-sub">Waiting for advisor confirmation</div></div>
-    <span class="bdg bdg-blue">Pending</span>
-  </div>
-  ${pending.map(m=>{
-    const fac=allFaculty.find(f=>f.email===m.faculty_email);
-    const slots=m.proposed_slots?(typeof m.proposed_slots==='string'?JSON.parse(m.proposed_slots):m.proposed_slots):[];
-    const isAdvProposed=m.created_by==='advisor';
-    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:0.5px solid var(--border);">
-      <div class="ov-dot ${isAdvProposed?'dot-amber':'dot-blue'}" style="width:6px;height:6px;border-radius:50%;flex-shrink:0;background:${isAdvProposed?'var(--amber-b)':'var(--blue-m)'};"></div>
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:500;">${esc(fac?.name_en||m.faculty_email)}</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:1px;">
-          ${isAdvProposed?'Advisor proposed new times — action needed':slots.length?`${slots.length} slot${slots.length>1?'s':''} proposed · ${m.meeting_duration||60} min`:'No slots proposed'}
+  }).join('') : '';
+
+  // ── Rescheduling ──
+  const reschedulingHtml = rescheduling.length ? rescheduling.map(m=>{
+    const fac = allFaculty.find(f=>f.email===m.faculty_email);
+    return `<div class="card" style="margin-bottom:10px;border-color:var(--amber-b);">
+      <div class="card-hd" style="background:var(--amber-l);">
+        <div>
+          <div class="card-title" style="color:#633806;">Reschedule needed — ${esc(fac?.name_en||m.faculty_email)}</div>
+          <div class="card-sub">Your advisor couldn't find a suitable time. Please propose new slots.</div>
         </div>
+        <span class="bdg bdg-amber">Action needed</span>
       </div>
-      <span class="bdg ${isAdvProposed?'bdg-amber':'bdg-blue'}">${isAdvProposed?'Action needed':'Awaiting'}</span>
+      <div class="card-body">
+        <button class="btn-sm-teal" onclick="goToMeetings()">View in Meetings →</button>
+      </div>
     </div>`;
-  }).join('')}
-  <div class="card-foot" style="padding:9px 14px;background:var(--surface2);border-top:1px solid var(--border);display:flex;justify-content:flex-end;">
-    <button class="btn-sm-teal" onclick="goToMeetings()">View in Meetings →</button>
-  </div>
-</div>`:'' ;
+  }).join('') : '';
 
-  // Profile completion
-  const fields=PROFILE_FIELDS;
-  const stepHtml=fields.map((f,i)=>{
-    const filled=isFilled(s,f);
-    const isActive=!filled&&fields.slice(0,i).every(pf=>isFilled(s,pf));
-    const cls=filled?'sd-done':isActive?'sd-active':'sd-todo';
-    const lCls=filled?'done':isActive?'active':'';
-    return `<div class="step-item">
-      <div class="step-dot ${cls}">${filled?'✓':i+1}</div>
-      <div class="step-lbl ${lCls}">${f.label}</div>
-    </div>`;
-  }).join('');
+  // ── Pending ──
+  const pendingHtml = pending.length ? `<div class="card accent-blue">
+    <div class="card-hd blue-bg">
+      <div><div class="card-title" style="color:#0C447C;">${pending.length} pending request${pending.length>1?'s':''}</div>
+      <div class="card-sub">Waiting for advisor confirmation</div></div>
+      <span class="bdg bdg-blue">Pending</span>
+    </div>
+    ${pending.map(m=>{
+      const fac = allFaculty.find(f=>f.email===m.faculty_email);
+      const slots = m.proposed_slots?(typeof m.proposed_slots==='string'?JSON.parse(m.proposed_slots):m.proposed_slots):[];
+      const isAdvProposed = m.created_by==='advisor';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:0.5px solid var(--border);">
+        <div style="width:6px;height:6px;border-radius:50%;flex-shrink:0;background:${isAdvProposed?'var(--amber-b)':'var(--blue-m)'};"></div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:500;">${esc(fac?.name_en||m.faculty_email)}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:1px;">
+            ${isAdvProposed?'Advisor proposed new times — action needed':slots.length?`${slots.length} slot${slots.length>1?'s':''} proposed · ${m.meeting_duration||60} min`:'No slots proposed'}
+          </div>
+        </div>
+        <span class="bdg ${isAdvProposed?'bdg-amber':'bdg-blue'}">${isAdvProposed?'Action needed':'Awaiting'}</span>
+      </div>`;
+    }).join('')}
+    <div class="card-foot" style="padding:9px 14px;background:var(--surface2);border-top:1px solid var(--border);display:flex;justify-content:flex-end;">
+      <button class="btn-sm-teal" onclick="goToMeetings()">View in Meetings →</button>
+    </div>
+  </div>` : '';
 
-  const profHtml=`<div class="card">
-    <div class="card-hd">
-      <div class="card-title">Profile completion</div>
-      <span class="bdg ${pct===100?'bdg-teal':'bdg-gray'}">${fields.filter(f=>isFilled(s,f)).length} of ${fields.length}</span>
-    </div>
-    <div class="card-body">
-      <div class="prog-top"><span class="prog-lbl">${pct}% complete</span><span class="prog-pct">${pct}%</span></div>
-      <div class="prog-track"><div class="prog-fill" style="width:${pct}%;"></div></div>
-      <div class="step-grid">${stepHtml}</div>
-    </div>
-    <div class="card-foot">
-      <span style="font-size:12px;color:var(--text3);">Visible to your advisor</span>
-      <button class="btn-sm-teal" onclick="goToProfile()">Complete profile →</button>
-    </div>
-  </div>`;
+  // ── Advisor cards ──
+  const myAdvisors = [
+    allFaculty.find(f=>f.email===s.advisor1_email),
+    allFaculty.find(f=>f.email===s.advisor2_email),
+  ].filter(Boolean);
+  const canRequest = profileDone;
 
-  // Recent history
-  const recent = allMeetings.filter(m => m.status === 'completed').slice(0, 3);
-  
+  const advHtml = myAdvisors.length ? `
+    <div style="margin-bottom:10px;">
+      <div class="ov-adv-section-lbl">Your advisors</div>
+      ${myAdvisors.map(f=>{
+        const isChair = f.is_chair;
+        const initials = (f.name_en||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        return `<div class="ov-adv-card">
+          <div class="ov-adv-hd">
+            <span class="ov-adv-lbl">Advisor</span>
+            ${isChair?`<span class="bdg bdg-teal" style="font-size:10px;">Chair</span>`:''}
+          </div>
+          <div class="ov-adv-body">
+            <div class="ov-adv-av">${initials}</div>
+            <div style="flex:1;min-width:0;">
+              <div class="ov-adv-name">${esc(f.name_en)}</div>
+              <div class="ov-adv-school">${esc(f.school||'')}</div>
+            </div>
+            <button class="ov-adv-btn ${canRequest?'':'disabled'}"
+              onclick="openRequestForm('${f.email}')">
+              Request meeting →
+            </button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  // ── Recent history ──
+  const recent = allMeetings.filter(m=>m.status==='completed').slice(0,3);
   const histHtml = recent.length ? `
     <div class="card">
-      <div class="card-hd">
-        <div class="card-title">Recent meetings</div>
-      </div>
+      <div class="card-hd"><div class="card-title">Recent meetings</div></div>
       <div class="card-body" style="padding:10px 16px;">
         <div class="meeting-stack">
           ${recent.map(m=>{
             const fac = allFaculty.find(f=>f.email===m.faculty_email);
-            const reflection = m.student_log?.reflection || '';
-            return `
-              <div class="hist-card" onclick="openMeetingHistoryFromOverview(${m.id})" style="cursor:pointer;">
-                <div class="hist-card-sum">
-                  <div class="hist-date-badge">
-                    <div class="hist-date-mon">${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short'})}</div>
-                    <div class="hist-date-day">${new Date(m.meeting_date+'T00:00:00').getDate()}</div>
-                  </div>
-  
-                  <div class="hist-main">
-                    <div class="hist-main-title">
-                      ${esc(fac?.name_en||m.faculty_email)} · ${esc(m.meeting_format||'Zoom')} · Completed
-                    </div>
-                    <div class="hist-main-sub">
-                      ${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long', year:'numeric', month:'long', day:'numeric'})}
-                    </div>
-                  </div>
-  
-                  <div class="hist-chevron">→</div>
+            return `<div class="hist-card" onclick="openMeetingHistoryFromOverview(${m.id})" style="cursor:pointer;">
+              <div class="hist-card-sum">
+                <div class="hist-date-badge">
+                  <div class="hist-date-mon">${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{month:'short'})}</div>
+                  <div class="hist-date-day">${new Date(m.meeting_date+'T00:00:00').getDate()}</div>
                 </div>
+                <div class="hist-main">
+                  <div class="hist-main-title">${esc(fac?.name_en||m.faculty_email)} · ${esc(m.meeting_format||'Zoom')} · Completed</div>
+                  <div class="hist-main-sub">${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+                </div>
+                <div class="hist-chevron">→</div>
               </div>
-            `;
+            </div>`;
           }).join('')}
         </div>
       </div>
       <div class="card-foot" style="padding:9px 14px;background:var(--surface2);border-top:1px solid var(--border);display:flex;justify-content:flex-end;">
         <button class="btn-sm-teal" onclick="goToMeetings()">View in Meetings →</button>
       </div>
-    </div>
-  ` : '';
-    
-  document.getElementById('page-overview').innerHTML=statHtml+nextHtml+reschedulingHtml+pendingHtml+profHtml+histHtml;
+    </div>` : '';
+
+  document.getElementById('page-overview').innerHTML =
+    statHtml + welcomeHtml + gsHtml + nextHtml + reschedulingHtml + pendingHtml + advHtml + histHtml;
 }
 
+function toggleGs(){
+  const body = document.getElementById('gs-body');
+  const chev = document.getElementById('gs-chev');
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (chev) chev.style.transform = isOpen ? 'rotate(-90deg)' : '';
+}
+  
 function openMeetingHistoryFromOverview(meetingId){
   focusHistoryMeetingId = meetingId;
   openHistoryMeetingId = meetingId; // 이미 사용 중인 변수
