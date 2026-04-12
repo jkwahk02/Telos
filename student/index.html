@@ -1439,14 +1439,18 @@ async function saveStudentLog(meetingId) {
       existing.next_step    = nextStep;
     } else {
       // INSERT
+      const newLogId = `SL-${studentData.id}-${meetingId}`;
       const inserted = await sbInsert(TBL_STUDENT_LOG, {
-        student_id:   studentData.id,
-        meeting_id:   meetingId,
+        student_log_id: newLogId,
+        student_id:     studentData.id,
+        meeting_id:     meetingId,
         reflection,
-        key_takeaway: takeaway,
-        next_step:    nextStep,
+        key_takeaway:   takeaway,
+        next_step:      nextStep,
       });
-      if (m) m.student_log = inserted?.[0] || { reflection, key_takeaway: takeaway, next_step: nextStep };
+      if (m) m.student_log = inserted?.[0] || {
+        student_log_id: newLogId, reflection, key_takeaway: takeaway, next_step: nextStep,
+      };
     }
     if (status) { status.textContent='Saved ✓'; setTimeout(()=>{ status.textContent=''; },2500); }
     if (btn)    { btn.textContent = existing ? 'Save changes' : 'Save reflection'; btn.disabled=false; }
