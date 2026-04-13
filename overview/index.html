@@ -1,1 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telos — Platform Overview</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+:root {
+  --blue: #185FA5; --blue-l: #E6F1FB; --blue-m: #378ADD; --blue-b: #B5D4F4; --blue-d: #0C447C;
+  --teal: #0F6E56; --teal-l: #E1F5EE; --teal-b: #9FE1CB; --teal-m: #1D9E75; --teal-d: #085041;
+  --green: #3B6D11; --green-l: #EAF3DE; --green-b: #C0DD97; --green-m: #639922;
+  --amber: #854F0B; --amber-l: #FAEEDA; --amber-b: #EF9F27; --amber-d: #633806;
+  --red: #A32D2D; --red-l: #FCEBEB;
+  --gray-l: #F1EFE8; --gray-m: #5F5E5A;
+  --text: #1a1916; --text2: #6b6960; --text3: #9e9c96;
+  --bg: #f7f6f3; --surface: #fff; --surface2: #f2f1ed; --surface3: #eceae4;
+  --border: rgba(0,0,0,0.08); --border-em: rgba(0,0,0,0.13);
+  --r: 8px; --r-lg: 12px; --r-xl: 16px;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.logo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.logo .accent { color: var(--blue); }
+.logo .sub { font-size: 12px; font-weight: 400; color: var(--text3); letter-spacing: 0; }
+.topbar-right { margin-left: auto; font-size: 12px; color: var(--text3); }
+
+/* ── LAYOUT ── */
+.page { max-width: 900px; margin: 0 auto; padding: 40px 32px 80px; }
+
+/* ── COVER ── */
+.cover {
+  text-align: center;
+  padding: 48px 24px 40px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 40px;
+}
+.cover-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 14px;
+}
+.cover-title {
+  font-size: 40px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -.03em;
+  line-height: 1.1;
+  margin-bottom: 12px;
+}
+.cover-title .accent { color: var(--blue); }
+.cover-sub {
+  font-size: 16px;
+  color: var(--text2);
+  max-width: 520px;
+  margin: 0 auto;
+  line-height: 1.65;
+}
+.cover-badges {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.cbdg {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.cbdg-blue { background: var(--blue-l); color: var(--blue-d); }
+.cbdg-teal { background: var(--teal-l); color: var(--teal-d); }
+.cbdg-gray { background: var(--gray-l); color: var(--gray-m); }
+.cbdg-dot { width: 5px; height: 5px; border-radius: 50%; }
+.cbdg-dot-blue { background: var(--blue); }
+.cbdg-dot-teal { background: var(--teal); }
+.cbdg-dot-gray { background: var(--gray-m); }
+
+/* ── SECTION ── */
+.section { margin-bottom: 36px; }
+.sec-hd {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── PLATFORM GRID ── */
+.plat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.plat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+}
+
+.plat-hd-blue {
+  background: var(--blue-l);
+  border-bottom: 1px solid var(--blue-b);
+  padding: 16px 20px 14px;
+}
+.plat-hd-teal {
+  background: var(--teal-l);
+  border-bottom: 1px solid var(--teal-b);
+  padding: 16px 20px 14px;
+}
+.plat-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+}
+.badge-blue { background: var(--blue-b); color: var(--blue-d); }
+.badge-teal { background: var(--teal-b); color: var(--teal-d); }
+.plat-name-blue { font-size: 17px; font-weight: 600; color: var(--blue-d); margin-bottom: 4px; }
+.plat-name-teal { font-size: 17px; font-weight: 600; color: var(--teal-d); margin-bottom: 4px; }
+.plat-desc-blue { font-size: 13px; color: var(--blue); line-height: 1.5; }
+.plat-desc-teal { font-size: 13px; color: var(--teal); line-height: 1.5; }
+
+/* fake nav inside card */
+.plat-tabs {
+  display: flex;
+  padding: 8px 12px 0;
+  gap: 2px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.plat-tab {
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 6px 6px 0 0;
+  color: var(--text3);
+}
+.ptab-blue {
+  background: var(--surface);
+  color: var(--blue);
+  font-weight: 600;
+  border: 1px solid var(--blue-b);
+  border-bottom: none;
+}
+.ptab-teal {
+  background: var(--surface);
+  color: var(--teal);
+  font-weight: 600;
+  border: 1px solid var(--teal-b);
+  border-bottom: none;
+}
+
+/* mock screen */
+.plat-screen { padding: 14px 16px 16px; }
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.stat-mini {
+  background: var(--surface2);
+  border-radius: var(--r);
+  padding: 8px 10px;
+}
+.stat-mini-n { font-size: 20px; font-weight: 600; letter-spacing: -.02em; line-height: 1; margin-bottom: 2px; }
+.stat-mini-l { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; font-weight: 500; }
+
+.n-blue { color: var(--blue); }
+.n-green { color: var(--green); }
+.n-amber { color: var(--amber); }
+.n-teal { color: var(--teal); }
+.n-red { color: var(--red); }
+
+.mock-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.mock-card:last-child { margin-bottom: 0; }
+.mock-card-hd {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 8px;
+}
+.mock-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.mock-row:last-child { border-bottom: none; padding-bottom: 0; }
+.mock-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.dot-amber { background: var(--amber-b); }
+.dot-green { background: var(--green-m); }
+.mock-name { font-weight: 500; flex: 1; color: var(--text); }
+.mock-meta { color: var(--text3); font-size: 11px; }
+.mock-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 20px;
+}
+.pill-amber { background: var(--amber-l); color: var(--amber-d); }
+.pill-green { background: var(--green-l); color: var(--green); }
+.pill-teal { background: var(--teal-l); color: var(--teal-d); }
+
+.mock-upcoming {
+  border: 1px dashed var(--border-em);
+  border-radius: var(--r);
+  padding: 9px 12px;
+  margin-bottom: 8px;
+}
+.mock-upc-date { font-size: 12px; font-weight: 500; color: var(--text); }
+.mock-upc-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+.checklist { display: flex; flex-direction: column; gap: 5px; }
+.check-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.check-box {
+  width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.check-done-box { background: var(--teal-m); }
+.check-todo-box { border: 1.5px solid var(--border-em); }
+.check-mark {
+  width: 8px; height: 8px;
+  background: white;
+  clip-path: polygon(15% 50%, 40% 75%, 85% 20%, 100% 35%, 40% 95%, 0% 65%);
+}
+.done-text { color: var(--text3); text-decoration: line-through; }
+.todo-text { color: var(--text); }
+
+.adv-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+}
+.avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
+}
+.av-teal { background: var(--teal-l); color: var(--teal-d); }
+.adv-name { font-size: 12px; font-weight: 500; color: var(--text); }
+.adv-role { font-size: 10px; color: var(--text3); margin-top: 1px; }
+.adv-info { flex: 1; }
+.mini-btn-teal {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 5px;
+  background: var(--teal);
+  color: white;
+}
+
+/* ── FLOW ── */
+.flow-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.flow-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+}
+.flow-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.flow-color-bar-blue { width: 3px; height: 18px; border-radius: 3px; background: var(--blue); flex-shrink: 0; }
+.flow-color-bar-teal { width: 3px; height: 18px; border-radius: 3px; background: var(--teal); flex-shrink: 0; }
+.flow-label-blue { font-size: 13px; font-weight: 600; color: var(--blue-d); }
+.flow-label-teal { font-size: 13px; font-weight: 600; color: var(--teal-d); }
+
+.flow-steps { display: flex; flex-direction: column; gap: 10px; }
+.flow-step { display: flex; align-items: flex-start; gap: 10px; }
+.step-num {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600;
+  margin-top: 1px;
+}
+.sn-blue { background: var(--blue-l); color: var(--blue); }
+.sn-teal { background: var(--teal-l); color: var(--teal); }
+.step-text { font-size: 13px; color: var(--text); line-height: 1.55; }
+.step-text strong { font-weight: 600; }
+
+/* ── FEATURES ── */
+.feat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.feat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+}
+.feat-icon {
+  width: 32px; height: 32px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 10px;
+}
+.fi-blue { background: var(--blue-l); }
+.fi-teal { background: var(--teal-l); }
+.feat-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+.feat-desc { font-size: 12px; color: var(--text2); line-height: 1.55; }
+.feat-who {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.fw-blue { color: var(--blue); }
+.fw-teal { color: var(--teal); }
+.fw-both { color: var(--text3); }
+
+/* ── ACCESS ── */
+.access-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.access-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+}
+.access-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+.access-url {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: var(--r);
+  margin-bottom: 10px;
+}
+.url-blue { background: var(--blue-l); color: var(--blue-d); }
+.url-teal { background: var(--teal-l); color: var(--teal-d); }
+.access-note { font-size: 12px; color: var(--text2); line-height: 1.55; }
+
+/* ── FOOTER ── */
+.footer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text3);
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+  margin-top: 40px;
+}
+.footer span { margin: 0 8px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 660px) {
+  .plat-grid, .flow-grid, .feat-grid, .access-grid { grid-template-columns: 1fr; }
+  .cover-title { font-size: 28px; }
+  .page { padding: 24px 20px 60px; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    Telos <span class="accent"> </span><span class="sub">by Taejae</span>
+  </div>
+  <div class="topbar-right">Platform Overview · Spring 2026</div>
+</div>
+
+<div class="page">
+
+  <!-- COVER -->
+  <div class="cover">
+    <div class="cover-eyebrow">Taejae University · Advising System</div>
+    <div class="cover-title"><span class="accent">Telos</span></div>
+    <div class="cover-sub">
+      A connected advising platform — one system for faculty who advise,
+      and students who are advised.
+    </div>
+    <div class="cover-badges">
+      <div class="cbdg cbdg-blue"><div class="cbdg-dot cbdg-dot-blue"></div>Telos for Professors</div>
+      <div class="cbdg cbdg-teal"><div class="cbdg-dot cbdg-dot-teal"></div>Telos for Students</div>
+    </div>
+  </div>
+
+  <!-- TWO PLATFORMS -->
+  <div class="section">
+    <div class="sec-hd">The two platforms</div>
+    <div class="plat-grid">
+
+      <!-- PROFESSORS -->
+      <div class="plat-card">
+        <div class="plat-hd-blue">
+          <div class="plat-badge badge-blue">For Faculty</div>
+          <div class="plat-name-blue">Telos for Professors</div>
+          <div class="plat-desc-blue">Log sessions, track follow-ups, and review your advisee roster — all in one place.</div>
+        </div>
+        <div class="plat-tabs">
+          <div class="plat-tab ptab-blue">Overview</div>
+          <div class="plat-tab">My Students</div>
+          <div class="plat-tab">Session Log</div>
+          <div class="plat-tab">Meetings</div>
+          <div class="plat-tab">Help</div>
+        </div>
+        <div class="plat-screen">
+          <div class="stat-row">
+            <div class="stat-mini"><div class="stat-mini-n n-blue">12</div><div class="stat-mini-l">My students</div></div>
+            <div class="stat-mini"><div class="stat-mini-n n-green">8</div><div class="stat-mini-l">Sessions</div></div>
+            <div class="stat-mini"><div class="stat-mini-n n-amber">3</div><div class="stat-mini-l">No next mtg</div></div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-hd">No next meeting set</div>
+            <div class="mock-row"><div class="mock-dot dot-amber"></div><div class="mock-name">Minjae Oh</div><div class="mock-meta">1 session</div><div class="mock-pill pill-amber">Unscheduled</div></div>
+            <div class="mock-row"><div class="mock-dot dot-amber"></div><div class="mock-name">Sora Yun</div><div class="mock-meta">0 sessions</div><div class="mock-pill pill-amber">Unscheduled</div></div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-hd">Recent sessions</div>
+            <div class="mock-row"><div class="mock-dot dot-green"></div><div class="mock-name">Daeun Lim</div><div class="mock-meta">2026-03-13 · Ad-hoc · Zoom</div><div class="mock-pill pill-green">Done</div></div>
+            <div class="mock-row"><div class="mock-dot dot-green"></div><div class="mock-name">Minjae Oh</div><div class="mock-meta">2026-03-12 · Ad-hoc · Zoom</div><div class="mock-pill pill-green">Done</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STUDENTS -->
+      <div class="plat-card">
+        <div class="plat-hd-teal">
+          <div class="plat-badge badge-teal">For Students</div>
+          <div class="plat-name-teal">Telos for Students</div>
+          <div class="plat-desc-teal">Request meetings, track your advising history, and keep your profile up to date.</div>
+        </div>
+        <div class="plat-tabs">
+          <div class="plat-tab ptab-teal">Overview</div>
+          <div class="plat-tab">My Profile</div>
+          <div class="plat-tab">Meetings</div>
+          <div class="plat-tab">Help</div>
+        </div>
+        <div class="plat-screen">
+          <div class="stat-row">
+            <div class="stat-mini"><div class="stat-mini-n n-teal">3</div><div class="stat-mini-l">Meetings done</div></div>
+            <div class="stat-mini"><div class="stat-mini-n n-amber">1</div><div class="stat-mini-l">Pending</div></div>
+            <div class="stat-mini"><div class="stat-mini-n n-green">85%</div><div class="stat-mini-l">Profile</div></div>
+          </div>
+          <div class="mock-upcoming">
+            <div class="mock-upc-date">Next: Apr 22, 2026 · 3:00 PM</div>
+            <div class="mock-upc-sub">Prof. Jiyoung Kwahk · Zoom</div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-hd">Getting started checklist</div>
+            <div class="checklist">
+              <div class="check-item"><div class="check-box check-done-box"><div class="check-mark"></div></div><div class="done-text">Complete your profile</div></div>
+              <div class="check-item"><div class="check-box check-done-box"><div class="check-mark"></div></div><div class="done-text">Request your first meeting</div></div>
+              <div class="check-item"><div class="check-box check-todo-box"></div><div class="todo-text">Write a meeting reflection</div></div>
+            </div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-hd">My advisors</div>
+            <div class="adv-card"><div class="avatar av-teal">JK</div><div class="adv-info"><div class="adv-name">Jiyoung Kwahk</div><div class="adv-role">Primary advisor · DSA</div></div><div class="mini-btn-teal">Request →</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="section">
+    <div class="sec-hd">How each platform works</div>
+    <div class="flow-grid">
+
+      <div class="flow-card">
+        <div class="flow-header">
+          <div class="flow-color-bar-blue"></div>
+          <div class="flow-label-blue">Faculty — logging a session</div>
+        </div>
+        <div class="flow-steps">
+          <div class="flow-step"><div class="step-num sn-blue">1</div><div class="step-text">Go to <strong>My Students</strong> and click a student's row to expand their timeline.</div></div>
+          <div class="flow-step"><div class="step-num sn-blue">2</div><div class="step-text">Click <strong>+ Log session</strong> — student name, ID, and your advisor role are auto-filled.</div></div>
+          <div class="flow-step"><div class="step-num sn-blue">3</div><div class="step-text">Fill in the <strong>Discussion summary</strong> (required) and optionally add student concerns, advice, and next meeting date.</div></div>
+          <div class="flow-step"><div class="step-num sn-blue">4</div><div class="step-text">Click <strong>Save</strong> — the record appears instantly in the timeline and Session Log.</div></div>
+        </div>
+      </div>
+
+      <div class="flow-card">
+        <div class="flow-header">
+          <div class="flow-color-bar-teal"></div>
+          <div class="flow-label-teal">Students — requesting a meeting</div>
+        </div>
+        <div class="flow-steps">
+          <div class="flow-step"><div class="step-num sn-teal">1</div><div class="step-text">Go to <strong>Meetings</strong> and find your advisor's card with available time slots.</div></div>
+          <div class="flow-step"><div class="step-num sn-teal">2</div><div class="step-text">Select one or more preferred slots and submit your request with an agenda note.</div></div>
+          <div class="flow-step"><div class="step-num sn-teal">3</div><div class="step-text">Your advisor reviews and <strong>confirms</strong> one slot — you receive the meeting link.</div></div>
+          <div class="flow-step"><div class="step-num sn-teal">4</div><div class="step-text">After the meeting, write a <strong>reflection</strong> and key takeaway in your meeting history.</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- KEY FEATURES -->
+  <div class="section">
+    <div class="sec-hd">Key features</div>
+    <div class="feat-grid">
+
+      <div class="feat-card">
+        <div class="feat-who fw-blue">Faculty</div>
+        <div class="feat-icon fi-blue">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" fill="#185FA5"/><rect x="9" y="2" width="5" height="5" rx="1" fill="#185FA5" opacity=".4"/><rect x="2" y="9" width="5" height="5" rx="1" fill="#185FA5" opacity=".4"/><rect x="9" y="9" width="5" height="5" rx="1" fill="#185FA5" opacity=".4"/></svg>
+        </div>
+        <div class="feat-title">Chair dashboard</div>
+        <div class="feat-desc">Program Chair sees an aggregated view across all advisors — flagging students with zero sessions, unscheduled meetings, or pending follow-ups.</div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-who fw-blue">Faculty</div>
+        <div class="feat-icon fi-blue">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M3 8h7M3 12h5" stroke="#185FA5" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <div class="feat-title">Two-pane session log</div>
+        <div class="feat-desc">Each session records discussion notes and student concerns in separate colored panes, plus action items, follow-up status, and next meeting date.</div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-who fw-blue">Faculty</div>
+        <div class="feat-icon fi-blue">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="#185FA5" stroke-width="1.4"/><path d="M3 14c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="#185FA5" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <div class="feat-title">Student roster view</div>
+        <div class="feat-desc">Filter by your advisees, search by name or ID, sort by session count or meeting date, and expand any student for their full advising timeline.</div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-who fw-teal">Students</div>
+        <div class="feat-icon fi-teal">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#0F6E56" stroke-width="1.4"/><path d="M5 7h6M5 10h4" stroke="#0F6E56" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <div class="feat-title">Profile & goals</div>
+        <div class="feat-desc">Students build a profile with career goals, research interests, and strengths. A completion checklist on the Overview nudges them to fill it out.</div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-who fw-teal">Students</div>
+        <div class="feat-icon fi-teal">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="1.5" stroke="#0F6E56" stroke-width="1.4"/><path d="M5 8l2 2 4-4" stroke="#0F6E56" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="feat-title">Meeting requests</div>
+        <div class="feat-desc">Students pick from faculty's published availability windows. Advisors confirm one slot — status updates in real time on both sides.</div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-who fw-both">Both</div>
+        <div class="feat-icon fi-blue">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="9" width="12" height="5" rx="1.5" stroke="#185FA5" stroke-width="1.3"/><path d="M5 9V6a3 3 0 0 1 6 0v3" stroke="#185FA5" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </div>
+        <div class="feat-title">Secure authentication</div>
+        <div class="feat-desc">Taejae email-based login via Supabase Auth. Forced password change on first login. Each session is scoped to the signed-in user.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ACCESS -->
+  <div class="section">
+    <div class="sec-hd">Access</div>
+    <div class="access-grid">
+      <div class="access-card">
+        <div class="access-title">Telos for Professors</div>
+        <div class="access-url url-blue">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#185FA5" stroke-width="1.4"/><path d="M8 5v3l2 2" stroke="#185FA5" stroke-width="1.4" stroke-linecap="round"/></svg>
+          jkwahk02.github.io/Telos/
+        </div>
+        <div class="access-note">Sign in with your <strong>@taejae.ac.kr</strong> faculty email. On first login, you will be prompted to set a new password before accessing the system.</div>
+      </div>
+      <div class="access-card">
+        <div class="access-title">Telos for Students</div>
+        <div class="access-url url-teal">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#0F6E56" stroke-width="1.4"/><path d="M8 5v3l2 2" stroke="#0F6E56" stroke-width="1.4" stroke-linecap="round"/></svg>
+          jkwahk02.github.io/Telos/student/
+        </div>
+        <div class="access-note">Sign in with your <strong>@taejae.ac.kr</strong> student email. The system shows only your own advising record and your assigned advisors.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Built on Supabase · Deployed via GitHub Pages
+    <span>·</span>
+    Taejae University — Data Science and AI Program
+    <br style="margin-bottom:6px;">
+    Created by <strong style="color:var(--text2);">Jiyoung Kwahk</strong>
+    <span>·</span>
+    Questions? <a href="mailto:kjy@taejae.ac.kr" style="color:var(--blue);text-decoration:none;">kjy@taejae.ac.kr</a>
+  </div>
+
+</div>
+</body>
+</html>
