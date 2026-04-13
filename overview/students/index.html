@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telos for Students — Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --accent: #0F6E56; --accent-l: #E1F5EE; --accent-m: #1D9E75; --accent-b: #9FE1CB; --accent-d: #085041;
+  --blue: #185FA5; --blue-l: #E6F1FB; --blue-b: #B5D4F4; --blue-d: #0C447C;
+  --green: #3B6D11; --green-l: #EAF3DE; --green-m: #639922;
+  --amber: #854F0B; --amber-l: #FAEEDA; --amber-b: #EF9F27; --amber-d: #633806;
+  --red: #A32D2D; --red-l: #FCEBEB;
+  --gray-l: #F1EFE8; --gray-m: #5F5E5A;
+  --text: #1a1916; --text2: #6b6960; --text3: #9e9c96;
+  --bg: #f7f6f3; --surface: #fff; --surface2: #f2f1ed;
+  --border: rgba(0,0,0,0.08); --border-em: rgba(0,0,0,0.13);
+  --r: 8px; --r-lg: 12px; --r-xl: 16px;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.6; min-height: 100vh; }
+
+/* TOP BAR */
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; height: 52px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 50; }
+.logo { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -.02em; display: flex; align-items: center; gap: 8px; }
+.logo-sep { color: var(--border-em); font-size: 14px; }
+.logo-platform { font-size: 12px; font-weight: 600; background: var(--accent-l); color: var(--accent-d); padding: 2px 8px; border-radius: 20px; letter-spacing: .03em; }
+.logo-sub { font-size: 12px; font-weight: 400; color: var(--text3); }
+.topbar-right { margin-left: auto; font-size: 12px; color: var(--text3); }
+
+/* LAYOUT */
+.page { max-width: 860px; margin: 0 auto; padding: 40px 32px 80px; }
+.section { margin-bottom: 36px; }
+.sec-hd { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+
+/* COVER */
+.cover { padding: 44px 0 40px; border-bottom: 1px solid var(--border); margin-bottom: 40px; display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: center; }
+.cover-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+.cover-title { font-size: 34px; font-weight: 600; color: var(--text); letter-spacing: -.03em; line-height: 1.1; margin-bottom: 10px; }
+.cover-title em { font-style: normal; color: var(--accent); }
+.cover-sub { font-size: 15px; color: var(--text2); line-height: 1.65; max-width: 440px; }
+.cover-url-block { background: var(--accent-l); border: 1px solid var(--accent-b); border-radius: var(--r-lg); padding: 16px 20px; text-align: center; min-width: 200px; flex-shrink: 0; }
+.cover-url-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin-bottom: 6px; }
+.cover-url { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--accent-d); word-break: break-all; line-height: 1.5; }
+.cover-url-note { font-size: 11px; color: var(--accent-m); margin-top: 6px; }
+
+/* BROWSER */
+.browser-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); overflow: hidden; margin-bottom: 8px; }
+.browser-bar { background: var(--surface2); border-bottom: 1px solid var(--border); padding: 8px 14px; display: flex; align-items: center; gap: 8px; }
+.browser-dots { display: flex; gap: 5px; }
+.bdot { width: 9px; height: 9px; border-radius: 50%; }
+.bdot-r { background: #ff5f57; } .bdot-y { background: #febc2e; } .bdot-g { background: #28c840; }
+.browser-addr { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 4px 10px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); margin: 0 8px; }
+
+/* FAKE NAV */
+.fake-nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 18px; height: 42px; display: flex; align-items: center; gap: 4px; }
+.fnav-logo { font-size: 13px; font-weight: 600; color: var(--text); margin-right: 18px; }
+.fnav-logo em { font-style: normal; color: var(--accent); }
+.ftab { font-size: 11px; padding: 0 12px; height: 100%; display: flex; align-items: center; border-bottom: 2px solid transparent; color: var(--text3); }
+.ftab.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+/* MOCK BODY */
+.mock-body { padding: 14px 16px; }
+
+/* STAT ROW */
+.stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.stat-mini { background: var(--surface2); border-radius: var(--r); padding: 8px 10px; }
+.stat-mini-n { font-size: 20px; font-weight: 600; letter-spacing: -.02em; line-height: 1; margin-bottom: 2px; }
+.stat-mini-l { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; font-weight: 500; }
+.n-teal { color: var(--accent); } .n-amber { color: var(--amber); } .n-green { color: var(--green); } .n-blue { color: var(--blue); }
+
+/* CARDS */
+.mock-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r); padding: 10px 12px; margin-bottom: 8px; }
+.mock-card:last-child { margin-bottom: 0; }
+.mock-card-hd { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.mock-pill { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 20px; white-space: nowrap; }
+.pill-teal { background: var(--accent-l); color: var(--accent-d); }
+.pill-amber { background: var(--amber-l); color: var(--amber-d); }
+.pill-green { background: var(--green-l); color: var(--green); }
+.pill-blue { background: var(--blue-l); color: var(--blue-d); }
+.pill-gray { background: var(--gray-l); color: var(--gray-m); }
+
+/* UPCOMING */
+.mock-upcoming { border: 1px dashed var(--border-em); border-radius: var(--r); padding: 9px 12px; margin-bottom: 8px; }
+.mock-upc-date { font-size: 12px; font-weight: 500; color: var(--text); }
+.mock-upc-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+/* CHECKLIST */
+.checklist { display: flex; flex-direction: column; gap: 6px; }
+.check-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.check-box { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.check-done-box { background: var(--accent-m); }
+.check-todo-box { border: 1.5px solid var(--border-em); }
+.check-mark { width: 8px; height: 8px; background: white; clip-path: polygon(15% 50%, 40% 75%, 85% 20%, 100% 35%, 40% 95%, 0% 65%); }
+.done-text { color: var(--text3); text-decoration: line-through; }
+.todo-text { color: var(--text); }
+
+/* ADVISOR CARD */
+.adv-card { border: 0.5px solid var(--border-em); border-radius: var(--r); padding: 8px 12px; display: flex; align-items: center; gap: 10px; background: var(--surface); }
+.avatar { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+.av-teal { background: var(--accent-l); color: var(--accent-d); }
+.av-blue { background: var(--blue-l); color: var(--blue-d); }
+.adv-info { flex: 1; }
+.adv-name { font-size: 12px; font-weight: 500; color: var(--text); }
+.adv-role { font-size: 10px; color: var(--text3); margin-top: 1px; }
+.mini-btn-teal { font-size: 10px; font-weight: 600; padding: 4px 9px; border-radius: 5px; background: var(--accent); color: white; white-space: nowrap; }
+.mini-btn-out { font-size: 10px; padding: 4px 9px; border-radius: 5px; border: 1px solid var(--border-em); color: var(--text2); white-space: nowrap; }
+
+/* PROFILE SECTION CARDS */
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.profile-sec { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+.profile-sec-hd { background: var(--surface2); padding: 7px 12px; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid var(--border); }
+.profile-sec-body { padding: 10px 12px; }
+.profile-tag-row { display: flex; gap: 5px; flex-wrap: wrap; }
+.profile-tag { font-size: 10px; padding: 3px 8px; border-radius: 20px; background: var(--accent-l); color: var(--accent-d); font-weight: 500; }
+.profile-text { font-size: 11px; color: var(--text2); line-height: 1.5; }
+.profile-progress { height: 4px; border-radius: 2px; background: var(--surface2); margin-top: 10px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 2px; background: var(--accent-m); width: 80%; }
+
+/* REQUEST FORM */
+.req-form { border: 1px solid var(--accent-b); border-radius: var(--r-lg); overflow: hidden; margin-top: 10px; }
+.req-form-hd { background: var(--accent-l); border-bottom: 1px solid var(--accent-b); padding: 9px 14px; display: flex; align-items: center; justify-content: space-between; }
+.req-form-title { font-size: 12px; font-weight: 600; color: var(--accent-d); }
+.req-form-cancel { font-size: 11px; color: var(--accent-m); }
+.req-form-body { padding: 12px 14px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
+.slot-select-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.slot-chip { font-size: 10px; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border-em); color: var(--text2); }
+.slot-chip.selected { background: var(--accent-l); border-color: var(--accent-b); color: var(--accent-d); font-weight: 600; }
+.mini-input { width: 100%; height: 28px; border: 1px solid var(--border-em); border-radius: var(--r); padding: 0 8px; font-size: 11px; color: var(--text2); background: var(--surface2); }
+.mini-ta { width: 100%; border: 1px solid var(--border-em); border-radius: var(--r); padding: 7px 8px; font-size: 11px; color: var(--text2); background: var(--surface2); line-height: 1.4; height: 44px; }
+.req-form-ft { background: var(--surface2); border-top: 1px solid var(--border); padding: 8px 14px; display: flex; justify-content: flex-end; gap: 6px; }
+.btn-submit { font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 5px; background: var(--accent); color: white; }
+.btn-cancel-sm { font-size: 11px; padding: 5px 10px; border-radius: 5px; border: 1px solid var(--border-em); color: var(--text2); background: var(--surface); }
+
+/* MEETING HISTORY */
+.hist-card { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; margin-bottom: 8px; }
+.hist-hd { padding: 8px 12px; display: flex; align-items: center; gap: 8px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+.hist-date { font-size: 11px; font-weight: 600; } .hist-who { font-size: 11px; font-weight: 500; flex: 1; }
+.hist-body { padding: 10px 12px; }
+.hist-lbl { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin-bottom: 4px; }
+.hist-val { font-size: 11px; color: var(--text2); line-height: 1.5; }
+.refl-box { background: var(--accent-l); border-radius: var(--r); padding: 8px 10px; margin-top: 8px; }
+.refl-lbl { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin-bottom: 3px; }
+.refl-val { font-size: 11px; color: var(--accent-d); line-height: 1.5; font-style: italic; }
+.add-refl { font-size: 10px; color: var(--accent); text-decoration: underline; margin-top: 8px; display: inline-block; }
+
+/* HOW-TO STEPS */
+.steps-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+.step-row { display: flex; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border); align-items: flex-start; }
+.step-row:last-child { border-bottom: none; }
+.step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: white; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.step-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.step-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.step-desc strong { font-weight: 600; color: var(--text); }
+
+/* FEATURES */
+.feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.feat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 16px; }
+.feat-icon { width: 30px; height: 30px; border-radius: 7px; background: var(--accent-l); display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+.feat-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+.feat-desc { font-size: 12px; color: var(--text2); line-height: 1.55; }
+
+/* ACCESS */
+.access-box { background: var(--accent-l); border: 1px solid var(--accent-b); border-radius: var(--r-lg); padding: 20px 24px; display: flex; align-items: center; gap: 24px; }
+.access-main { flex: 1; }
+.access-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin-bottom: 6px; }
+.access-url { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--accent-d); margin-bottom: 8px; }
+.access-note { font-size: 13px; color: var(--accent-d); line-height: 1.55; }
+.access-btn { font-size: 13px; font-weight: 600; padding: 10px 18px; border-radius: var(--r); background: var(--accent); color: white; text-decoration: none; white-space: nowrap; display: inline-block; }
+
+/* FOOTER */
+.footer { text-align: center; font-size: 12px; color: var(--text3); border-top: 1px solid var(--border); padding-top: 24px; margin-top: 40px; line-height: 2; }
+
+@media (max-width: 660px) {
+  .feat-grid, .profile-grid { grid-template-columns: 1fr 1fr; }
+  .cover { grid-template-columns: 1fr; }
+  .page { padding: 24px 20px 60px; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <span>Telos</span>
+    <span class="logo-sep">·</span>
+    <span class="logo-platform">For Students</span>
+    <span class="logo-sub">by Taejae</span>
+  </div>
+  <div class="topbar-right">Student Guide · Spring 2026</div>
+</div>
+
+<div class="page">
+
+  <!-- COVER -->
+  <div class="cover">
+    <div class="cover-left">
+      <div class="cover-eyebrow">Taejae University · Advising System</div>
+      <div class="cover-title">Telos <em>for Students</em></div>
+      <div class="cover-sub">View your upcoming meetings, request time with your advisor, track your advising history, and keep your profile up to date — all in one place.</div>
+    </div>
+  </div>
+
+  <!-- OVERVIEW MOCK -->
+  <div class="section">
+    <div class="sec-hd">Overview tab — your advising snapshot</div>
+    <div class="browser-wrap">
+      <div class="browser-bar">
+        <div class="browser-dots"><div class="bdot bdot-r"></div><div class="bdot bdot-y"></div><div class="bdot bdot-g"></div></div>
+        <div class="browser-addr">jkwahk02.github.io/Telos/student/</div>
+      </div>
+      <div class="fake-nav">
+        <div class="fnav-logo">Telos <em>·</em> <span style="font-size:10px;background:var(--accent-l);color:var(--accent-d);padding:1px 6px;border-radius:10px;font-weight:600;">Student</span></div>
+        <div class="ftab on">Overview</div>
+        <div class="ftab">My Profile</div>
+        <div class="ftab">Meetings</div>
+        <div class="ftab">Help & Guide</div>
+      </div>
+      <div class="mock-body">
+        <div class="stat-row">
+          <div class="stat-mini"><div class="stat-mini-n n-teal">3</div><div class="stat-mini-l">Meetings done</div></div>
+          <div class="stat-mini"><div class="stat-mini-n n-amber">1</div><div class="stat-mini-l">Pending</div></div>
+          <div class="stat-mini"><div class="stat-mini-n n-green">80%</div><div class="stat-mini-l">Profile</div></div>
+        </div>
+        <div class="mock-upcoming">
+          <div class="mock-upc-date">Next meeting: Apr 22, 2026 · 3:00 PM</div>
+          <div class="mock-upc-sub">Prof. Jiyoung Kwahk · Zoom · <span style="color:var(--accent);font-weight:500;">Confirmed</span></div>
+        </div>
+        <div class="mock-card">
+          <div class="mock-card-hd">Getting started checklist</div>
+          <div class="checklist">
+            <div class="check-item"><div class="check-box check-done-box"><div class="check-mark"></div></div><div class="done-text">Complete your profile</div></div>
+            <div class="check-item"><div class="check-box check-done-box"><div class="check-mark"></div></div><div class="done-text">Request your first meeting</div></div>
+            <div class="check-item"><div class="check-box check-todo-box"></div><div class="todo-text">Write a meeting reflection</div></div>
+          </div>
+        </div>
+        <div class="mock-card">
+          <div class="mock-card-hd">My advisors</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div class="adv-card"><div class="avatar av-teal">JK</div><div class="adv-info"><div class="adv-name">Jiyoung Kwahk</div><div class="adv-role">Primary advisor · DSA</div></div><div class="mini-btn-teal">Request →</div></div>
+            <div class="adv-card"><div class="avatar av-blue">SC</div><div class="adv-info"><div class="adv-name">Sam Young Chung</div><div class="adv-role">Secondary advisor · Business Innov.</div></div><div class="mini-btn-out">Request →</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:6px;">The Overview shows your next confirmed meeting, any pending requests, and a checklist to help you get started with advising.</p>
+  </div>
+
+  <!-- MY PROFILE MOCK -->
+  <div class="section">
+    <div class="sec-hd">My Profile tab — your academic profile</div>
+    <div class="browser-wrap">
+      <div class="browser-bar">
+        <div class="browser-dots"><div class="bdot bdot-r"></div><div class="bdot bdot-y"></div><div class="bdot bdot-g"></div></div>
+        <div class="browser-addr">jkwahk02.github.io/Telos/student/</div>
+      </div>
+      <div class="fake-nav">
+        <div class="fnav-logo">Telos <em>·</em> <span style="font-size:10px;background:var(--accent-l);color:var(--accent-d);padding:1px 6px;border-radius:10px;font-weight:600;">Student</span></div>
+        <div class="ftab">Overview</div>
+        <div class="ftab on">My Profile</div>
+        <div class="ftab">Meetings</div>
+        <div class="ftab">Help & Guide</div>
+      </div>
+      <div class="mock-body">
+        <div class="mock-card" style="margin-bottom:10px;display:flex;align-items:center;gap:12px;">
+          <div class="avatar av-teal" style="width:36px;height:36px;font-size:13px;">MO</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;">Minjae Oh</div>
+            <div style="font-size:11px;color:var(--text3);">2023 Cohort · DSA + Business Innovation</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;font-weight:600;color:var(--accent);">80% complete</div>
+            <div class="profile-progress" style="width:80px;margin-top:4px;"><div class="progress-fill"></div></div>
+          </div>
+        </div>
+        <div class="profile-grid">
+          <div class="profile-sec">
+            <div class="profile-sec-hd">Career goals</div>
+            <div class="profile-sec-body"><div class="profile-text">Interested in data-driven product management. Exploring roles at the intersection of technology and business strategy.</div></div>
+          </div>
+          <div class="profile-sec">
+            <div class="profile-sec-hd">Research interests</div>
+            <div class="profile-sec-body"><div class="profile-text">Human-computer interaction, behavioral economics, and complex systems.</div></div>
+          </div>
+          <div class="profile-sec">
+            <div class="profile-sec-hd">Strengths</div>
+            <div class="profile-sec-body">
+              <div class="profile-tag-row">
+                <span class="profile-tag">Analytical thinking</span>
+                <span class="profile-tag">Communication</span>
+                <span class="profile-tag">Cross-disciplinary</span>
+              </div>
+            </div>
+          </div>
+          <div class="profile-sec">
+            <div class="profile-sec-hd">Academic concerns</div>
+            <div class="profile-sec-body"><div class="profile-text" style="color:var(--text3);font-style:italic;">Not filled in yet</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:6px;">Your profile helps your advisor understand your goals before each meeting. Fill it in before your first session — your advisor can see it.</p>
+  </div>
+
+  <!-- HOW TO REQUEST -->
+  <div class="section">
+    <div class="sec-hd">How to request a meeting</div>
+    <div class="steps-card">
+      <div class="step-row">
+        <div class="step-num">1</div>
+        <div>
+          <div class="step-title">Go to the Meetings tab</div>
+          <div class="step-desc">You'll see advisor cards for each of your assigned advisors (Primary and Secondary). Each card shows whether the advisor currently has available time slots.</div>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">2</div>
+        <div>
+          <div class="step-title">Click "Request meeting"</div>
+          <div class="step-desc">A request form will open. Available time slots for the next two weeks will be listed — select <strong>one or more</strong> that work for you, giving your advisor options to choose from.</div>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">3</div>
+        <div>
+          <div class="step-title">Add an agenda note</div>
+          <div class="step-desc">Briefly describe what you'd like to discuss. This helps your advisor prepare and makes the meeting more productive. Then click <strong>Submit request</strong>.</div>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">4</div>
+        <div>
+          <div class="step-title">Wait for confirmation</div>
+          <div class="step-desc">Your advisor will review the request and confirm one of your selected slots. You'll see the confirmed time and meeting link appear in your Overview and Meetings tab.</div>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">5</div>
+        <div>
+          <div class="step-title">Write a reflection after the meeting</div>
+          <div class="step-desc">Once the meeting is marked completed, go to Meetings → history and add a <strong>reflection</strong> and key takeaway. This builds your own record of your advising journey.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MEETINGS MOCK -->
+  <div class="section">
+    <div class="sec-hd">Meetings tab — requests, upcoming &amp; history</div>
+    <div class="browser-wrap">
+      <div class="browser-bar">
+        <div class="browser-dots"><div class="bdot bdot-r"></div><div class="bdot bdot-y"></div><div class="bdot bdot-g"></div></div>
+        <div class="browser-addr">jkwahk02.github.io/Telos/student/</div>
+      </div>
+      <div class="fake-nav">
+        <div class="fnav-logo">Telos <em>·</em> <span style="font-size:10px;background:var(--accent-l);color:var(--accent-d);padding:1px 6px;border-radius:10px;font-weight:600;">Student</span></div>
+        <div class="ftab">Overview</div>
+        <div class="ftab">My Profile</div>
+        <div class="ftab on">Meetings</div>
+        <div class="ftab">Help & Guide</div>
+      </div>
+      <div class="mock-body">
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <div class="adv-card" style="flex:1;">
+            <div class="avatar av-teal">JK</div>
+            <div class="adv-info"><div class="adv-name">Jiyoung Kwahk</div><div class="adv-role">Primary · DSA · Slots available</div></div>
+            <div class="mini-btn-teal">Request →</div>
+          </div>
+          <div class="adv-card" style="flex:1;">
+            <div class="avatar av-blue">SC</div>
+            <div class="adv-info"><div class="adv-name">Sam Young Chung</div><div class="adv-role">Secondary · Bus. Innov. · No slots</div></div>
+            <div class="mini-btn-out" style="color:var(--text3);">No slots</div>
+          </div>
+        </div>
+        <div class="req-form">
+          <div class="req-form-hd">
+            <div class="req-form-title">Request meeting — Jiyoung Kwahk</div>
+            <div class="req-form-cancel">Cancel ×</div>
+          </div>
+          <div class="req-form-body">
+            <div>
+              <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">Select available slots (choose all that work)</div>
+              <div class="slot-select-row">
+                <span class="slot-chip selected">Apr 22 (Tue) 3:00 PM</span>
+                <span class="slot-chip selected">Apr 24 (Thu) 10:00 AM</span>
+                <span class="slot-chip">Apr 28 (Mon) 2:00 PM</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">Agenda note</div>
+              <div class="mini-ta">Would like to discuss career direction and next semester course selection.</div>
+            </div>
+          </div>
+          <div class="req-form-ft">
+            <div class="btn-cancel-sm">Cancel</div>
+            <div class="btn-submit">Submit request</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;">
+          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Past meetings</div>
+          <div class="hist-card">
+            <div class="hist-hd"><span class="hist-date">2026-03-12</span><span class="hist-who">Jiyoung Kwahk</span><span class="mock-pill pill-teal">Completed</span><span class="mock-pill pill-gray">Zoom</span></div>
+            <div class="hist-body">
+              <div class="hist-lbl">What was discussed</div>
+              <div class="hist-val">Career direction, interest in product management, concerns about the finance job market.</div>
+              <div class="refl-box">
+                <div class="refl-lbl">My reflection</div>
+                <div class="refl-val">"The suggestion to explore complex systems gave me a new lens. I want to look into how data science applies to policy-level problems."</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:6px;">Select multiple time slots when requesting — your advisor will confirm one. After each meeting, add a reflection to keep your own record of what you learned.</p>
+  </div>
+
+  <!-- KEY FEATURES -->
+  <div class="section">
+    <div class="sec-hd">Key features</div>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="1.5" stroke="#0F6E56" stroke-width="1.4"/><path d="M5 8l2 2 4-4" stroke="#0F6E56" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="feat-title">Meeting requests</div>
+        <div class="feat-desc">Pick from your advisor's available slots and submit a request with an agenda. Your advisor confirms one slot — you see the update in real time.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#0F6E56" stroke-width="1.4"/><path d="M5 7h6M5 10h4" stroke="#0F6E56" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+        <div class="feat-title">Profile & goals</div>
+        <div class="feat-desc">Build your advising profile with career goals, research interests, and strengths. Your advisor can see this before each meeting.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#0F6E56" stroke-width="1.4"/><path d="M8 5v3l2 2" stroke="#0F6E56" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+        <div class="feat-title">Meeting history</div>
+        <div class="feat-desc">See a chronological record of all your past advising sessions — what was discussed, action items, and your personal reflections.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="#0F6E56" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="feat-title">Reflections</div>
+        <div class="feat-desc">After each meeting, write a brief reflection and key takeaway. These are private to you and build your personal advising record over time.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M5 5l3-3 3 3" stroke="#0F6E56" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="feat-title">Reschedule & withdraw</div>
+        <div class="feat-desc">Need to change a pending request? Propose a new time or withdraw the request entirely from the Meetings tab before your advisor confirms.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="9" width="12" height="5" rx="1.5" stroke="#0F6E56" stroke-width="1.3"/><path d="M5 9V6a3 3 0 0 1 6 0v3" stroke="#0F6E56" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+        <div class="feat-title">Secure login</div>
+        <div class="feat-desc">Sign in with your @taejae.ac.kr student email. You can only see your own advising data — not other students' records.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCESS -->
+  <div class="section">
+    <div class="sec-hd">Access</div>
+    <div class="access-box">
+      <div class="access-main">
+        <div class="access-label">Telos for Students</div>
+        <div class="access-url">jkwahk02.github.io/Telos/student/</div>
+        <div class="access-note">Sign in with your <strong>@taejae.ac.kr</strong> student email. On your first login, you will be asked to set a new password. Your advising data is visible only to you and your assigned advisors.</div>
+      </div>
+      <a class="access-btn" href="https://jkwahk02.github.io/Telos/student/" target="_blank">Open Telos →</a>
+    </div>
+  </div>
+
+  <div class="footer">
+    Telos for Students · Taejae University — Data Science and AI Program<br>
+    Created by <strong style="color:var(--text2);">Jiyoung Kwahk</strong>
+    &nbsp;·&nbsp;
+    Questions? <a href="mailto:kjy@taejae.ac.kr" style="color:var(--accent);text-decoration:none;">kjy@taejae.ac.kr</a>
+  </div>
+
+</div>
+</body>
+</html>
