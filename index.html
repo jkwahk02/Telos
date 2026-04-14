@@ -599,6 +599,7 @@ let IS_CHAIR = false;  // set from faculty_profiles.is_chair after login
 
 let studFilter = 'my', studExtra = '', studSearch = '', studSort = {col:'name',dir:1};
 let openStudId = null, showFormFor = null, selTopics = [];
+let profileOpenFor = null; // null이면 open, id가 일치하면 minimized  
 let logFilter = 'all', logSearch = '', openLogId = null, editingLogId = null;
 
 
@@ -954,7 +955,7 @@ async function loadData() {
 
   try {
     const [rawStudents, rawSessions,rawMeetings] = await Promise.all([
-      sbGet(TBL_STUDENTS, 'order=id.asc'),
+      sbGet(TBL_STUDENTS, 'order=id.asc&select=*'),
       sbGet(TBL_LOG,      'order=meeting_date.desc'),
       sbGet(TBL_MEETING,  'order=meeting_date.desc'), // ← 신규
     ]);
@@ -1017,6 +1018,18 @@ function mapStudent(r) {
     researchInterest: r.research_interest || '',
     concerns:         r.concerns  || '',
     notes:            r.notes     || '',
+    visionTags:          r.vision_tags          || [],
+    visionText:          r.vision_text          || '',
+    careerGoalTags:      r.career_goal_tags     || [],
+    careerGoalText:      r.career_goal_text     || '',
+    researchTags:        r.research_interest_tags || [],
+    researchText:        r.research_interest_text || '',
+    expTags:             r.experiences_tags     || [],
+    expText:             r.experiences_text     || '',
+    strengthTags:        r.strength_tags        || [],
+    strengthText:        r.strength_text        || '',
+    concernsTags:        r.concerns_tags        || [],
+    concernsText:        r.concerns_text        || '',
   };
 }
 
@@ -1852,8 +1865,113 @@ function toggleStud(id){
   selTopics=[];
   renderStudBody();
 }
+  
 function closeStud(){openStudId=null;showFormFor=null;renderStudBody();}
 
+const PROFILE_DEFS = [
+  { key:'vision',   tags:'visionTags',     text:'visionText',    label:'My Mission' },
+  { key:'career',   tags:'careerGoalTags', text:'careerGoalText',label:'Career goal' },
+  { key:'research', tags:'researchTags',   text:'researchText',  label:'Research interest' },
+  { key:'exp',      tags:'expTags',        text:'expText',       label:'Significant experiences' },
+  { key:'strength', tags:'strengthTags',   text:'strengthText',  label:'Strengths' },
+  { key:'concerns', tags:'concernsTags',   text:'concernsText',  label:'Concerns & support needed' },
+];
+
+function isFilled(st, def) {
+  return (st[def.tags]||[]).length > 0 || (st[def.text]||'').trim().length > 0;
+}
+
+function buildProfileSection(st) {
+  const defs = PROFILE_DEFS;
+  const filledCount = defs.filter(d => isFilled(st, d)).length;
+  const isMin = profileOpenFor === st.id; // minimized이면 true
+
+  const toggleBtn = `
+    <button onclick="event.stopPropagation();profileOpenFor=profileOpenFor==='${st.id}'?null:'${st.id}';renderStudBody()"
+      style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:3px;padding:0;">
+      <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+        <path d="${isMin ? 'M3 4.5l3 3 3-3' : 'M3 7.5l3-3 3 3'}" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      ${isMin ? 'Expand' : 'Minimize'}
+    </button>`;
+
+  const hd = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:7px;">
+        <div style="width:18px;height:18px;border-radius:4px;background:var(--teal-l);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="4" r="2.2" stroke="#0F6E56" stroke-width="1.1"/><path d="M2 10c0-2.2 1.79-4 4-4s4 1.8 4 4" stroke="#0F6E56" stroke-width="1.1" stroke-linecap="round"/></svg>
+        </div>
+        <span style="font-size:13px;font-weight:600;color:var(--teal);">Student profile</span>
+        <span style="font-size:11px;font-weight:600;color:var(--teal);background:var(--teal-l);padding:1px 7px;border-radius:20px;">${filledCount} / ${defs.length} filled</span>
+      </div>
+      ${toggleBtn}
+    </div>`;
+
+  if (isMin) {
+    return `<div style="background:var(--surface);border-bottom:1px solid var(--border);">${hd}</div>`;
+  }
+
+  const cards = defs.map((d, i) => {
+    const filled = isFilled(st, d);
+    const tags = (st[d.tags] || []).slice(0, 4); // 최대 4개까지 표시
+    const text = (st[d.text] || '').trim();
+    const hdStyle = filled
+      ? 'background:var(--teal-l);border-bottom:1px solid var(--teal-b);'
+      : 'background:var(--surface2);border-bottom:1px solid var(--border);';
+    const numStyle = filled
+      ? 'background:var(--teal-l);color:var(--teal);border:0.5px solid var(--teal-b);'
+      : 'background:var(--surface2);border:0.5px solid var(--border-em);color:var(--text3);';
+    const labelColor = filled ? 'color:var(--teal-d);' : 'color:var(--text2);';
+    const checkHtml = filled ? `
+      <div style="width:14px;height:14px;border-radius:50%;background:var(--teal-m);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l2 2 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>` : '';
+    const badgeHtml = filled
+      ? `<span style="font-size:10px;padding:1px 5px;border-radius:20px;background:var(--teal-l);color:var(--teal-d);border:0.5px solid var(--teal-b);flex-shrink:0;">Filled</span>`
+      : `<span style="font-size:10px;padding:1px 5px;border-radius:20px;background:var(--surface2);color:var(--text3);border:0.5px solid var(--border-em);flex-shrink:0;">Empty</span>`;
+
+    const chipHtml = tags.length
+      ? tags.map(t => `<span style="font-size:10px;padding:2px 6px;border-radius:20px;background:var(--teal-l);border:0.5px solid var(--teal-b);color:var(--teal-d);font-weight:500;">${esc(t)}</span>`).join('')
+      : '';
+    const textHtml = text
+      ? `<div style="font-size:11px;color:var(--text);line-height:1.5;border-top:0.5px solid var(--border);padding-top:4px;margin-top:${tags.length?'4':'0'}px;">${esc(text)}</div>`
+      : '';
+    const emptyHtml = !filled
+      ? `<div style="font-size:11px;color:var(--text3);font-style:italic;">Not filled in yet</div>`
+      : '';
+
+    return `
+      <div style="border:0.5px solid ${filled ? 'var(--teal-b)' : 'var(--border)'};border-radius:var(--r);overflow:hidden;">
+        <div style="${hdStyle}padding:5px 9px;display:flex;align-items:center;gap:5px;">
+          <div style="width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;flex-shrink:0;${numStyle}">${i+1}</div>
+          <span style="font-size:10px;font-weight:600;flex:1;min-width:0;${labelColor}">${esc(d.label)}</span>
+          ${checkHtml}
+          ${badgeHtml}
+        </div>
+        <div style="padding:7px 9px;">
+          ${chipHtml ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:${text?'4':'0'}px;">${chipHtml}</div>` : ''}
+          ${textHtml}
+          ${emptyHtml}
+        </div>
+      </div>`;
+  }).join('');
+
+  const note = `
+    <div style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;padding:6px 0 2px;">
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1"/><path d="M6 5.5v2.5M6 4.5h.01" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+      Written by the student in Telos for Students — read-only
+    </div>`;
+
+  return `
+    <div style="background:var(--surface);border-bottom:1px solid var(--border);">
+      ${hd}
+      <div style="padding:10px 16px 12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;">${cards}</div>
+        ${note}
+      </div>
+    </div>`;
+}
+  
 function buildStudPanel(st){
   const extras=[];
   if(st.track) extras.push({l:'Track',v:st.track});
@@ -1897,6 +2015,8 @@ function buildStudPanel(st){
         <button class="btn-cls" onclick="event.stopPropagation();closeStud()">×</button>
       </div>
     </div>
+    ${buildProfileSection(st)}
+    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:5px 16px 4px;background:var(--surface2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">Advising timeline</div>
     <div class="tl-wrap">${tl}</div>`;
 }
 
