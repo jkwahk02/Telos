@@ -804,13 +804,32 @@ function toggleHelpHero(){
   
 // ── SUPABASE HELPERS ──
 function sbHeaders(extra={}){
-  return {'apikey':SUPABASE_KEY,'Authorization':`Bearer ${supabaseUser?.access_token||SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=representation',...extra};
+  if (!supabaseUser?.access_token) throw new Error('Not authenticated');
+  return {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${supabaseUser.access_token}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+    ...extra
+  };
 }
-async function sbGet(table,params=''){
-  const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`,{headers:sbHeaders()});
-  if(!r.ok){const b=await r.json().catch(()=>({}));throw new Error(b.message||b.hint||`HTTP ${r.status}`);}
+  
+async function sbGet(table, params='') {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
+    headers: sbHeaders(),
+  });
+  if (r.status === 401) {
+    showToast('Session expired. Please sign in again.');
+    handleSignOut();
+    throw new Error('Session expired');
+  }
+  if (!r.ok) {
+    const body = await r.json().catch(()=>({}));
+    throw new Error(body.message || body.hint || `HTTP ${r.status}`);
+  }
   return r.json();
 }
+
 async function sbPatch(table,col,val,row){
   const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${encodeURIComponent(val)}`,{method:'PATCH',headers:sbHeaders(),body:JSON.stringify(row)});
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||`PATCH failed: ${r.status}`);}
@@ -825,14 +844,23 @@ async function sbDelete(table,col,val){
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||`DELETE failed: ${r.status}`);}
 }
 function isSignedIn(){return !!supabaseUser?.access_token;}
-
+let loginAttempts = 0;
+let loginLocked = false;
+  
 // ── AUTH ──
 async function handleWallLogin(){
   const email=document.getElementById('wall-email').value.trim();
   const password=document.getElementById('wall-password').value;
   const errEl=document.getElementById('wall-error');
   const btn=document.getElementById('wall-submit');
-  if(!email||!password){errEl.textContent='Email and password are required.';return;}
+  
+  if (loginLocked) return;                          // ← 여기 추가
+  if (!email || !password) { errEl.textContent = 'Email and password are required.'; return; }
+  if (!email.endsWith('@taejae.ac.kr')) {
+    errEl.textContent = 'Please use your @taejae.ac.kr institutional email.';
+    btn.textContent = 'Sign in'; btn.disabled = false;
+    return;
+  }
   btn.textContent='Signing in…';btn.disabled=true;errEl.textContent='';
   try{
     const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{
@@ -856,11 +884,21 @@ async function handleWallLogin(){
     }
     await loadData();
   }catch(e){
-    errEl.textContent=e.message;
-    btn.textContent='Sign in';btn.disabled=false;
+    loginAttempts++;
+    if (loginAttempts >= 5) {
+      loginLocked = true;
+      errEl.textContent = 'Too many failed attempts. Please wait 30 seconds.';
+      btn.disabled = true;
+      setTimeout(() => {
+        loginAttempts = 0; loginLocked = false;
+        btn.disabled = false; btn.textContent = 'Sign in'; errEl.textContent = '';
+      }, 30000);
+    } else {
+      errEl.textContent = e.message;
+      btn.textContent = 'Sign in'; btn.disabled = false;
+    }
   }
-}
-
+  
 async function handlePasswordChange(){
   const pw1=document.getElementById('pw-new').value;
   const pw2=document.getElementById('pw-confirm').value;
@@ -998,23 +1036,24 @@ async function loadData(){
 }
 
 function loadFallback(){
-  studentData=FALLBACK_STUDENT;
-  scheduledMeetings=FALLBACK_SCHEDULED;
-  allMeetings=FALLBACK_ALL_MEETINGS;
-  sessionCount = FALLBACK_ALL_MEETINGS.filter(m => m.status === 'completed').length;
-  allFaculty=FALLBACK_FACULTY;
-  availMap=FALLBACK_AVAIL;
-  const name=studentData.name_en||'Student';
-  document.getElementById('nav-avatar').textContent=initials(name);
-  document.getElementById('nav-name').textContent=name;
-  document.getElementById('dd-name').textContent=name;
-  document.getElementById('dd-email').textContent=studentData.email||'';
-  document.getElementById('nav-user-btn').style.display='flex';
-  document.getElementById('src-label').textContent='Demo mode';
-  dataLoaded=true;
-  renderCurrent();
+  studentData = FALLBACK_STUDENT;           // null
+  scheduledMeetings = FALLBACK_SCHEDULED;   // []
+  allMeetings = FALLBACK_ALL_MEETINGS;      // []
+  sessionCount = 0;
+  allFaculty = FALLBACK_FACULTY;            // []
+  availMap = FALLBACK_AVAIL;               // {}
+  dataLoaded = true;
+  document.getElementById('nav-avatar').textContent = '—';
+  document.getElementById('nav-name').textContent = '';
+  document.getElementById('dd-name').textContent = supabaseUser?.user?.email || '—';
+  document.getElementById('dd-email').textContent = supabaseUser?.user?.email || '';
+  document.getElementById('nav-user-btn').style.display = 'flex';
+  document.getElementById('src-dot').className = 'src-dot error';
+  document.getElementById('src-label').textContent = 'Connection failed';
+  document.getElementById('page-overview').innerHTML =
+    `<div class="error-banner"><strong>Unable to load data.</strong> Please refresh the page or contact the administrator.</div>`;
 }
-
+  
 // ── ROUTING ──
 document.querySelectorAll('.nav-tab').forEach(t=>{
   t.addEventListener('click',()=>{
@@ -2650,61 +2689,11 @@ document.addEventListener('click',(e)=>{
 });
 
 // ── FALLBACK DATA ──
-const FALLBACK_STUDENT = {
-  id:'2024022', name_en:'Jioh Han', email:'isaax021@taejae.ac.kr',
-  cohort:'Cohort 2 (2024)', school:'Data Science and AI',
-  track:'Double Major', major1:'Data Science and AI', major2:'Business Innovation', minor:'',
-  status:'Enrolled',
-  advisor1_email:'kjy@taejae.ac.kr', advisor2_email:'sychung@taejae.ac.kr',
-  career_goal_tags:['AI / ML engineer','Product manager'], career_goal_text:'I want to build AI-powered products in the healthcare sector.',
-  research_interest_tags:['NLP / LLMs','AI ethics'], research_interest_text:'Bias detection in language models and healthcare AI.',
-  experiences_tags:[], experiences_text:'',
-  strength_tags:[], strength_text:'',
-  concerns_tags:[], concerns_text:'',
-  vision_tags:['Social / public impact'], vision_text:'I want to build AI systems that make healthcare more equitable globally.',
-};
-
-const FALLBACK_FACULTY = [
-  {id:'FAC-01',name_en:'Jiyoung Kwahk',  email:'kjy@taejae.ac.kr',     school:'Data Science and AI',      is_chair:true},
-  {id:'FAC-02',name_en:'Sung Jun Park',   email:'sjp@taejae.ac.kr',     school:'Data Science and AI',      is_chair:false},
-  {id:'FAC-03',name_en:'Kendall Koe',     email:'kkoe@taejae.ac.kr',    school:'Data Science and AI',      is_chair:false},
-  {id:'FAC-04',name_en:'Jeongseok Lee',   email:'jslee@taejae.ac.kr',   school:'Humanities and Social Sciences', is_chair:false},
-  {id:'FAC-05',name_en:'Mijung Lee',      email:'mjlee@taejae.ac.kr',   school:'Natural Sciences',          is_chair:false},
-  {id:'FAC-06',name_en:'Sam Young Chung', email:'sychung@taejae.ac.kr', school:'Business Innovation',       is_chair:false},
-];
-
-const FALLBACK_SCHEDULED = [
-  {id:1, student_id:'2024022', faculty_email:'kjy@taejae.ac.kr',
-   meeting_date:'2026-04-21', meeting_format:'Zoom', meeting_type:'Regular',
-   status:'scheduled', advisor_confirmed:true, student_agenda:'AIR project direction + ML seminar decision',
-   meeting_link:'', created_at:'2026-04-10T00:00:00'},
-  {id:2, student_id:'2024022', faculty_email:'sychung@taejae.ac.kr',
-   meeting_date:'2026-04-24', meeting_format:'Zoom', meeting_type:'Ad-hoc',
-   status:'scheduled', advisor_confirmed:false, student_agenda:'Capstone topic — NLP + medical records feasibility',
-   meeting_link:'', created_at:'2026-04-09T00:00:00'},
-];
-
-const FALLBACK_ALL_MEETINGS = [
-  ...FALLBACK_SCHEDULED,
-  {id:99, student_id:'2024022', faculty_email:'kjy@taejae.ac.kr', meeting_date:'2026-04-15', meeting_format:'Zoom', status:'completed'},
-  {id:98, student_id:'2024022', faculty_email:'kjy@taejae.ac.kr', meeting_date:'2026-03-13', meeting_format:'Zoom', status:'completed'},
-];
-
-const FALLBACK_AVAIL = {
-  'kjy@taejae.ac.kr':[
-    {faculty_email:'kjy@taejae.ac.kr',day_of_week:1,start_time:'14:00:00',end_time:'15:00:00',meeting_type:'Zoom',is_active:true},
-    {faculty_email:'kjy@taejae.ac.kr',day_of_week:3,start_time:'10:00:00',end_time:'11:00:00',meeting_type:'Zoom',is_active:true},
-    {faculty_email:'kjy@taejae.ac.kr',day_of_week:3,start_time:'15:00:00',end_time:'16:00:00',meeting_type:'Zoom',is_active:true},
-    {faculty_email:'kjy@taejae.ac.kr',day_of_week:5,start_time:'14:00:00',end_time:'15:00:00',meeting_type:'Zoom',is_active:true},
-  ],
-  'sychung@taejae.ac.kr':[
-    {faculty_email:'sychung@taejae.ac.kr',day_of_week:2,start_time:'10:00:00',end_time:'11:00:00',meeting_type:'Zoom',is_active:true},
-    {faculty_email:'sychung@taejae.ac.kr',day_of_week:4,start_time:'14:00:00',end_time:'15:00:00',meeting_type:'In-person',is_active:true},
-  ],
-  'sjp@taejae.ac.kr':[
-    {faculty_email:'sjp@taejae.ac.kr',day_of_week:1,start_time:'10:00:00',end_time:'11:00:00',meeting_type:'Zoom',is_active:true},
-  ],
-};
+const FALLBACK_STUDENT     = null;
+const FALLBACK_FACULTY     = [];
+const FALLBACK_SCHEDULED   = [];
+const FALLBACK_ALL_MEETINGS = [];
+const FALLBACK_AVAIL       = {};
 
 // ── START ──
 if(SUPABASE_URL!=='YOUR_SUPABASE_URL'){
