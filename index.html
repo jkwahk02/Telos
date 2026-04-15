@@ -820,7 +820,7 @@ async function handleWallLogin() {
     // Step 5: Normal login — enter app
     await loadData();
 
-} catch(e) {
+  } catch(e) {
   loginAttempts++;
   if (loginAttempts >= 5) {
     loginLocked = true;
@@ -831,8 +831,8 @@ async function handleWallLogin() {
     errEl.textContent = e.message;
     btn.textContent = 'Sign in'; btn.disabled = false;
   }
+  }
 }
-
 
 function showChangePwModal() {
   // Reuse the pw-change-wall with a different heading
