@@ -883,7 +883,7 @@ async function handleWallLogin(){
       return;
     }
     await loadData();
-  }catch(e){
+  } catch(e){
     loginAttempts++;
     if (loginAttempts >= 5) {
       loginLocked = true;
@@ -898,6 +898,7 @@ async function handleWallLogin(){
       btn.textContent = 'Sign in'; btn.disabled = false;
     }
   }
+}
   
 async function handlePasswordChange(){
   const pw1=document.getElementById('pw-new').value;
