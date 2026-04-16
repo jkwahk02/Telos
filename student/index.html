@@ -2474,7 +2474,6 @@ async function saveEditRequest(meetingId) {
       status:            'scheduled',
       created_by:        'student',
       advisor_confirmed: false,
-      meeting_date:      null,
     } : {}),
   };
 
@@ -2487,7 +2486,7 @@ async function saveEditRequest(meetingId) {
       m.status            = 'scheduled';
       m.created_by        = 'student';
       m.advisor_confirmed = false;
-      m.meeting_date      = null;
+//      m.meeting_date      = null;
     }
     editingRequestId     = null;
     requestFormOpen      = false;
