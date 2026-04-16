@@ -1968,7 +1968,7 @@ el.innerHTML=`
 `;
 }
 
-function openRescheduleRequest(meetingId) {
+async function openRescheduleRequest(meetingId) {
   const m = scheduledMeetings.find(x=>x.id===meetingId);
   if (!m) return;
   editingRequestId      = meetingId;
@@ -1976,6 +1976,13 @@ function openRescheduleRequest(meetingId) {
   selectedFacultyEmail  = m.faculty_email;
   meetingDuration       = m.meeting_duration || 60;
   selectedMeetingSlots  = [];
+  if (!availMap[m.faculty_email]) {
+    try {
+      const rows = await sbGet(TBL_AVAIL,
+        `faculty_email=eq.${encodeURIComponent(m.faculty_email)}&is_active=eq.true&order=day_of_week.asc,start_time.asc`);
+      availMap[m.faculty_email] = rows;
+    } catch(e) { availMap[m.faculty_email] = []; }
+  }
   renderMeetings();
   setTimeout(()=>{
     const form=document.querySelector('.card.accent-teal');
