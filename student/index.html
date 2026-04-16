@@ -1983,7 +1983,7 @@ function openRescheduleRequest(meetingId) {
   },100);
 }
 
-function requestRescheduleConfirmed(meetingId) {
+async function requestRescheduleConfirmed(meetingId) {
   const m = scheduledMeetings.find(x => x.id === meetingId);
   if (!m) return;
   editingRequestId     = meetingId;
@@ -1991,6 +1991,14 @@ function requestRescheduleConfirmed(meetingId) {
   selectedFacultyEmail = m.faculty_email;
   meetingDuration      = m.meeting_duration || 60;
   selectedMeetingSlots = [];
+  // availMap에 해당 교수 데이터가 없으면 로드
+  if (!availMap[m.faculty_email]) {
+    try {
+      const rows = await sbGet(TBL_AVAIL,
+        `faculty_email=eq.${encodeURIComponent(m.faculty_email)}&is_active=eq.true&order=day_of_week.asc,start_time.asc`);
+      availMap[m.faculty_email] = rows;
+    } catch(e) { availMap[m.faculty_email] = []; }
+  }
   renderMeetings();
   setTimeout(() => {
     const form = document.querySelector('.card.accent-teal');
