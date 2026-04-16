@@ -3326,15 +3326,6 @@ function renderMeetings() {
       document.getElementById('pending-requests-card')?.scrollIntoView({behavior:'smooth',block:'start'});
     },100);
   }
-
-  function openMeetingDetail(meetingId) {
-    const m = meetings.find(x => x.id === String(meetingId));
-    if (!m?.logId) {
-      showToast('No session log for this meeting yet.');
-      return;
-    }
-    goToLog(m.logId);
-  }
     
   function buildRows(list, cat) {
     if (!list.length) return `<div style="padding:20px 16px;text-align:center;font-size:14px;color:var(--text3);">No ${cat} meetings</div>`;
@@ -3546,7 +3537,27 @@ function filterMeetings(f, btn) {
   // calendar view (열려있으면 재렌더)
   if (document.getElementById('mtg-cal-wrap')?.style.display !== 'none') buildCalendar();
 }
-  
+
+function goToOverviewPending(){
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active',t.dataset.page==='overview'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-overview').classList.add('active');
+  currentPage='overview';
+  renderOverview();
+  setTimeout(()=>{
+    document.getElementById('pending-requests-card')?.scrollIntoView({behavior:'smooth',block:'start'});
+  },100);
+}
+
+function openMeetingDetail(meetingId) {
+  const m = meetings.find(x => x.id === String(meetingId));
+  if (!m?.logId) {
+    showToast('No session log recorded for this meeting yet.');
+    return;
+  }
+  goToLog(m.logId);
+}
+
 function goToStudent(id){
   openStudId=id;showFormFor=null;
   document.querySelectorAll('.nav-tab').forEach(t=>{t.classList.toggle('active',t.dataset.page==='students');});
