@@ -2258,6 +2258,9 @@ function buildRequestForm(){
   }).join('');
 
   // ── selected summary ──
+  const facTz = selectedFacultyEmail
+    ? (allFaculty.find(f=>f.email===selectedFacultyEmail)?.timezone || null)
+    : null;
   const selSummary=selectedMeetingSlots.length?`
       <div>
         <div class="fta-lbl" style="margin-bottom:6px;">Your proposed times</div>
