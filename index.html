@@ -3517,7 +3517,7 @@ function renderMeetings() {
           <div class="date-block-new">
             ${isPending ? (() => {
               const slots = Array.isArray(m.proposedSlots) ? m.proposedSlots : [];
-              const first = slots[0];
+              const first = [...slots].sort((a,b) => (a.dateStr||'').localeCompare(b.dateStr||''))[0];
               const fd = first?.dateStr ? new Date(first.dateStr+'T12:00:00') : null;
               const fday = fd ? fd.getDate() : '—';
               const fmon = fd ? fd.toLocaleDateString('en-US',{month:'short'}) : '';
