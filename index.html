@@ -1202,14 +1202,22 @@ function mapMeeting(r) {
     meetingDate:      (r.meeting_date || '').slice(0,10),
     meetingFormat:    r.meeting_format || 'Zoom',
     meetingType:      r.meeting_type || 'Regular',
-    meetingDuration:  r.meeting_duration || 60,
+    meetingDuration:  r.meeting_duration || 30,
     proposedSlots:    Array.isArray(r.proposed_slots)
       ? r.proposed_slots
       : (typeof r.proposed_slots === 'string'
           ? JSON.parse(r.proposed_slots || '[]')
           : []),
-    confirmedStart: r.confirmed_start_time?.slice(0,5) || '',
-    confirmedEnd:   r.confirmed_end_time?.slice(0,5)   || '',
+    confirmedStart: r.confirmed_start_time?.slice(0,5) || r.meeting_time?.slice(0,5) || '',
+    confirmedEnd: (() => {
+      if (r.confirmed_end_time) return r.confirmed_end_time.slice(0,5);
+      const start = r.confirmed_start_time?.slice(0,5) || r.meeting_time?.slice(0,5);
+      if (!start) return '';
+      const [h,m] = start.split(':').map(Number);
+      const dur = r.meeting_duration || 60;
+      const total = h*60 + m + dur;
+      return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;
+    })(),
     status:           r.status || 'scheduled',
     advisorConfirmed: r.advisor_confirmed || false,
     studentAgenda:    r.student_agenda || '',
