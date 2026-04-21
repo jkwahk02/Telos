@@ -251,7 +251,7 @@ button,input,select,textarea{font-family:inherit;}
 .dur-chip:hover{border-color:var(--teal-b);color:var(--teal);}
 .dur-chip.on{background:var(--teal-l);border-color:var(--teal-b);color:var(--teal);font-weight:500;}
 .pop-overlay{position:fixed;inset:0;z-index:150;}
-.slot-popover{display:none;position:absolute;top:calc(100% + 7px);left:50%;transform:translateX(-50%);z-index:200;background:var(--surface);border:1px solid var(--border-em);border-radius:10px;min-width:160px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.1);}
+.slot-popover{display:none;position:absolute;top:calc(100% + 7px);left:50%;transform:translateX(-50%);z-index:200;background:var(--surface);border:1px solid var(--border-em);border-radius:10px;min-width:220px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.1);}
 .slot-popover.open{display:block;}
 .spop-hd{padding:7px 12px;background:var(--surface2);border-bottom:1px solid var(--border);}
 .spop-date{font-size:12px;font-weight:600;}
@@ -2129,8 +2129,7 @@ function clearOtherFaculty(){
 
 function buildRequestForm(){
   const s=studentData;
-  const excluded=[s.advisor1_email,s.advisor2_email,allFaculty.find(f=>f.is_chair)?.email].filter(Boolean);
-  const myFaculty=allFaculty.filter(f=>f.email===s.advisor1_email||f.email===s.advisor2_email||(f.is_chair&&!excluded.slice(0,2).includes(f.email)));
+  const myFaculty=allFaculty.filter(f=>f.email===s.advisor1_email||f.email===s.advisor2_email);
   const otherFaculty=allFaculty.filter(f=>!myFaculty.map(x=>x.email).includes(f.email));
 
   // ── slot helpers ──
