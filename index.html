@@ -3485,11 +3485,20 @@ function renderMeetings() {
       const clickAction = isPending
         ? `pendingExpanded['${m.id}']=!pendingExpanded['${m.id}'];renderMeetings()`
         : `openMeetingDetail('${m.id}')`;
+
       const timeHtml = (() => {
-        const slots = Array.isArray(m.proposedSlots) ? m.proposedSlots : [];
-        const s = slots[0];
-        if (!s?.start) return '';
-        return `<div class="mtg-time ${cat==='upcoming'?'green':cat==='pending'?'amber':''}">${s.start}${s.end?'–'+s.end:''} <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>`;
+        // upcoming: confirmedStart 우선, 없으면 proposedSlots[0]
+        // past(completed): confirmedStart 사용
+        // pending: date block에서 별도 처리하므로 여기선 빈 값
+        if (isPending) return '';
+        const start = m.confirmedStart || (Array.isArray(m.proposedSlots) ? m.proposedSlots[0]?.start : null);
+        const end   = m.confirmedStart
+          ? (m.confirmedEnd || '')
+          : (Array.isArray(m.proposedSlots) ? m.proposedSlots[0]?.end : null);
+        if (!start) return '<div class="mtg-time gr">—</div>';
+        return `<div class="mtg-time ${cat==='upcoming'?'green':''}">
+          ${start}${end?'–'+end:''} <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span>
+        </div>`;
       })();
       const metaItems = [
         esc(shortMajor(st?.major1||'')),
