@@ -2272,11 +2272,11 @@ function buildRequestForm(){
                 <div class="spop-tz" style="text-align:left;">
                   <div class="spop-tz-line" style="justify-content:flex-start;color:var(--text);font-size:12px;font-weight:500;">
                     <span class="tz-pill">${tzAbbr(stuTz)||'local'}</span>
-                    ${s.dateLabel} · ${s.start}–${s.end}
+                    ${s.dateLabel} · ${convertTime(s.start,facTz,stuTz)||s.start}–${convertTime(s.end,facTz,stuTz)||s.end}
                   </div>
                   ${facTz&&facTz!==stuTz?`<div class="spop-tz-line" style="justify-content:flex-start;">
                     <span class="tz-pill">${tzAbbr(facTz)}</span>
-                    ${s.dateLabel} · ${convertTime(s.start,stuTz,facTz)||s.start}–${convertTime(s.end,stuTz,facTz)||s.end}
+                    ${s.dateLabel} · ${s.start}–${s.end}
                   </div>`:''}
                 </div>
               </div>
