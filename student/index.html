@@ -2134,6 +2134,7 @@ function buildRequestForm(){
   const otherFaculty=allFaculty.filter(f=>!myFaculty.map(x=>x.email).includes(f.email));
 
   // ── slot helpers ──
+  const stuTz = studentData?.timezone || STUDENT_TIMEZONE || null;
   function tToM(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
 
   function convertTime(timeStr, fromTz, toTz) {
@@ -2169,7 +2170,6 @@ function buildRequestForm(){
 
   // ── slot grid ──
   function buildSlotGrid(slots, facTz){
-    const stuTz = studentData?.timezone || null;
     if(!slots.length) return '<div class="no-slots">No availability registered for this professor.</div>';
     const today=new Date();today.setHours(0,0,0,0);
     const withDates=[];const seen={};
