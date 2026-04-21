@@ -184,16 +184,24 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .log-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:8px;overflow:hidden;cursor:pointer;transition:border-color .12s;}
 .log-row:hover{border-color:var(--border-em);}
 .log-row.active{border-left:3px solid var(--blue-m);border-color:var(--blue-m);}
-.log-sum{display:flex;align-items:center;gap:9px;padding:10px 14px;transition:background .1s;}
+.log-sum{display:grid;grid-template-columns:130px 1fr auto auto;align-items:center;gap:12px;padding:11px 16px;transition:background .1s;}
 .log-row.active .log-sum{background:var(--blue-l);}
-.log-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
-.log-date{font-size:17px;font-weight:600;white-space:nowrap;}
-.log-logid{font-size:17px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap;}
-.log-who{font-size:17px;font-weight:600;white-space:nowrap;}
-.log-sub{font-size:17px;color:var(--text2);white-space:nowrap;}
-.log-preview{font-size:17px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;}
-.log-hint{font-size:17px;color:var(--text3);flex-shrink:0;white-space:nowrap;}
+.log-dt{display:flex;flex-direction:column;gap:2px;}
+.log-dt-date{font-size:15px;font-weight:600;color:var(--text);}
+.log-dt-time{font-size:12px;font-weight:500;color:var(--text2);display:flex;align-items:center;gap:4px;}
+.log-center{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.log-name{font-size:15px;font-weight:600;color:var(--text);}
+.log-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.log-meta-item{font-size:12px;color:var(--text2);}
+.log-meta-dot{width:3px;height:3px;border-radius:50%;background:var(--text3);flex-shrink:0;}
+.log-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.log-hint{font-size:12px;color:var(--text3);flex-shrink:0;white-space:nowrap;}
 .log-row.active .log-hint{color:var(--blue);}
+.vis-pill{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;}
+.vis-private{background:var(--gray-l);color:var(--gray-m);}
+.vis-chair{background:var(--blue-l);color:var(--blue);}
+.vis-advisors{background:var(--green-l);color:var(--green);}
+.vis-all{background:var(--amber-l);color:var(--amber);}
 .log-xwrap{overflow:hidden;max-height:0;transition:max-height .3s cubic-bezier(.4,0,.2,1);}
 .log-xwrap.open{max-height:1000px;}
 .log-ab{display:flex;align-items:center;padding:8px 14px;gap:18px;background:var(--surface2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-wrap:wrap;}
@@ -3506,79 +3514,81 @@ function renderMeetings() {
   function buildRows(list, cat) {
     if (!list.length) return `<div style="padding:20px 16px;text-align:center;font-size:14px;color:var(--text3);">No ${cat} meetings</div>`;
     return list.map(m => {
-      const st = students.find(s => s.id === m.studentId);
       const isPending = cat==='pending'||cat==='rescheduling';
-      const clickAction = isPending
-        ? `pendingExpanded['${m.id}']=!pendingExpanded['${m.id}'];renderMeetings()`
-        : `openMeetingDetail('${m.id}')`;
+      const isConfirmed = cat==='upcoming';
+      const isPast = cat==='past';
 
-      const timeHtml = (() => {
-        if (isPending) return '';
-        const start = m.confirmedStart || '';
-        const end   = m.confirmedEnd   || '';
-        if (!start) return '';
-        return `<div class="mtg-time ${cat==='upcoming'?'green':''}">
-          ${start}${end?'–'+end:''} <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span>
-        </div>`;
+      const dateStr = (() => {
+        if (isPending) {
+          const slots = Array.isArray(m.proposedSlots) ? m.proposedSlots : [];
+          const first = [...slots].sort((a,b)=>(a.dateStr||'').localeCompare(b.dateStr||''))[0];
+          const fLabel = first?.dateLabel || '';
+          const fParts = fLabel.split(' ');
+          return fParts.length===2 ? `${fParts[1]} ${fParts[0]}, ${new Date().getFullYear()}` : 'TBD';
+        }
+        return m.meetingDate
+          ? new Date(m.meetingDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+          : 'TBD';
       })();
+
+      const dtHtml = (() => {
+        if (isPending) {
+          const slots = Array.isArray(m.proposedSlots) ? m.proposedSlots : [];
+          const first = [...slots].sort((a,b)=>(a.dateStr||'').localeCompare(b.dateStr||''))[0];
+          const fLabel = first?.dateLabel || 'TBD';
+          const extra = slots.length > 1 ? `+${slots.length-1} more` : '';
+          return `
+            <div class="mtg-dt-date">${fLabel}</div>
+            <div class="mtg-dt-sub">Proposed ${extra ? `· ${extra}` : ''}</div>`;
+        }
+        if (cat==='rescheduling') return `
+          <div class="mtg-dt-date">TBD</div>
+          <div class="mtg-dt-sub">Awaiting new slots</div>`;
+        const timeStr = m.confirmedStart;
+        const timeEnd = m.confirmedEnd;
+        const tc = isConfirmed ? 'g' : isPast ? 'gr' : '';
+        return `
+          <div class="mtg-dt-date">${dateStr}</div>
+          ${timeStr ? `<div class="mtg-dt-time ${tc}">${timeStr}${timeEnd?'–'+timeEnd:''} <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>` : ''}`;
+      })();
+
       const metaItems = [
-        esc(shortMajor(st?.major1||'')),
         esc(shortCohort(st?.cohort||'')),
-        `${esc(m.meetingType||'Regular')} · ${m.meetingDuration||60} min · ${esc(m.meetingFormat||'Zoom')}`,
-        isPending && m.proposedSlots?.length ? `${m.proposedSlots.length} slot${m.proposedSlots.length!==1?'s':''} proposed` : '',
-      ].filter(Boolean).map((item,i,arr) =>
+        esc(shortMajor(st?.major1||'')),
+        `${esc(m.meetingType||'Regular')} · ${m.meetingDuration||30} min · ${esc(m.meetingFormat||'Zoom')}`,
+      ].filter(Boolean).map((item,i,arr)=>
         `<span class="mtg-meta-item">${item}</span>${i<arr.length-1?'<div class="mtg-meta-dot"></div>':''}`
       ).join('');
-      const avColor = cat==='upcoming'?'var(--blue-l)':cat==='pending'?'var(--amber-l)':'var(--gray-l)';
-      const avText  = cat==='upcoming'?'var(--blue)':cat==='pending'?'var(--amber)':'var(--gray-m)';
-      const expandHtml = isPending ? `
+
+      const rightHtml = (() => {
+        if (isConfirmed) return `${pill(cat,m)} <span style="font-size:12px;color:var(--text3);border:1px dashed var(--border-em);border-radius:20px;padding:2px 9px;cursor:pointer;">${m.meetingLink?'Join Zoom →':'+ Add Zoom'}</span>`;
+        if (isPending||cat==='rescheduling') return pill(cat,m);
+        return pill(cat,m);
+      })();
+
+      const actionHtml = (() => {
+        if (isConfirmed) return '';
+        if (isPending||cat==='rescheduling') return `<span style="font-size:12px;color:var(--blue);">${pendingExpanded[m.id]?'▴ Collapse':'▾ Review'}</span>`;
+        return `<span style="font-size:12px;color:var(--blue);">View log →</span>`;
+      })();
+
+      const expandHtml = (isPending||cat==='rescheduling') ? `
         <div class="mtg-expand ${pendingExpanded[m.id]?'open':''}">
           ${pendingExpanded[m.id] ? buildPendingExpand(m, st) : ''}
         </div>` : '';
-      const date = m.meetingDate ? new Date(m.meetingDate+'T00:00:00') : null;
-      const mon  = date ? date.toLocaleDateString('en-US',{month:'short'}) : 'TBD';
-      const day  = date ? date.getDate() : '—';
-      const dc   = cat==='upcoming'?'g':cat==='pending'?'a':'gr';
+
+      const accentClass = isConfirmed ? 'confirmed' : isPending||cat==='rescheduling' ? 'pending' : '';
+      const opacity = isPast ? 'opacity:.75;' : '';
 
       return `<div>
-        <div class="mtg-item-new${isPending?' pending':''}"
-          onclick="${clickAction}">
-
-          <div class="date-block-new">
-            ${isPending ? (() => {
-              const slots = Array.isArray(m.proposedSlots) ? m.proposedSlots : [];
-              const first = [...slots].sort((a,b) => (a.dateStr||'').localeCompare(b.dateStr||''))[0];
-              const fLabel = first?.dateLabel || '';
-              const fParts = fLabel.split(' ');
-              const fmon = fParts[0] || '';
-              const fday = fParts[1] || '—';
-              const extra = slots.length > 1 ? `<div style="font-size:11px;color:var(--text3);">+${slots.length-1} more slot${slots.length-1!==1?'s':''}</div>` : '';
-              return `
-                <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:var(--amber);">Proposed</div>
-                <div style="display:flex;align-items:baseline;gap:4px;">
-                  <span style="font-size:20px;font-weight:600;color:var(--amber);">${fday}</span>
-                  <span style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:var(--amber);">${fmon}</span>
-                </div>
-                ${extra}`;
-            })() : `
-              <div style="display:flex;align-items:baseline;gap:4px;">
-                <span style="font-size:20px;font-weight:600;color:${cat==='upcoming'?'var(--green)':'var(--text2)'};">${day}</span>
-                <span style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:${cat==='upcoming'?'var(--green)':'var(--text3)'};">${mon}</span>
-              </div>
-              ${timeHtml}`}
-          </div>
-          
-          <div class="mtg-av" style="background:${avColor};color:${avText};">
-            ${initials(st?.name||m.studentId)}
-          </div>
+        <div class="mtg-item-new ${accentClass}" style="${opacity}" onclick="${clickAction}">
+          <div class="mtg-dt">${dtHtml}</div>
           <div class="mtg-center">
             <div class="mtg-name">${esc(st?.name||m.studentId)}</div>
             <div class="mtg-meta">${metaItems}</div>
           </div>
-          <div class="mtg-right">
-            ${pill(cat, m)}
-            ${cat==='upcoming' ? zoomBadge(m) : isPending ? `<span style="font-size:13px;color:var(--blue);">${pendingExpanded[m.id]?'▴ Collapse':'▾ Review'}</span>` : `<span style="font-size:13px;color:var(--blue);">View log →</span>`}
-          </div>
+          <div class="mtg-right">${rightHtml}</div>
+          ${actionHtml ? `<span>${actionHtml}</span>` : '<span></span>'}
         </div>
         ${expandHtml}
       </div>`;
