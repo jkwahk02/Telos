@@ -1199,7 +1199,13 @@ function mapMeeting(r) {
     id:               r.id,
     studentId:        String(r.student_id || ''),
     facultyEmail:     r.faculty_email || '',
-    meetingDate:      (r.meeting_date || '').slice(0,10),
+    meetingDate: (() => {
+      if (r.status === 'completed' && r.log_id) {
+        const sess = sessions.find(s => s.logId === r.log_id);
+        if (sess?.date) return sess.date;
+      }
+      return (r.meeting_date || '').slice(0,10);
+    })(),
     meetingFormat:    r.meeting_format || 'Zoom',
     meetingType:      r.meeting_type || 'Regular',
     meetingDuration:  r.meeting_duration || 30,
@@ -1208,14 +1214,26 @@ function mapMeeting(r) {
       : (typeof r.proposed_slots === 'string'
           ? JSON.parse(r.proposed_slots || '[]')
           : []),
-    confirmedStart: r.confirmed_start_time?.slice(0,5) || r.meeting_time?.slice(0,5) || '',
+    confirmedStart: (() => {
+      if (r.status === 'completed' && r.log_id) {
+        const sess = sessions.find(s => s.logId === r.log_id);
+        if (sess?.meetingTime) return sess.meetingTime.slice(0,5);
+      }
+      return r.confirmed_start_time?.slice(0,5) || '';
+    })(),
     confirmedEnd: (() => {
+      const start = (() => {
+        if (r.status === 'completed' && r.log_id) {
+          const sess = sessions.find(s => s.logId === r.log_id);
+          if (sess?.meetingTime) return sess.meetingTime.slice(0,5);
+        }
+        return r.confirmed_start_time?.slice(0,5) || '';
+      })();
       if (r.confirmed_end_time) return r.confirmed_end_time.slice(0,5);
-      const start = r.confirmed_start_time?.slice(0,5) || r.meeting_time?.slice(0,5);
       if (!start) return '';
-      const [h,m] = start.split(':').map(Number);
+      const [h, m] = start.split(':').map(Number);
       const dur = r.meeting_duration || 30;
-      const total = h*60 + m + dur;
+      const total = h * 60 + m + dur;
       return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;
     })(),
     status:           r.status || 'scheduled',
