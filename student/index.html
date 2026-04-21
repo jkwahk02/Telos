@@ -234,6 +234,12 @@ button,input,select,textarea{font-family:inherit;}
 .slot-cell:hover{border-color:var(--teal-b);}
 .slot-cell.on{background:var(--teal-l);border-color:var(--teal-b);border-width:1.5px;}
 .slot-cell.on .slot-cell-time{color:#085041;font-weight:500;}
+.slot-cell-tz{font-size:9px;color:var(--text3);margin-top:2px;}
+.slot-cell.on .slot-cell-tz{color:#0F6E56;}
+.spop-tz{display:flex;flex-direction:column;gap:1px;text-align:right;}
+.spop-tz-line{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:3px;justify-content:flex-end;}
+.spop-row.sel .spop-tz-line{color:var(--teal);}
+.tz-pill{font-size:9px;font-weight:600;padding:1px 4px;border-radius:3px;background:var(--gray-l);color:var(--gray-m);}
 .slot-cell.on .slot-cell-num{color:#085041;}
 .slot-cell.disabled{opacity:.35;cursor:not-allowed;border-color:var(--border);}
 .slot-cell.disabled:hover{border-color:var(--border);}
@@ -2129,7 +2135,8 @@ function buildRequestForm(){
   function pickedCount(dateStr,opts){return opts.filter(o=>isSel(dateStr,o.start)).length;}
 
   // ── slot grid ──
-  function buildSlotGrid(slots){
+  function buildSlotGrid(slots, facTz){
+    const stuTz = studentData?.timezone || null;
     if(!slots.length) return '<div class="no-slots">No availability registered for this professor.</div>';
     const today=new Date();today.setHours(0,0,0,0);
     const withDates=[];const seen={};
@@ -2174,11 +2181,15 @@ function buildRequestForm(){
               onclick="toggleMeetingSlot('${dateStr}','${o.start}','${o.end}','${dateLabel}');event.stopPropagation()">
               <div class="spop-bar"></div>
               <div class="spop-lbl">${convertTime(o.start, facTz, stuTz) || o.start}</div>
-              <div class="spop-range">
-                ${convertTime(o.start, facTz, stuTz) || o.start}–${convertTime(o.end, facTz, stuTz) || o.end}
-                <span style="...bdg-gray...">${tzAbbr(stuTz)}</span>
-                · ${o.start}–${o.end}
-                <span style="...bdg-gray...">${tzAbbr(facTz)}</span>
+              <div class="spop-tz">
+                <div class="spop-tz-line">
+                  <span class="tz-pill">${tzAbbr(stuTz)||'local'}</span>
+                  ${convertTime(o.start,facTz,stuTz)||o.start}–${convertTime(o.end,facTz,stuTz)||o.end}
+                </div>
+                ${facTz&&facTz!==stuTz?`<div class="spop-tz-line">
+                  <span class="tz-pill">${tzAbbr(facTz)}</span>
+                  ${o.start}–${o.end}
+                </div>`:''}
               </div>
               <div class="spop-chk"><svg width="7" height="7" viewBox="0 0 10 10"><polyline points="2,5 4,7 8,3" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
             </div>`;
@@ -2193,7 +2204,7 @@ function buildRequestForm(){
             <div class="slot-cell-tz">${tzAbbr(stuTz)||tzAbbr(facTz)}</div>
             ${pc?`<div class="s-picked" style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:1px;">${pc} picked</div>`:''}
             ${!dis?`<div class="slot-popover" id="${popId}">
-              <div class="spop-hd"><div class="spop-date">${dateLabel} · ${sl.start_time.slice(0,5)}–${sl.end_time.slice(0,5)}</div>
+              <div class="spop-hd"><div class="spop-date">${dateLabel} · ${convertTime(sl.start_time,facTz,stuTz)||sl.start_time.slice(0,5)}–${convertTime(sl.end_time,facTz,stuTz)||sl.end_time.slice(0,5)} ${tzAbbr(stuTz)?`<span class="tz-pill">${tzAbbr(stuTz)}</span>`:''}</div>
               <div class="spop-hint">Choose start time (${meetingDuration} min)</div></div>
               <div class="spop-body">${tRows}</div>
             </div>`:''}
@@ -2273,9 +2284,10 @@ function buildRequestForm(){
         <div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
             <div class="fta-lbl" style="margin-bottom:0;">Step 2 — Pick slots <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3);">· click to choose start time</span></div>
+            ${stuTz ? `<span style="font-size:11px;color:var(--text3);">Times shown in <span class="tz-pill">${tzAbbr(stuTz)}</span></span>` : ''}
             <span style="font-size:11px;color:var(--accent);font-weight:500;" id="slot-sel-count">${selectedMeetingSlots.length?selectedMeetingSlots.length+' selected':''}</span>
           </div>
-          ${buildSlotGrid(slots)}
+          ${buildSlotGrid(slots, fac?.timezone || null)}
         </div>
         ${selSummary}
         <div>
