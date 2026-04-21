@@ -708,6 +708,47 @@ function setVisibility(prefix, val) {
     h.value = val;
   }
 }
+
+function convertTimeFac(timeStr, fromTz, toTz) {
+  if (!fromTz || !toTz || fromTz === toTz) return null;
+  const [h, m] = timeStr.split(':').map(Number);
+  const ref = new Date(); ref.setFullYear(2000,0,3); ref.setHours(h,m,0,0);
+  return ref.toLocaleTimeString('en-US',{timeZone:toTz,hour:'2-digit',minute:'2-digit',hour12:false});
+}
+
+function tzAbbrFac(tz) {
+  if (!tz) return '';
+  try {
+    return new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'short'})
+      .formatToParts(new Date()).find(p=>p.type==='timeZoneName')?.value || tz;
+  } catch { return tz; }
+}
+
+function buildStuTzBreakdown(startTime, endTime) {
+  const mine = myStudents(); // 이미 존재하는 함수
+  const tzCount = {};
+  mine.forEach(st => {
+    const tz = st.timezone;
+    if (!tz || tz === FACULTY_TIMEZONE) return;
+    if (!tzCount[tz]) tzCount[tz] = 0;
+    tzCount[tz]++;
+  });
+  return Object.entries(tzCount)
+    .filter(([,count]) => count > 0)
+    .map(([tz, count]) => {
+      const convStart = convertTimeFac(startTime, FACULTY_TIMEZONE, tz);
+      const convEnd   = convertTimeFac(endTime,   FACULTY_TIMEZONE, tz);
+      if (!convStart) return '';
+      return `<div style="display:flex;align-items:center;gap:5px;
+        background:var(--surface2);border:1px solid var(--border-em);
+        border-radius:6px;padding:3px 8px;">
+        <span style="font-size:10px;font-weight:600;padding:1px 4px;border-radius:3px;
+          background:var(--gray-l);color:var(--gray-m);">${tzAbbrFac(tz)}</span>
+        <span style="font-size:12px;font-weight:500;color:var(--text);">${convStart} – ${convEnd}</span>
+        <span style="font-size:11px;color:var(--text3);">· ${count} student${count>1?'s':''}</span>
+      </div>`;
+    }).join('');
+}
   
 // ── SUPABASE HELPERS ──
 function sbHeaders(extra={}) {
@@ -3132,10 +3173,19 @@ function renderSlotList() {
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;
       border-bottom:1px solid var(--border);">
       <span class="bdg ${s.is_active?'bdg-blue':'bdg-gray'}">${days[s.day_of_week]}</span>
-      <span style="font-size:14px;font-weight:500;flex:1;
-        color:${s.is_active?'var(--text)':'var(--text3)'};">
-        ${s.start_time.slice(0,5)} – ${s.end_time.slice(0,5)}
-      </span>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:14px;font-weight:500;
+            color:${s.is_active?'var(--text)':'var(--text3)'};">
+            ${s.start_time.slice(0,5)} – ${s.end_time.slice(0,5)}
+          </span>
+          <span style="font-size:10px;font-weight:600;padding:1px 4px;border-radius:3px;
+            background:var(--blue-l);color:#0C447C;">${tzAbbrFac(FACULTY_TIMEZONE)}</span>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          ${buildStuTzBreakdown(s.start_time.slice(0,5), s.end_time.slice(0,5))}
+        </div>
+      </div>
       <span style="font-size:13px;color:var(--text3);min-width:80px;">
         ${s.meeting_type||'Zoom'}
       </span>
@@ -3175,7 +3225,9 @@ function renderDayGridSlots() {
     const chip = document.createElement('div');
     chip.className = `slot-chip ${s.is_active ? 'active' : 'inactive'}`;
     chip.dataset.idx = i;
-    chip.innerHTML = `${esc(s.start_time.slice(0,5))}<br>${esc(s.end_time.slice(0,5))}`;
+    chip.innerHTML = `${esc(s.start_time.slice(0,5))}<br>${esc(s.end_time.slice(0,5))}<br>
+      <span style="font-size:8px;font-weight:600;padding:1px 3px;border-radius:2px;
+        background:rgba(255,255,255,0.6);color:#0C447C;">${tzAbbrFac(FACULTY_TIMEZONE)}</span>`;
     chip.onclick = function() {
       const idx = parseInt(this.dataset.idx);
       availSlots[idx].is_active = !availSlots[idx].is_active;
