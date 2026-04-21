@@ -3740,7 +3740,7 @@ function filterMeetings(f, btn) {
 
 
 function openMeetingDetail(meetingId) {
-  const m = meetings.find(x => x.id === String(meetingId));
+  const m = meetings.find(x => String(x.id) === String(meetingId));
   if (!m?.logId) {
     showToast('No session log recorded for this meeting yet.');
     return;
