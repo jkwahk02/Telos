@@ -444,21 +444,24 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .spop-tz{display:flex;flex-direction:column;gap:1px;}
 .spop-tz-line{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:3px;}
 .tz-pill{font-size:9px;font-weight:600;padding:1px 4px;border-radius:3px;background:var(--gray-l);color:var(--gray-m);white-space:nowrap;}
-.mtg-item-new{display:grid;grid-template-columns:120px 40px 1fr auto;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
+.mtg-item-new{display:grid;grid-template-columns:130px 1fr auto auto;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
 .mtg-item-new:hover{background:var(--surface2);}
 .mtg-item-new:last-child{border-bottom:none;}
+.mtg-item-new.confirmed{border-left:3px solid var(--green-b);padding-left:13px;}
 .mtg-item-new.pending{border-left:3px solid var(--amber-b);padding-left:13px;}
-.date-block-new{display:flex;flex-direction:column;gap:3px;}
-.mtg-av{width:40px;height:40px;border-radius:50%;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.mtg-center{display:flex;flex-direction:column;gap:4px;min-width:0;}
-.mtg-name{font-size:17px;font-weight:500;color:var(--text);}
+.mtg-dt{display:flex;flex-direction:column;gap:2px;}
+.mtg-dt-date{font-size:15px;font-weight:600;color:var(--text);}
+.mtg-dt-time{font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px;}
+.mtg-dt-time.g{color:var(--green);}
+.mtg-dt-time.a{color:var(--amber);}
+.mtg-dt-time.gr{color:var(--text3);}
+.mtg-dt-sub{font-size:11px;color:var(--text3);font-style:italic;}
+.mtg-center{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.mtg-name{font-size:15px;font-weight:600;color:var(--text);}
 .mtg-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.mtg-meta-item{font-size:13px;color:var(--text2);}
+.mtg-meta-item{font-size:12px;color:var(--text2);}
 .mtg-meta-dot{width:3px;height:3px;border-radius:50%;background:var(--text3);flex-shrink:0;}
-.mtg-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
-.mtg-time{font-size:13px;font-weight:500;display:flex;align-items:center;gap:5px;white-space:nowrap;}
-.mtg-time.green{color:var(--green);}
-.mtg-time.amber{color:var(--amber);}
+.mtg-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 </style>
 </head>
 <body>
