@@ -3513,13 +3513,30 @@ function renderMeetings() {
       return `<div>
         <div class="mtg-item-new${isPending?' pending':''}"
           onclick="${clickAction}">
+
           <div class="date-block-new">
-            <div style="display:flex;align-items:baseline;gap:4px;">
-              <span style="font-size:20px;font-weight:600;color:${cat==='upcoming'?'var(--green)':cat==='pending'?'var(--amber)':'var(--text2)'};">${day}</span>
-              <span style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:${cat==='upcoming'?'var(--green)':cat==='pending'?'var(--amber)':'var(--text3)'};">${mon}</span>
-            </div>
-            ${timeHtml}
+            ${isPending ? (() => {
+              const slots = Array.isArray(m.proposedSlots) ? m.proposedSlots : [];
+              const first = slots[0];
+              const fd = first?.dateStr ? new Date(first.dateStr+'T00:00:00') : null;
+              const fday = fd ? fd.getDate() : '—';
+              const fmon = fd ? fd.toLocaleDateString('en-US',{month:'short'}) : '';
+              const extra = slots.length > 1 ? `<div style="font-size:11px;color:var(--text3);">+${slots.length-1} more slot${slots.length-1!==1?'s':''}</div>` : '';
+              return `
+                <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:var(--amber);">Proposed</div>
+                <div style="display:flex;align-items:baseline;gap:4px;">
+                  <span style="font-size:20px;font-weight:600;color:var(--amber);">${fday}</span>
+                  <span style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:var(--amber);">${fmon}</span>
+                </div>
+                ${extra}`;
+            })() : `
+              <div style="display:flex;align-items:baseline;gap:4px;">
+                <span style="font-size:20px;font-weight:600;color:${cat==='upcoming'?'var(--green)':'var(--text2)'};">${day}</span>
+                <span style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:${cat==='upcoming'?'var(--green)':'var(--text3)'};">${mon}</span>
+              </div>
+              ${timeHtml}`}
           </div>
+          
           <div class="mtg-av" style="background:${avColor};color:${avText};">
             ${initials(st?.name||m.studentId)}
           </div>
