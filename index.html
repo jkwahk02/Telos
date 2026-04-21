@@ -2703,13 +2703,28 @@ function renderLogList(){
     div.className='log-row'+(isOpen?' active':'');
     div.innerHTML=`
       <div class="log-sum">
-        <div class="log-left">
-          <span class="log-date">${esc(s.date)}</span>
-          <span class="log-logid">${esc(s.logId)}</span>
-          <span class="log-who">${esc(s.studentName)}</span>
-          <span class="log-sub">· ${esc(shortCohort(st?.cohort||''))} · ${esc(shortMajor(st?.major1||''))}</span>
-          ${bdg(s.type,tc)}${bdg(s.format,'gray')}${bdg('Completed','green')}
-          <span class="log-preview">${esc(s.disc.substring(0,60))}…</span>
+        <div class="log-dt">
+          <div class="log-dt-date">${new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+          ${s.meetingTime ? `<div class="log-dt-time">${s.meetingTime.slice(0,5)} <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>` : ''}
+        </div>
+        <div class="log-center">
+          <div class="log-name">${esc(s.studentName)}</div>
+          <div class="log-meta">
+            <span class="log-meta-item">${esc(shortCohort(st?.cohort||''))}</span>
+            <div class="log-meta-dot"></div>
+            <span class="log-meta-item">${esc(shortMajor(st?.major1||''))}</span>
+            <div class="log-meta-dot"></div>
+            <span class="log-meta-item">${bdg(s.type,tc)}</span>
+          </div>
+        </div>
+        <div class="log-right">
+          ${(() => {
+            const vmap = {private:'vis-private',chair:'vis-chair',advisors:'vis-advisors',all_faculty:'vis-all'};
+            const vlbl = {private:'Only me',chair:'+ Chair',advisors:'+ Advisors',all_faculty:'All faculty'};
+            const v = s.visibility || 'chair';
+            return `<span class="vis-pill ${vmap[v]||'vis-chair'}">${vlbl[v]||'+ Chair'}</span>`;
+          })()}
+          ${bdg('Completed','green')}
         </div>
         <span class="log-hint">${isOpen?'▴ Collapse':'▾ Expand'}</span>
       </div>
