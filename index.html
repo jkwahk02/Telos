@@ -432,6 +432,9 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .d-day.gr{color:var(--text2);}
 .mtg-expand{overflow:hidden;max-height:0;transition:max-height .3s cubic-bezier(.4,0,.2,1);}
 .mtg-expand.open{max-height:800px;}
+.spop-tz{display:flex;flex-direction:column;gap:1px;}
+.spop-tz-line{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:3px;}
+.tz-pill{font-size:9px;font-weight:600;padding:1px 4px;border-radius:3px;background:var(--gray-l);color:var(--gray-m);white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -1264,8 +1267,8 @@ function buildPendingExpand(m, st) {
         <div style="flex:1;">
           <div style="font-size:14px;font-weight:500;${sel===i?'color:#0C447C;':''}">${esc(sl.dateLabel || sl.dateStr)}</div>
           <div class="spop-tz" style="margin-top:2px;">
-            <div class="spop-tz-line"><span class="tz-pill">${tzAbbrFac(st?.timezone||'')}</span> ${esc(sl.start)} – ${esc(sl.end)}</div>
-            <div class="spop-tz-line"><span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span> ${convertTimeFac(sl.start, st?.timezone||FACULTY_TIMEZONE, FACULTY_TIMEZONE)||sl.start} – ${convertTimeFac(sl.end, st?.timezone||FACULTY_TIMEZONE, FACULTY_TIMEZONE)||sl.end}</div>
+          <div class="spop-tz-line"><span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span> ${esc(sl.start)} – ${esc(sl.end)}</div>
+          ${st?.timezone && st.timezone !== FACULTY_TIMEZONE ? `<div class="spop-tz-line"><span class="tz-pill">${tzAbbrFac(st.timezone)}</span> ${convertTimeFac(sl.start, FACULTY_TIMEZONE, st.timezone)||sl.start} – ${convertTimeFac(sl.end, FACULTY_TIMEZONE, st.timezone)||sl.end}</div>` : ''}
           </div>
           <div style="font-size:11px;color:var(--text3);margin-top:2px;">${m.meetingDuration} min · ${esc(m.meetingFormat)}</div>
         </div>
