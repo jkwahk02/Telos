@@ -628,7 +628,7 @@ button,input,select,textarea{font-family:inherit;}
 /* SETTINGS */
 .settings-section-divider{padding:6px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);display:flex;align-items:center;gap:6px;}
 .settings-field-row{display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);}
-.settings-field-row.editable{transition:background .15s;}
+.settings-field-row.editable{transition:background .15s;background:var(--surface);}.settings-field-row.editable{transition:background .15s;background:var(--surface);}
 .settings-field-row.editable:focus-within{background:var(--surface2);}
 .settings-field-label{font-size:13px;color:var(--text3);min-width:100px;flex-shrink:0;padding:11px 0;}
 .settings-field-val{font-size:14px;color:var(--text2);padding:11px 0;flex:1;}
@@ -2636,6 +2636,14 @@ function renderSettings() {
         </div>
         <div class="settings-field-row editable">
           <div class="settings-edit-bar"></div>
+          <div class="settings-field-label">Display name</div>
+          <div class="settings-field-input">
+            <input class="fi" id="stu-name" value="${esc(studentData?.name_en||'')}"
+              style="height:30px;font-size:14px;" oninput="markSettingsDirty()">
+          </div>
+        </div>
+        <div class="settings-field-row editable">
+          <div class="settings-edit-bar"></div>
           <div class="settings-field-label">Timezone</div>
           <div class="settings-field-input">
             <select class="fsel" id="stu-tz-select" onchange="markSettingsDirty()"
@@ -2649,7 +2657,7 @@ function renderSettings() {
 
         <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
           <span class="save-status" id="stu-save-status"></span>
-          <button class="btn-log" id="btn-save-settings" disabled onclick="saveSettings()">Save</button>
+          <button class="btn-log" id="btn-save-settings" disabled onclick="saveSettings()">Save profile</button>
         </div>
       </div>
     </div>`;
@@ -2663,14 +2671,20 @@ function markSettingsDirty() {
 }
 
 async function saveSettings() {
-  const tz  = document.getElementById('stu-tz-select')?.value;
+  const tz   = document.getElementById('stu-tz-select')?.value;
+  const name = document.getElementById('stu-name')?.value.trim();
+  if (!name) { showToast('Name cannot be empty.'); return; }
   const btn = document.getElementById('btn-save-settings');
   const status = document.getElementById('stu-save-status');
   if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
   try {
-    await sbPatch(TBL_STUDENTS, 'id', studentData.id, { timezone: tz });
+    await sbPatch(TBL_STUDENTS, 'id', studentData.id, { timezone: tz, name_en: name });
     studentData.timezone = tz;
+    studentData.name_en  = name;
     STUDENT_TIMEZONE = tz;
+    document.getElementById('nav-name').textContent   = name;
+    document.getElementById('nav-avatar').textContent = initials(name);
+    document.getElementById('dd-name').textContent    = name;
     if (status) { status.textContent = 'Saved ✓'; setTimeout(() => { status.textContent = ''; }, 2500); }
     showToast('Timezone updated');
   } catch(e) {
