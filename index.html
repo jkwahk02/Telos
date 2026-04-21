@@ -660,8 +660,8 @@ function showToast(msg){
 
 const VIS_OPTIONS = [
   { val:'private',    label:'Only me',     desc:'Draft or sensitive note' },
-  { val:'co_advisor', label:'+ Co-advisor', desc:'Includes Advisor 2' },
-  { val:'chair',      label:'+ Chair',      desc:'Default · recommended' },
+  { val:'advisors', label:'+ Advisors', desc:'Assigned advisors' },
+  { val:'chair',      label:'+ Chair',      desc:'Program chair' },
   { val:'all_faculty',label:'All faculty',  desc:'All Telos advisors' },
 ];
 
@@ -688,11 +688,11 @@ function buildVisGrid(prefix, current) {
 function visResultText(val) {
   const map = {
     private:    'Visible to: <span class="bdg bdg-gray">you only</span>',
-    co_advisor: 'Visible to: <span class="bdg bdg-gray">you</span> <span class="bdg bdg-gray">Co-advisor</span>',
-    chair:      'Visible to: <span class="bdg bdg-blue">you</span> <span class="bdg bdg-blue">Program Chair</span>',
+    advisors:   'Visible to: <span class="bdg bdg-gray">you</span> <span class="bdg bdg-gray">Advisor 1 &amp; 2</span>',
+    chair:      'Visible to: <span class="bdg bdg-blue">you</span> <span class="bdg bdg-blue">Advisor 1 &amp; 2</span> <span class="bdg bdg-blue">Program Chair</span>',
     all_faculty:'Visible to: <span class="bdg bdg-blue">all faculty</span>',
   };
-  return map[val] || map['chair'];
+  return map[val] || map['private'];
 }
 
 function setVisibility(prefix, val) {
