@@ -598,7 +598,7 @@ let supabaseUser = null;
 let IS_CHAIR = false;  // set from faculty_profiles.is_chair after login
 
 let studFilter = 'my', studExtra = '', studSearch = '', studSort = {col:'name',dir:1};
-let openStudId = null, showFormFor = null, selTopics = [];
+let openStudId = null, showFormFor = null, selTopics = [], selVisibility = 'private';
 let profileOpenFor = null; // null이면 open, id가 일치하면 minimized  
 let logFilter = 'all', logSearch = '', openLogId = null, editingLogId = null;
 
@@ -658,6 +658,57 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('show'),2800);
 }
 
+const VIS_OPTIONS = [
+  { val:'private',    label:'Only me',     desc:'Draft or sensitive note' },
+  { val:'co_advisor', label:'+ Co-advisor', desc:'Includes Advisor 2' },
+  { val:'chair',      label:'+ Chair',      desc:'Default · recommended' },
+  { val:'all_faculty',label:'All faculty',  desc:'All Telos advisors' },
+];
+
+function buildVisGrid(prefix, current) {
+  current = current || (prefix==='ns' ? selVisibility : 'chair');
+  return VIS_OPTIONS.map(o => `
+    <div onclick="setVisibility('${prefix}','${o.val}')"
+      style="padding:7px 10px;border:1px solid ${current===o.val?'var(--blue-b)':'var(--border-em)'};
+        border-radius:var(--r);cursor:pointer;
+        background:${current===o.val?'var(--blue-l)':'var(--surface2)'};
+        display:flex;flex-direction:column;gap:2px;transition:border-color .12s;">
+      <div style="display:flex;align-items:center;gap:5px;">
+        <div style="width:11px;height:11px;border-radius:50%;flex-shrink:0;
+          border:1.5px solid ${current===o.val?'var(--blue)':'var(--border-em)'};
+          background:${current===o.val?'var(--blue)':'transparent'};"></div>
+        <span style="font-size:13px;font-weight:600;
+          color:${current===o.val?'var(--blue)':'var(--text)'};">${o.label}</span>
+      </div>
+      <div style="font-size:10px;color:${current===o.val?'var(--blue-m)':'var(--text3)'};
+        padding-left:16px;line-height:1.35;">${o.desc}</div>
+    </div>`).join('');
+}
+
+function visResultText(val) {
+  const map = {
+    private:    'Visible to: <span class="bdg bdg-gray">you only</span>',
+    co_advisor: 'Visible to: <span class="bdg bdg-gray">you</span> <span class="bdg bdg-gray">Co-advisor</span>',
+    chair:      'Visible to: <span class="bdg bdg-blue">you</span> <span class="bdg bdg-blue">Program Chair</span>',
+    all_faculty:'Visible to: <span class="bdg bdg-blue">all faculty</span>',
+  };
+  return map[val] || map['chair'];
+}
+
+function setVisibility(prefix, val) {
+  if (prefix === 'ns') selVisibility = val;
+  const grid   = document.getElementById(`${prefix}-vis-grid`);
+  const result = document.getElementById(`${prefix}-vis-result`);
+  if (grid)   grid.innerHTML   = buildVisGrid(prefix, val);
+  if (result) result.innerHTML = visResultText(val);
+  // edit form: hidden input으로 saveEdit()이 읽을 수 있게
+  if (prefix === 'ed') {
+    let h = document.getElementById('ed-vis-hidden');
+    if (!h) { h = document.createElement('input'); h.type='hidden'; h.id='ed-vis-hidden'; grid.after(h); }
+    h.value = val;
+  }
+}
+  
 // ── SUPABASE HELPERS ──
 function sbHeaders(extra={}) {
   if (!supabaseUser?.access_token) throw new Error('Not authenticated');
@@ -1070,6 +1121,7 @@ function mapSession(r) {
     majorChangeNote: r.major_change_note   || '',
     mainTopic:       r.main_topic          || '',
     meetingTime:     r.meeting_time        || '',
+    visibility: r.visibility || 'chair',
   };
 }
 
@@ -1122,6 +1174,7 @@ async function insertSession(row) {
     follow_up_required:    row.followUp,
     major_change_note:     row.majorChangeNote,
     main_topic:            row.mainTopic,
+    visibility: row.visibility || 'chair',
   };
   return sbInsert(TBL_LOG, dbRow);
 }
@@ -2200,10 +2253,17 @@ function buildNsForm(st){
         <input class="fi" id="ns-mc" placeholder="Leave blank if no change">
       </div>
 
-      <!-- ── 제거: Status, Next meeting date, Next meeting agenda -->
-      <!-- student_meeting.status 는 saveSession()에서 자동으로 'completed'로 업데이트 -->
-      <!-- next_meeting은 student_meeting 테이블에서 별도 관리 -->
-
+      <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+      <div class="fg">
+        <div class="fl">Visibility
+          <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3);margin-left:4px;">Who can see this session record</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:2px;" id="ns-vis-grid">
+          ${buildVisGrid('ns')}
+        </div>
+        <div id="ns-vis-result" style="font-size:11px;color:var(--text3);margin-top:4px;">${visResultText(selVisibility)}</div>
+      </div>
+      
     </div>
     <div class="ns-ft">
       <span class="ns-note">
@@ -2236,7 +2296,7 @@ function toggleForm(id){
   renderStudBody();
   if(showFormFor){setTimeout(()=>{const el=document.getElementById('sp-'+id);if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});},50);}
 }
-function cancelForm(){showFormFor=null;renderStudBody();}
+function cancelForm(){showFormFor=null; selVisibility='private'; renderStudBody();}
 
 async function saveSession(studId){
   const disc=document.getElementById('ns-disc')?.value.trim();
@@ -2268,10 +2328,12 @@ async function saveSession(studId){
     meetingTime: meetTime,   // ← 추가
     faculty:FACULTY_EMAIL,studentId:studId,studentName:st?.name||'',
     type,format,disc,conc,advice,studentAction,followUp,majorChangeNote,
-    mainTopic:selTopics.join(', ')};
+    mainTopic:selTopics.join(', '),
+    visibility: selVisibility,   // ← 추가
+  };
   sessions.push(newSess);
   syncStudents();
-  showFormFor=null;selTopics=[];
+  showFormFor=null; selTopics=[]; selVisibility='private';
   renderStudBody();
   showToast(`Saving session for ${st?.name}…`);
 
@@ -2380,6 +2442,16 @@ function buildEditForm(s) {
         <div class="fg"><div class="fl">Next meeting agenda</div><input class="fi" id="ed-na" value="${esc(s.nextAgenda)}" placeholder="Brief agenda"></div>
       </div>
       <div class="fg"><div class="fl">Major change note</div><input class="fi" id="ed-mc" value="${esc(s.majorChangeNote)}" placeholder="Leave blank if no change"></div>
+      <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+      <div class="fg">
+        <div class="fl">Visibility
+          <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3);margin-left:4px;">Who can see this session record</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:2px;" id="ed-vis-grid">
+          ${buildVisGrid('ed', s.visibility || 'chair')}
+        </div>
+        <div id="ed-vis-result" style="font-size:11px;color:var(--text3);margin-top:4px;">${visResultText(s.visibility || 'chair')}</div>
+      </div>      
     </div>
     <div class="ns-ft">
       <span class="ns-note">${isSignedIn() ? 'Saves to Supabase database' : 'Sign in to persist changes to database'}</span>
@@ -2413,6 +2485,8 @@ async function saveEdit(logId) {
     nextDate:        document.getElementById('ed-nd')?.value || '',
     nextAgenda:      document.getElementById('ed-na')?.value.trim() || '',
     majorChangeNote: document.getElementById('ed-mc')?.value.trim() || '',
+    visibility: document.getElementById('ed-vis-hidden')?.value || 'private',
+
   };
 
   // Apply locally
@@ -2441,6 +2515,7 @@ async function saveEdit(logId) {
         next_meeting_date:    updated.nextDate || null,
         next_meeting_agenda:  updated.nextAgenda,
         major_change_note:    updated.majorChangeNote,
+        visibility: updated.visibility,
       });
       showToast(`✓ Session ${logId} updated`);
     } catch(e) {
