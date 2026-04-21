@@ -2710,11 +2710,7 @@ function renderLogList(){
         <div class="log-center">
           <div class="log-name">${esc(s.studentName)}</div>
           <div class="log-meta">
-            <span class="log-meta-item">${esc(shortCohort(st?.cohort||''))}</span>
-            <div class="log-meta-dot"></div>
-            <span class="log-meta-item">${esc(shortMajor(st?.major1||''))}</span>
-            <div class="log-meta-dot"></div>
-            <span class="log-meta-item">${bdg(s.type,tc)}</span>
+            ${bdg(s.type,tc)}
           </div>
         </div>
         <div class="log-right">
@@ -2731,7 +2727,6 @@ function renderLogList(){
       <div class="log-xwrap${isOpen?' open':''}">
         <div class="log-ab">${eHtml}
           <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
-            <span class="go-link" onclick="event.stopPropagation();goToStudent('${s.studentId}')">Go to student →</span>
             <button onclick="event.stopPropagation();editingLogId=editingLogId==='${s.logId}'?null:'${s.logId}';renderLogList()"
               style="font-size:17px;padding:3px 10px;border-radius:var(--r);border:0.5px solid var(--border-em);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .12s;"
               onmouseover="this.style.background='var(--surface2)'"
