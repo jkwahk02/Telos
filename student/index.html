@@ -636,6 +636,8 @@ button,input,select,textarea{font-family:inherit;}
 .settings-field-row.editable:focus-within .settings-edit-bar{opacity:1;}
 .settings-field-input{flex:1;padding:7px 0;}
 .save-status{font-size:13px;color:var(--green);}
+.btn-log{font-size:17px;font-weight:600;padding:6px 14px;border-radius:var(--r);background:var(--accent);color:#fff;border:none;cursor:pointer;transition:background .12s;white-space:nowrap;}
+.btn-log:hover{background:#085041;}
 </style>
 </head>
 <body>
@@ -647,8 +649,8 @@ button,input,select,textarea{font-family:inherit;}
     <button class="nav-tab active" data-page="overview">Overview</button>
     <button class="nav-tab" data-page="profile">My Profile</button>
     <button class="nav-tab" data-page="meetings">Meetings</button>
-    <button class="nav-tab" data-page="settings">Settings</button>
     <button class="nav-tab" data-page="help">Help & Guide</button>
+    <button class="nav-tab" data-page="settings">Settings</button>
   </div>
   <div class="nav-right">
     <div class="nav-source">
@@ -741,8 +743,8 @@ button,input,select,textarea{font-family:inherit;}
   <div class="page active" id="page-overview"></div>
   <div class="page" id="page-profile"></div>
   <div class="page" id="page-meetings"></div>
-  <div class="page" id="page-settings"></div>
   <div class="page" id="page-help"></div>
+  <div class="page" id="page-settings"></div>
 </div>
 
 <div class="toast" id="toast"></div>
