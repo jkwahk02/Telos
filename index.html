@@ -3518,7 +3518,7 @@ function renderMeetings() {
             ${isPending ? (() => {
               const slots = Array.isArray(m.proposedSlots) ? m.proposedSlots : [];
               const first = slots[0];
-              const fd = first?.dateStr ? new Date(first.dateStr+'T00:00:00') : null;
+              const fd = first?.dateStr ? new Date(first.dateStr+'T12:00:00') : null;
               const fday = fd ? fd.getDate() : '—';
               const fmon = fd ? fd.toLocaleDateString('en-US',{month:'short'}) : '';
               const extra = slots.length > 1 ? `<div style="font-size:11px;color:var(--text3);">+${slots.length-1} more slot${slots.length-1!==1?'s':''}</div>` : '';
