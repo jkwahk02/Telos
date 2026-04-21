@@ -2259,17 +2259,28 @@ function buildRequestForm(){
 
   // ── selected summary ──
   const selSummary=selectedMeetingSlots.length?`
-    <div>
-      <div class="fta-lbl" style="margin-bottom:6px;">Your proposed times</div>
-      <div class="req-sel-list">
-        ${selectedMeetingSlots.map((s,i)=>`
-          <div class="req-sel-item">
-            <div class="req-sel-dot"></div>
-            <span style="flex:1;">${s.dateLabel} · ${s.start}–${s.end}</span>
-            <button class="req-sel-rm" onclick="selectedMeetingSlots.splice(${i},1);renderMeetings()">× Remove</button>
-          </div>`).join('')}
-      </div>
-    </div>`:'' ;
+      <div>
+        <div class="fta-lbl" style="margin-bottom:6px;">Your proposed times</div>
+        <div class="req-sel-list">
+          ${selectedMeetingSlots.map((s,i)=>`
+            <div class="req-sel-item">
+              <div class="req-sel-dot"></div>
+              <div style="flex:1;">
+                <div class="spop-tz" style="text-align:left;">
+                  <div class="spop-tz-line" style="justify-content:flex-start;color:var(--text);font-size:12px;font-weight:500;">
+                    <span class="tz-pill">${tzAbbr(stuTz)||'local'}</span>
+                    ${s.dateLabel} · ${s.start}–${s.end}
+                  </div>
+                  ${facTz&&facTz!==stuTz?`<div class="spop-tz-line" style="justify-content:flex-start;">
+                    <span class="tz-pill">${tzAbbr(facTz)}</span>
+                    ${s.dateLabel} · ${convertTime(s.start,stuTz,facTz)||s.start}–${convertTime(s.end,stuTz,facTz)||s.end}
+                  </div>`:''}
+                </div>
+              </div>
+              <button class="req-sel-rm" onclick="selectedMeetingSlots.splice(${i},1);renderMeetings()">× Remove</button>
+            </div>`).join('')}
+        </div>
+      </div>`:'' ;
 
   // ── PATH A: preselected ──
   if(selectedFacultyEmail){
