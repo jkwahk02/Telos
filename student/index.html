@@ -984,7 +984,7 @@ async function loadData(){
         TBL_MEETING,
         `student_id=eq.${sid}&order=meeting_date.desc&select=id,meeting_date,faculty_email,meeting_format,meeting_type,status,student_agenda,student_log_id`
       ),
-      sbGet(TBL_FACULTY, `select=id,name_en,email,school,is_chair`),
+      sbGet(TBL_FACULTY, `select=id,name_en,email,school,is_chair,timezone`),
       sbGet(TBL_STUDENT_LOG, `student_id=eq.${sid}&select=student_log_id,meeting_id,reflection,key_takeaway,next_step`)
     ]);
 
@@ -2096,6 +2096,27 @@ function buildRequestForm(){
 
   // ── slot helpers ──
   function tToM(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
+
+  function convertTime(timeStr, fromTz, toTz) {
+    if (!fromTz || !toTz || fromTz === toTz) return null;
+    const [h, m] = timeStr.split(':').map(Number);
+    const ref = new Date();
+    ref.setFullYear(2000, 0, 3); // 임의 월요일 기준
+    ref.setHours(h, m, 0, 0);
+    const formatted = ref.toLocaleTimeString('en-US', {
+      timeZone: toTz, hour: '2-digit', minute: '2-digit', hour12: false
+    });
+    return formatted;
+  }
+  
+  function tzAbbr(tz) {
+    if (!tz) return '';
+    try {
+      return new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' })
+        .formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value || tz;
+    } catch { return tz; }
+  }
+    
   function mToT(m){return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;}
   function getOpts(sl){
     const s=tToM(sl.start_time),e=tToM(sl.end_time);
@@ -2152,15 +2173,24 @@ function buildRequestForm(){
               onmouseenter="this.classList.add('hov')" onmouseleave="this.classList.remove('hov')"
               onclick="toggleMeetingSlot('${dateStr}','${o.start}','${o.end}','${dateLabel}');event.stopPropagation()">
               <div class="spop-bar"></div>
-              <div class="spop-lbl">${o.start}</div>
-              <div class="spop-range">${o.start}–${o.end}</div>
+              <div class="spop-lbl">${convertTime(o.start, facTz, stuTz) || o.start}</div>
+              <div class="spop-range">
+                ${convertTime(o.start, facTz, stuTz) || o.start}–${convertTime(o.end, facTz, stuTz) || o.end}
+                <span style="...bdg-gray...">${tzAbbr(stuTz)}</span>
+                · ${o.start}–${o.end}
+                <span style="...bdg-gray...">${tzAbbr(facTz)}</span>
+              </div>
               <div class="spop-chk"><svg width="7" height="7" viewBox="0 0 10 10"><polyline points="2,5 4,7 8,3" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
             </div>`;
           }).join('');
           return `<div class="slot-cell ${pc?'on':''} ${dis?'disabled':''}"
             onclick="${dis?'':` toggleSlotPop('${popId}');event.stopPropagation()`}">
             <div class="slot-cell-num">${new Date(sl.date).getDate()}</div>
-            <div class="slot-cell-time">${sl.start_time.slice(0,5)}<br>${sl.end_time.slice(0,5)}</div>
+            <div class="slot-cell-time">
+              ${convertTime(sl.start_time, facTz, stuTz) || sl.start_time.slice(0,5)}<br>
+              ${convertTime(sl.end_time,   facTz, stuTz) || sl.end_time.slice(0,5)}
+            </div>
+            <div class="slot-cell-tz">${tzAbbr(stuTz)||tzAbbr(facTz)}</div>
             ${pc?`<div class="s-picked" style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:1px;">${pc} picked</div>`:''}
             ${!dis?`<div class="slot-popover" id="${popId}">
               <div class="spop-hd"><div class="spop-date">${dateLabel} · ${sl.start_time.slice(0,5)}–${sl.end_time.slice(0,5)}</div>
