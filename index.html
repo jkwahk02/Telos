@@ -3487,15 +3487,10 @@ function renderMeetings() {
         : `openMeetingDetail('${m.id}')`;
 
       const timeHtml = (() => {
-        // upcoming: confirmedStart 우선, 없으면 proposedSlots[0]
-        // past(completed): confirmedStart 사용
-        // pending: date block에서 별도 처리하므로 여기선 빈 값
         if (isPending) return '';
-        const start = m.confirmedStart || (Array.isArray(m.proposedSlots) ? m.proposedSlots[0]?.start : null);
-        const end   = m.confirmedStart
-          ? (m.confirmedEnd || '')
-          : (Array.isArray(m.proposedSlots) ? m.proposedSlots[0]?.end : null);
-        if (!start) return '<div class="mtg-time gr">—</div>';
+        const start = m.confirmedStart || '';
+        const end   = m.confirmedEnd   || '';
+        if (!start) return '';
         return `<div class="mtg-time ${cat==='upcoming'?'green':''}">
           ${start}${end?'–'+end:''} <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span>
         </div>`;
