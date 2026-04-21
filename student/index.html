@@ -625,6 +625,17 @@ button,input,select,textarea{font-family:inherit;}
 .ov-adv-btn{font-size:17px;font-weight:600;padding:7px 16px;border-radius:var(--r);background:var(--accent);color:#fff;border:none;cursor:pointer;font-family:inherit;white-space:nowrap;margin-left:auto;}
 .ov-adv-btn.disabled{opacity:.4;cursor:default;pointer-events:none;}
 .ov-adv-section-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px;padding:0 2px;}
+/* SETTINGS */
+.settings-section-divider{padding:6px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);display:flex;align-items:center;gap:6px;}
+.settings-field-row{display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);}
+.settings-field-row.editable{transition:background .15s;}
+.settings-field-row.editable:focus-within{background:var(--surface2);}
+.settings-field-label{font-size:13px;color:var(--text3);min-width:100px;flex-shrink:0;padding:11px 0;}
+.settings-field-val{font-size:14px;color:var(--text2);padding:11px 0;flex:1;}
+.settings-edit-bar{width:3px;border-radius:2px;background:var(--accent);align-self:stretch;flex-shrink:0;margin-right:12px;opacity:0;transition:opacity .15s;}
+.settings-field-row.editable:focus-within .settings-edit-bar{opacity:1;}
+.settings-field-input{flex:1;padding:7px 0;}
+.save-status{font-size:13px;color:var(--green);}
 </style>
 </head>
 <body>
@@ -636,6 +647,7 @@ button,input,select,textarea{font-family:inherit;}
     <button class="nav-tab active" data-page="overview">Overview</button>
     <button class="nav-tab" data-page="profile">My Profile</button>
     <button class="nav-tab" data-page="meetings">Meetings</button>
+    <button class="nav-tab" data-page="settings">Settings</button>
     <button class="nav-tab" data-page="help">Help & Guide</button>
   </div>
   <div class="nav-right">
@@ -729,6 +741,7 @@ button,input,select,textarea{font-family:inherit;}
   <div class="page active" id="page-overview"></div>
   <div class="page" id="page-profile"></div>
   <div class="page" id="page-meetings"></div>
+  <div class="page" id="page-settings"></div>
   <div class="page" id="page-help"></div>
 </div>
 
@@ -761,6 +774,20 @@ const PROFILE_FIELDS = [
     chips:['Workload / time management','Academic performance','Career uncertainty','Research direction','Financial pressure','Mental health / wellbeing','Relationships / belonging','Language / culture','Nothing major right now'] },
 ];
 
+const TZ_LIST = [
+  'Asia/Seoul','Asia/Tokyo','Asia/Shanghai','Asia/Hong_Kong',
+  'Asia/Singapore','Asia/Taipei','Asia/Bangkok','Asia/Jakarta',
+  'Asia/Almaty','Asia/Tashkent','Asia/Ulaanbaatar',
+  'Asia/Dhaka','Asia/Kolkata','Asia/Karachi','Asia/Dubai',
+  'Europe/London','Europe/Paris','Europe/Berlin','Europe/Moscow',
+  'Africa/Cairo','Africa/Nairobi',
+  'America/New_York','America/Chicago','America/Denver','America/Los_Angeles',
+  'America/Toronto','America/Sao_Paulo',
+  'Pacific/Auckland','Pacific/Honolulu',
+  'Australia/Sydney','Australia/Melbourne',
+  'UTC',
+];
+
 // ── STATE ──
 let supabaseUser  = null;
 let studentData   = null;
@@ -773,6 +800,8 @@ let dataLoaded    = false;
 let currentPage   = 'overview';
 let openHistoryMeetingId = null;
 let focusHistoryMeetingId = null;
+let STUDENT_TIMEZONE = studentData?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 
 // Meetings 상태
 let selectedFacultyEmail  = null;
@@ -1032,6 +1061,7 @@ async function loadData(){
     dot.className='src-dot authed';
     lbl.textContent=`Telos · Live`;
     document.getElementById('setup-banner').style.display='none';
+    STUDENT_TIMEZONE = studentData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     dataLoaded=true;
     renderCurrent();
   }catch(e){
@@ -1078,6 +1108,7 @@ function renderCurrent(){
   if(currentPage==='overview') renderOverview();
   if(currentPage==='profile')  renderProfile();
   if(currentPage==='meetings') renderMeetings();
+  if(currentPage==='settings') renderSettings();
   if(currentPage==='help')     renderHelp();
 }
 
@@ -2574,6 +2605,81 @@ async function acceptAdvisorSlot(meetingId, slotIdx) {
   }
 }
 
+function renderSettings() {
+  const el = document.getElementById('page-settings');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="tbl-wrap" style="border-radius:var(--r-lg);">
+        <div style="padding:11px 16px;border-bottom:1px solid var(--border);">
+          <div style="font-size:17px;font-weight:600;">My profile</div>
+        </div>
+
+        <div class="settings-section-divider">
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="8" width="10" height="6" rx="1.5"/><path d="M5 8V6a3 3 0 0 1 6 0v2"/></svg>
+          Managed by administrator
+        </div>
+        ${[
+          ['Name',   studentData?.name_en  || '—'],
+          ['Email',  studentData?.email    || '—'],
+          ['Cohort', studentData?.cohort   || '—'],
+          ['School', studentData?.school   || '—'],
+        ].map(([l,v]) => `
+          <div class="settings-field-row">
+            <div class="settings-field-label">${l}</div>
+            <div class="settings-field-val">${esc(v)}</div>
+          </div>`).join('')}
+
+        <div class="settings-section-divider">
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-8 8H3v-3l8-8z"/></svg>
+          Editable by you
+        </div>
+        <div class="settings-field-row editable">
+          <div class="settings-edit-bar"></div>
+          <div class="settings-field-label">Timezone</div>
+          <div class="settings-field-input">
+            <select class="fsel" id="stu-tz-select" onchange="markSettingsDirty()"
+              style="height:30px;font-size:14px;width:100%;max-width:300px;">
+              ${TZ_LIST.map(tz =>
+                `<option value="${tz}" ${tz === STUDENT_TIMEZONE ? 'selected' : ''}>${tz}</option>`
+              ).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <span class="save-status" id="stu-save-status"></span>
+          <button class="btn-log" id="btn-save-settings" disabled onclick="saveSettings()">Save</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function markSettingsDirty() {
+  const btn = document.getElementById('btn-save-settings');
+  if (btn) btn.disabled = false;
+  const status = document.getElementById('stu-save-status');
+  if (status) status.textContent = '';
+}
+
+async function saveSettings() {
+  const tz  = document.getElementById('stu-tz-select')?.value;
+  const btn = document.getElementById('btn-save-settings');
+  const status = document.getElementById('stu-save-status');
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+  try {
+    await sbPatch(TBL_STUDENTS, 'id', studentData.id, { timezone: tz });
+    studentData.timezone = tz;
+    STUDENT_TIMEZONE = tz;
+    if (status) { status.textContent = 'Saved ✓'; setTimeout(() => { status.textContent = ''; }, 2500); }
+    showToast('Timezone updated');
+  } catch(e) {
+    if (status) status.textContent = `Failed: ${e.message}`;
+  } finally {
+    if (btn) { btn.textContent = 'Save'; btn.disabled = true; }
+  }
+}
+  
 function renderHelp(){
   const el = document.getElementById('page-help');
   if(!el) return;
