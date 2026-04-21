@@ -1403,7 +1403,10 @@ function renderPendingRequestsCard(requests) {
       </div>
       ${requests.map(m => {
         const st = students.find(s => s.id === m.studentId);
-        const isOpen = pendingExpanded[m.id] || false;
+        const isPending = cat==='pending'||cat==='rescheduling';
+        const clickAction = isPending
+          ? `pendingExpanded['${m.id}']=!pendingExpanded['${m.id}'];renderMeetings()`
+          : `openMeetingDetail('${m.id}')`;
         return `
           <div>
             <div class="ov-item" style="cursor:pointer;padding:10px 16px;"
