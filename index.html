@@ -2727,7 +2727,10 @@ function renderLogList(){
           ${s.meetingTime ? `<div class="log-dt-time">${s.meetingTime.slice(0,5)} <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>` : ''}
         </div>
         <div class="log-center">
-          <div class="log-name">${esc(s.studentName)}</div>
+          <div class="log-name" style="display:flex;align-items:center;gap:8px;">
+            ${esc(s.studentName)}
+            ${st ? bdg(roleFor(st), roleFor(st)==='Primary'?'blue':'gray') : ''}
+          </div>
         </div>
         <div class="log-right">
           ${s.type ? `<span class="vis-pill ${tc==='blue'?'vis-chair':'vis-private'}">${esc(s.type)}</span>` : ''}
