@@ -2689,16 +2689,35 @@ function renderLogList(){
     const isOpen=openLogId===s.logId;
     const tc=s.type==='Regular'?'blue':'gray';
     const st=students.find(x=>x.id===s.studentId);
-    const extras=[
-      {l:'Student ID',v:s.studentId},
-      {l:'Cohort',v:shortCohort(st?.cohort||'')},
-      {l:'1st major',v:shortMajor(st?.major1||'')},
-      {l:'Track',v:st?.track||'—'},
-      {l:'Advisor role',v:st?roleFor(st):'—'},
-      ...(st?.major2?[{l:'2nd major',v:shortMajor(st.major2)}]:[]),
-    ];
-    const eHtml=extras.map(e=>`<div class="ab-item"><div class="ab-lbl">${esc(e.l)}</div><div class="ab-val">${esc(e.v)}</div></div>`).join('');
 
+    const adv1Name = st?.advisor1 || '';
+    const adv2Name = st?.advisor2 || '';
+    const isAdv1 = adv1Name === FACULTY;
+    const isAdv2 = adv2Name === FACULTY;
+    const advBdg = (isPrimary) => isPrimary
+      ? `<span class="vis-pill vis-chair" style="margin-left:5px;">Primary</span>`
+      : `<span class="vis-pill vis-private" style="margin-left:5px;">Secondary</span>`;
+
+    const eHtml = `
+      <div style="display:flex;align-items:flex-start;flex-wrap:wrap;gap:0;">
+        <div style="display:flex;gap:20px;padding:5px 0;">
+          <div class="ab-item"><div class="ab-lbl">Student ID</div><div class="ab-val">${esc(s.studentId)}</div></div>
+          <div class="ab-item"><div class="ab-lbl">Cohort</div><div class="ab-val">${esc(shortCohort(st?.cohort||''))}</div></div>
+          <div class="ab-item"><div class="ab-lbl">Track</div><div class="ab-val">${esc(st?.track||'—')}</div></div>
+        </div>
+        <div style="width:1px;background:var(--border-em);margin:0 16px;align-self:stretch;"></div>
+        <div style="display:flex;gap:20px;padding:5px 0;">
+          <div class="ab-item"><div class="ab-lbl">1st major</div><div class="ab-val">${esc(shortMajor(st?.major1||''))}</div></div>
+          ${adv1Name ? `<div class="ab-item"><div class="ab-lbl">Advisor 1</div><div class="ab-val" style="display:flex;align-items:center;">${esc(adv1Name)}${isAdv1?advBdg(true):isAdv2?'':''}</div></div>` : ''}
+        </div>
+        ${st?.major2 ? `
+        <div style="width:1px;background:var(--border-em);margin:0 16px;align-self:stretch;"></div>
+        <div style="display:flex;gap:20px;padding:5px 0;">
+          <div class="ab-item"><div class="ab-lbl">2nd major</div><div class="ab-val">${esc(shortMajor(st.major2))}</div></div>
+          ${adv2Name ? `<div class="ab-item"><div class="ab-lbl">Advisor 2</div><div class="ab-val" style="display:flex;align-items:center;">${esc(adv2Name)}${isAdv2?advBdg(false):''}</div></div>` : ''}
+        </div>` : ''}
+      </div>`;
+    
     const div=document.createElement('div');
     div.className='log-row'+(isOpen?' active':'');
     div.innerHTML=`
@@ -2722,8 +2741,9 @@ function renderLogList(){
         <span class="log-hint">${isOpen?'▴ Collapse':'▾ Expand'}</span>
       </div>
       <div class="log-xwrap${isOpen?' open':''}">
-        <div class="log-ab">${eHtml}
-          <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+        <div class="log-ab" style="display:flex;align-items:flex-start;justify-content:space-between;">
+          <div>${eHtml}</div>
+          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;padding:5px 0;">
             <button onclick="event.stopPropagation();editingLogId=editingLogId==='${s.logId}'?null:'${s.logId}';renderLogList()"
               style="font-size:17px;padding:3px 10px;border-radius:var(--r);border:0.5px solid var(--border-em);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .12s;"
               onmouseover="this.style.background='var(--surface2)'"
