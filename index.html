@@ -2157,18 +2157,26 @@ function buildProfileSection(st) {
 }
   
 function buildStudPanel(st){
-  const extras=[];
-  if(st.track) extras.push({l:'Track',v:st.track});
-  if(st.major2) extras.push({l:'2nd major',v:shortMajor(st.major2)});
-  if(st.minor) extras.push({l:'Minor',v:shortMajor(st.minor)});
-  if(st.advisor1) extras.push({l:'Advisor 1', v:st.advisor1});
-  if(st.advisor2) extras.push({l:'Advisor 2', v:st.advisor2});
-  
-  const abExtra=extras.map(e=>{
-    const isAdv = e.l==='Advisor 1' || e.l==='Advisor 2';
-    const divider = (e.l==='Advisor 1') ? '<div style="width:1px;height:28px;background:var(--border-em);margin:0 2px;align-self:center;"></div>' : '';
-    return `${divider}<div class="ab-item"><div class="ab-lbl">${esc(e.l)}</div><div class="ab-val">${esc(e.v)}</div></div>`;
-  }).join('');
+  const sec2label = st.major2 ? '2nd major' : st.minor ? 'Minor' : '';
+  const sec2value = st.major2 ? shortMajor(st.major2) : st.minor ? shortMajor(st.minor) : '';
+  const adv1 = facultyName(st.advisor1_email);
+  const adv2 = facultyName(st.advisor2_email);
+  const myRole = st.advisor1_email === FACULTY_EMAIL ? 'Primary' : st.advisor2_email === FACULTY_EMAIL ? 'Secondary' : '';
+
+  const abExtra = `
+    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+      <div class="ab-item"><div class="ab-lbl">Student ID</div><div class="ab-val">${esc(st.id)}</div></div>
+      <div class="ab-item"><div class="ab-lbl">Cohort</div><div class="ab-val">${esc(shortCohort(st.cohort))}</div></div>
+      <div class="ab-item"><div class="ab-lbl">Track</div><div class="ab-val">${esc(st.track||'—')}</div></div>
+      <div style="width:1px;background:var(--border-em);margin:0 12px;align-self:stretch;"></div>
+      <div class="ab-item"><div class="ab-lbl">1st major</div><div class="ab-val">${esc(shortMajor(st.major1))}</div></div>
+      <div class="ab-item"><div class="ab-lbl">Advisor 1</div><div class="ab-val">${esc(adv1)}</div></div>
+      ${sec2label ? `
+      <div style="width:1px;background:var(--border-em);margin:0 12px;align-self:stretch;"></div>
+      <div class="ab-item"><div class="ab-lbl">${esc(sec2label)}</div><div class="ab-val">${esc(sec2value)}</div></div>
+      <div class="ab-item"><div class="ab-lbl">Advisor 2</div><div class="ab-val">${esc(adv2)}${myRole?` ${bdg(myRole, myRole==='Primary'?'blue':'gray')}`:''}` : ''}
+      </div></div>
+    </div>`;
     
   const stSess=sessions.filter(s=>s.studentId===st.id).sort((a,b)=>b.date.localeCompare(a.date));
   let tl='';
