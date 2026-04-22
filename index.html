@@ -2710,7 +2710,7 @@ function renderLogList(){
         <div class="log-center">
           <div class="log-name">${esc(s.studentName)}</div>
           <div class="log-meta">
-            ${bdg(s.type,tc)}
+            ${s.type ? bdg(s.type,tc) : ''}
           </div>
         </div>
         <div class="log-right">
