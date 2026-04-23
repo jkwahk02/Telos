@@ -624,6 +624,7 @@ let pendingSelSlot   = {};   // { meetingId: slotIndex }
 let pendingPropose   = {};   // { meetingId: Set<availIndex> }
 let pendingPropMode  = {};   // { meetingId: boolean }
 let pendingExpanded = {};  // { meetingId: boolean }
+let confirmedExpanded = {};
 let helpHeroOpen = false;
   
 // ── AUTH STATE ──
@@ -1311,6 +1312,43 @@ function renderCurrent() {
   if (currentPage==='settings')  renderSettings();
 }
 
+async function saveConfirmedLink(meetingId) {
+  const link = document.getElementById(`zoom-confirmed-${meetingId}`)?.value.trim() || '';
+  try {
+    await sbUpdate(TBL_MEETING, 'id', meetingId, { meeting_link: link });
+    const m = meetings.find(x => String(x.id) === String(meetingId));
+    if (m) m.meetingLink = link;
+    showToast('✓ Meeting link saved');
+    renderMeetings();
+  } catch(e) {
+    showToast(`Save failed: ${e.message}`);
+  }
+}
+  
+function buildConfirmedExpand(m, st) {
+  const currentLink = m.meetingLink || '';
+  return `
+    <div style="padding:14px 16px;background:var(--surface2);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Meeting link</span>
+        <input id="zoom-confirmed-${m.id}" class="fi" placeholder="Zoom / meeting link"
+          value="${esc(currentLink)}"
+          style="flex:1;min-width:200px;height:32px;font-size:13px;">
+        <button onclick="saveConfirmedLink('${m.id}')"
+          style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
+          Save link
+        </button>
+      </div>
+      ${m.logId
+        ? `<div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:13px;color:var(--text3);">Session log:</span>
+            <span class="go-link" style="font-size:13px;" onclick="goToLog('${m.logId}')">View ${m.logId} →</span>
+           </div>`
+        : `<div style="font-size:13px;color:var(--text3);font-style:italic;">No session log yet — log after the meeting from My Students.</div>`
+      }
+    </div>`;
+}
+  
 function buildPendingExpand(m, st) {
   const hasSlots    = m.proposedSlots && m.proposedSlots.length > 0;
   const sel         = pendingSelSlot[m.id] ?? null;
@@ -1413,6 +1451,8 @@ function renderPendingRequestsCard(requests) {
         const isPending = cat==='pending'||cat==='rescheduling';
         const clickAction = isPending
           ? `pendingExpanded['${m.id}']=!pendingExpanded['${m.id}'];renderMeetings()`
+          : isConfirmed
+          ? `confirmedExpanded['${m.id}']=!confirmedExpanded['${m.id}'];renderMeetings()`
           : `openMeetingDetail('${m.id}')`;
         return `
           <div>
@@ -3626,7 +3666,7 @@ function renderMeetings() {
       })();
 
       const actionHtml = (() => {
-        if (isConfirmed) return '';
+        if (isConfirmed) return `<span style="font-size:12px;color:var(--blue);">${confirmedExpanded[m.id]?'▴ Collapse':'▾ Manage'}</span>`;
         if (isPending||cat==='rescheduling') return `<span style="font-size:12px;color:var(--blue);">${pendingExpanded[m.id]?'▴ Collapse':'▾ Review'}</span>`;
         return `<span style="font-size:12px;color:var(--blue);">View log →</span>`;
       })();
@@ -3634,6 +3674,9 @@ function renderMeetings() {
       const expandHtml = (isPending||cat==='rescheduling') ? `
         <div class="mtg-expand ${pendingExpanded[m.id]?'open':''}">
           ${pendingExpanded[m.id] ? buildPendingExpand(m, st) : ''}
+        </div>` : isConfirmed ? `
+        <div class="mtg-expand ${confirmedExpanded[m.id]?'open':''}">
+          ${confirmedExpanded[m.id] ? buildConfirmedExpand(m, st) : ''}
         </div>` : '';
 
       const accentClass = isConfirmed ? 'confirmed' : isPending||cat==='rescheduling' ? 'pending' : '';
