@@ -1145,6 +1145,7 @@ async function loadData() {
     document.getElementById('setup-banner').style.display = 'none';
     console.log('[Supabase] Loaded:', students.length, 'students,', sessions.length, 'sessions');
     renderCurrent();
+    if (typeof google !== 'undefined') connectGoogleCalendar();
 
   } catch(e) {
     console.error('Supabase load error:', e);
