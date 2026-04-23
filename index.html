@@ -635,8 +635,9 @@ let confirmedExpanded = {};
 let confirmedLinkEditing = {};
 
 let gcalToken = null;
-let gcalCalendarId = localStorage.getItem('telos_gcal_calendar_id') || null;
-
+const _storedCalId = localStorage.getItem('telos_gcal_calendar_id');
+let gcalCalendarId = (_storedCalId && _storedCalId !== 'undefined') ? _storedCalId : null;
+  
 let helpHeroOpen = false;
   
 // ── AUTH STATE ──
@@ -1392,6 +1393,11 @@ async function ensureTelosMeetingsCalendar() {
     body: JSON.stringify({ summary: 'Telos Meetings', timeZone: FACULTY_TIMEZONE }),
   });
   const created = await createRes.json();
+  if (!createRes.ok || !created.id) {
+    console.error('Calendar create failed:', created);
+    showToast(`Failed to create calendar: ${created.error?.message || createRes.status}`);
+    return null;
+  }
   gcalCalendarId = created.id;
   localStorage.setItem('telos_gcal_calendar_id', gcalCalendarId);
   showToast('✓ "Telos Meetings" calendar created in your Google Calendar');
