@@ -625,6 +625,8 @@ let pendingPropose   = {};   // { meetingId: Set<availIndex> }
 let pendingPropMode  = {};   // { meetingId: boolean }
 let pendingExpanded = {};  // { meetingId: boolean }
 let confirmedExpanded = {};
+let confirmedLinkEditing = {};
+
 let helpHeroOpen = false;
   
 // ── AUTH STATE ──
@@ -1318,6 +1320,7 @@ async function saveConfirmedLink(meetingId) {
     await sbUpdate(TBL_MEETING, 'id', meetingId, { meeting_link: link });
     const m = meetings.find(x => String(x.id) === String(meetingId));
     if (m) m.meetingLink = link;
+    confirmedLinkEditing[meetingId] = false;
     showToast('✓ Meeting link saved');
     renderMeetings();
   } catch(e) {
@@ -1327,25 +1330,55 @@ async function saveConfirmedLink(meetingId) {
   
 function buildConfirmedExpand(m, st) {
   const currentLink = m.meetingLink || '';
-  return `
-    <div style="padding:14px 16px;background:var(--surface2);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:12px;">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Meeting link</span>
+  const isEditing = confirmedLinkEditing[m.id] || false;
+
+  const linkSection = currentLink && !isEditing
+    ? `<div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;align-items:center;gap:7px;flex:1;min-width:0;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M6.5 9.5l3-3M9 6.5l1.5-1.5a2.121 2.121 0 013 3L12 10M7 9.5l-1.5 1.5a2.121 2.121 0 01-3-3L4 6.5" stroke="var(--blue)" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <a href="${esc(currentLink)}" target="_blank" style="font-size:13px;color:var(--blue);text-decoration:underline;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(currentLink)}</a>
+        </div>
+        <button onclick="event.stopPropagation();window.open('${esc(currentLink)}','_blank')"
+          style="display:flex;align-items:center;gap:5px;height:32px;padding:0 12px;border-radius:var(--r);background:var(--green-l);color:var(--green);border:1px solid var(--green-b);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M11 6l4-2v8l-4-2V6z" fill="currentColor"/></svg>
+          Start meeting
+        </button>
+        <button onclick="event.stopPropagation();confirmedLinkEditing['${m.id}']=true;renderMeetings()"
+          style="height:32px;padding:0 12px;border-radius:var(--r);background:var(--surface);color:var(--text2);border:1px solid var(--border-em);font-size:13px;cursor:pointer;white-space:nowrap;">
+          Edit link
+        </button>
+      </div>`
+    : `<div style="display:flex;align-items:center;gap:8px;">
         <input id="zoom-confirmed-${m.id}" class="fi" placeholder="Zoom / meeting link"
           value="${esc(currentLink)}"
-          style="flex:1;min-width:200px;height:32px;font-size:13px;">
-        <button onclick="saveConfirmedLink('${m.id}')"
+          style="flex:1;height:32px;font-size:13px;background:var(--surface);">
+        <button onclick="event.stopPropagation();saveConfirmedLink('${m.id}')"
           style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
           Save link
         </button>
+        ${isEditing ? `<button onclick="event.stopPropagation();confirmedLinkEditing['${m.id}']=false;renderMeetings()"
+          style="height:32px;padding:0 12px;border-radius:var(--r);background:var(--surface);color:var(--red);border:1px solid var(--red-l);font-size:13px;cursor:pointer;white-space:nowrap;">
+          Cancel
+        </button>` : ''}
+      </div>`;
+
+  return `
+    <div style="padding:14px 16px;background:var(--surface2);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Meeting link</div>
+        ${linkSection}
       </div>
-      ${m.logId
-        ? `<div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:13px;color:var(--text3);">Session log:</span>
-            <span class="go-link" style="font-size:13px;" onclick="goToLog('${m.logId}')">View ${m.logId} →</span>
-           </div>`
-        : `<div style="font-size:13px;color:var(--text3);font-style:italic;">No session log yet — log after the meeting from My Students.</div>`
-      }
+      <div style="height:1px;background:var(--border);"></div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Session log</div>
+        ${m.logId
+          ? `<div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:13px;color:var(--text2);">${esc(m.logId)} linked</span>
+              <span class="go-link" style="font-size:13px;" onclick="event.stopPropagation();goToLog('${m.logId}')">View ${esc(m.logId)} →</span>
+             </div>`
+          : `<div style="font-size:13px;color:var(--text3);font-style:italic;">No session log yet — log after the meeting from My Students.</div>`
+        }
+      </div>
     </div>`;
 }
   
