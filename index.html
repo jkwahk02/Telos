@@ -752,9 +752,16 @@ function convertTimeFac(timeStr, fromTz, toTz) {
 function tzAbbrFac(tz) {
   if (!tz) return '';
   try {
-    return new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'short'})
+    return new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'shortOffset'})
       .formatToParts(new Date()).find(p=>p.type==='timeZoneName')?.value || tz;
   } catch { return tz; }
+}
+
+function tzLabelFac(tz) {
+  if (!tz) return '';
+  const offset = tzAbbrFac(tz);
+  const name = tz.replace(/_/g, ' ');
+  return `${name} <span class="tz-pill">${offset}</span>`;
 }
 
 function buildStuTzBreakdown(startTime, endTime) {
@@ -3154,6 +3161,9 @@ async function renderSettings() {
             <div style="font-size:17px;font-weight:600;">Weekly availability</div>
             <div style="font-size:13px;color:var(--text3);margin-top:2px;">
               Students see your active slots when requesting a meeting.
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;">
+              Times shown in ${tzLabelFac(FACULTY_TIMEZONE)}
             </div>
           </div>
           <span id="avail-count" class="bdg bdg-blue">— slots</span>
