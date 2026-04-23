@@ -1408,8 +1408,9 @@ async function addToGoogleCalendar(meetingId) {
   if (!m || !st) return;
 
   try {
-    await ensureTelosMeetingsCalendar();
-
+    const calId = await ensureTelosMeetingsCalendar();
+    if (!calId) { showToast('Could not find or create Telos Meetings calendar.'); return; }
+    
     const startDateTime = `${m.meetingDate}T${m.confirmedStart || '09:00'}:00`;
     const endDateTime   = `${m.meetingDate}T${m.confirmedEnd   || '10:00'}:00`;
 
@@ -1427,7 +1428,7 @@ async function addToGoogleCalendar(meetingId) {
     };
 
     const res = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(gcalCalendarId)}/events`,
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events`,
       {
         method: 'POST',
         headers: { Authorization: `Bearer ${gcalToken}`, 'Content-Type': 'application/json' },
