@@ -2106,6 +2106,13 @@ function tzAbbr(tz) {
   } catch { return tz; }
 }
 
+function tzLabel(tz) {
+  if (!tz) return '';
+  const offset = tzAbbr(tz);
+  const name = tz.replace(/_/g, ' ');
+  return `${name} <span class="tz-pill">${offset}</span>`;
+}
+
 function getFacTz(facultyEmail) {
   return allFaculty.find(f=>f.email===facultyEmail)?.timezone || null;
 }
@@ -2372,7 +2379,7 @@ function buildRequestForm(){
         <div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
             <div class="fta-lbl" style="margin-bottom:0;">Step 2 — Pick slots <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3);">· click to choose start time</span></div>
-            ${stuTz ? `<span style="font-size:11px;color:var(--text3);">Times shown in <span class="tz-pill">${tzAbbr(stuTz)}</span></span>` : ''}
+            ${stuTz ? `<span style="font-size:11px;color:var(--text3);">Times shown in ${tzLabel(stuTz)}</span>` : ''}
             <span style="font-size:11px;color:var(--accent);font-weight:500;" id="slot-sel-count">${selectedMeetingSlots.length?selectedMeetingSlots.length+' selected':''}</span>
           </div>
           ${buildSlotGrid(slots, fac?.timezone || null)}
