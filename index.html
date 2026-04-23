@@ -463,6 +463,9 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .mtg-meta-dot{width:3px;height:3px;border-radius:50%;background:var(--text3);flex-shrink:0;}
 .mtg-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 </style>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 </head>
 <body>
 
@@ -603,6 +606,9 @@ let FACULTY_SCHOOL = '';  // chair's school for program filtering
 let FACULTY_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let SCHOOL_FACULTY_NAMES = []; // 같은 school 소속 교수 이름 목록
 
+const GCAL_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // Google Cloud Console에서 발급
+const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar';
+
 // ↓ Supabase project credentials — replace with your own
 // Project URL:  Supabase dashboard → Project Settings → API → Project URL
 // Anon key:     Supabase dashboard → Project Settings → API → anon/public key
@@ -626,6 +632,9 @@ let pendingPropMode  = {};   // { meetingId: boolean }
 let pendingExpanded = {};  // { meetingId: boolean }
 let confirmedExpanded = {};
 let confirmedLinkEditing = {};
+
+let gcalToken = null;
+let gcalCalendarId = localStorage.getItem('telos_gcal_calendar_id') || null;
 
 let helpHeroOpen = false;
   
@@ -1264,6 +1273,8 @@ function mapMeeting(r) {
     createdAt:        r.created_at || '',
     logId:            r.log_id || null,
     meetingLink:      r.meeting_link || '',
+    gcalEventId:  r.gcal_event_id  || '',
+    gcalEventLink: '',
   };
 }
   
@@ -1327,6 +1338,107 @@ async function saveConfirmedLink(meetingId) {
     showToast(`Save failed: ${e.message}`);
   }
 }
+
+function connectGoogleCalendar() {
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GCAL_CLIENT_ID,
+    scope: GCAL_SCOPE,
+    callback: async (resp) => {
+      if (resp.error) { showToast('Google sign-in failed: ' + resp.error); return; }
+      gcalToken = resp.access_token;
+      showToast('Signed in to Google — setting up Telos Meetings calendar…');
+      await ensureTelosMeetingsCalendar();
+      renderSettings();
+    },
+  });
+  client.requestAccessToken();
+}
+
+async function ensureTelosMeetingsCalendar() {
+  // Check if already stored
+  if (gcalCalendarId) return gcalCalendarId;
+
+  // Search existing calendars
+  const listRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+    headers: { Authorization: `Bearer ${gcalToken}` },
+  });
+  const listData = await listRes.json();
+  const existing = listData.items?.find(c => c.summary === 'Telos Meetings');
+  if (existing) {
+    gcalCalendarId = existing.id;
+    localStorage.setItem('telos_gcal_calendar_id', gcalCalendarId);
+    showToast('✓ Connected to existing "Telos Meetings" calendar');
+    return gcalCalendarId;
+  }
+
+  // Create new calendar
+  const createRes = await fetch('https://www.googleapis.com/calendar/v3/calendars', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${gcalToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ summary: 'Telos Meetings', timeZone: FACULTY_TIMEZONE }),
+  });
+  const created = await createRes.json();
+  gcalCalendarId = created.id;
+  localStorage.setItem('telos_gcal_calendar_id', gcalCalendarId);
+  showToast('✓ "Telos Meetings" calendar created in your Google Calendar');
+  return gcalCalendarId;
+}
+
+function disconnectGoogleCalendar() {
+  if (!confirm('Disconnect Google Calendar?')) return;
+  gcalToken = null;
+  gcalCalendarId = null;
+  localStorage.removeItem('telos_gcal_calendar_id');
+  renderSettings();
+  showToast('Google Calendar disconnected');
+}
+
+async function addToGoogleCalendar(meetingId) {
+  if (!gcalToken) { showToast('Google Calendar not connected — go to Settings.'); return; }
+  const m = meetings.find(x => String(x.id) === String(meetingId));
+  const st = students.find(s => s.id === m?.studentId);
+  if (!m || !st) return;
+
+  try {
+    await ensureTelosMeetingsCalendar();
+
+    const startDateTime = `${m.meetingDate}T${m.confirmedStart || '09:00'}:00`;
+    const endDateTime   = `${m.meetingDate}T${m.confirmedEnd   || '10:00'}:00`;
+
+    const event = {
+      summary: `Advising — ${st.name}`,
+      description: [
+        `Student: ${st.name} (${st.id})`,
+        `Major: ${st.major1}`,
+        m.meetingLink ? `Zoom: ${m.meetingLink}` : '',
+        m.agenda ? `Agenda: ${m.agenda}` : '',
+      ].filter(Boolean).join('\n'),
+      start: { dateTime: startDateTime, timeZone: FACULTY_TIMEZONE },
+      end:   { dateTime: endDateTime,   timeZone: FACULTY_TIMEZONE },
+      ...(m.meetingLink ? { location: m.meetingLink } : {}),
+    };
+
+    const res = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(gcalCalendarId)}/events`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${gcalToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(event),
+      }
+    );
+    const created = await res.json();
+    if (!res.ok) throw new Error(created.error?.message || 'Failed to create event');
+
+    // Store gcal_event_id locally and in Supabase
+    m.gcalEventId = created.id;
+    m.gcalEventLink = created.htmlLink;
+    await sbUpdate(TBL_MEETING, 'id', meetingId, { gcal_event_id: created.id });
+    showToast('✓ Added to "Telos Meetings" in Google Calendar');
+    renderMeetings();
+  } catch(e) {
+    showToast(`Calendar error: ${e.message}`);
+  }
+}
   
 function buildConfirmedExpand(m, st) {
   const currentLink = m.meetingLink || '';
@@ -1362,7 +1474,7 @@ function buildConfirmedExpand(m, st) {
         </button>` : ''}
       </div>`;
 
-  return `
+return `
     <div style="padding:14px 16px;background:var(--surface2);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:12px;">
       <div>
         <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Meeting link</div>
@@ -1377,6 +1489,29 @@ function buildConfirmedExpand(m, st) {
               <span class="go-link" style="font-size:13px;" onclick="event.stopPropagation();goToLog('${m.logId}')">View ${esc(m.logId)} →</span>
              </div>`
           : `<div style="font-size:13px;color:var(--text3);font-style:italic;">No session log yet — log after the meeting from My Students.</div>`
+        }
+      </div>
+      <div style="height:1px;background:var(--border);"></div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Google Calendar</div>
+        ${gcalToken
+          ? m.gcalEventId
+            ? `<div style="display:flex;align-items:center;gap:8px;">
+                 <span style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;padding:4px 10px;border-radius:var(--r);background:var(--green-l);color:var(--green);border:1px solid var(--green-b);">
+                   <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                   Added to Telos Meetings
+                 </span>
+                 ${m.gcalEventLink ? `<a href="${esc(m.gcalEventLink)}" target="_blank" style="font-size:12px;color:var(--blue);text-decoration:underline;">Open in Google Calendar →</a>` : ''}
+               </div>`
+            : `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                 <button onclick="event.stopPropagation();addToGoogleCalendar('${m.id}')"
+                   style="display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:var(--r);background:var(--surface);color:var(--text);border:1px solid var(--border-em);font-size:13px;font-weight:500;cursor:pointer;">
+                   <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 7h12M6 1v4M10 1v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                   Add to Google Calendar
+                 </button>
+                 <span style="font-size:12px;color:var(--text3);">Event will appear in "Telos Meetings" in your Google Calendar.</span>
+               </div>`
+          : `<span style="font-size:12px;color:var(--text3);">Connect Google Calendar in Settings to enable this feature.</span>`
         }
       </div>
     </div>`;
@@ -3219,7 +3354,6 @@ async function saveProfile() {
 async function renderSettings() {
   const el = document.getElementById('page-settings');
 
-  // faculty_profiles 정보 표시
   const roleLabel = [IS_CHAIR ? 'Program Chair' : '', 'Advisor']
     .filter(Boolean).join(' · ');
 
@@ -3262,60 +3396,101 @@ async function renderSettings() {
       </div>
 
       <div id="mtg-cal-wrap" style="display:none;">
-        <!-- Calendar view — 추후 구현 -->
         <div style="padding:40px;text-align:center;color:var(--text3);font-size:14px;">
           Calendar view coming soon
         </div>
-      </div>      
+      </div>
 
-<!-- MY PROFILE -->
-<div class="tbl-wrap" style="border-radius:var(--r-lg);">
-  <div style="padding:11px 16px;border-bottom:1px solid var(--border);">
-    <div style="font-size:17px;font-weight:600;">My profile</div>
-  </div>
+      <!-- INTEGRATIONS -->
+      <div class="tbl-wrap" style="border-radius:var(--r-lg);">
+        <div style="padding:11px 16px;border-bottom:1px solid var(--border);">
+          <div style="font-size:17px;font-weight:600;">Integrations</div>
+          <div style="font-size:13px;color:var(--text3);margin-top:2px;">Connect external services to enhance your workflow.</div>
+        </div>
+        <div style="padding:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:32px;height:32px;border-radius:var(--r);background:${gcalToken?'var(--green-l)':'var(--surface2)'};border:1px solid ${gcalToken?'var(--green-b)':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="13" rx="1.5" stroke="${gcalToken?'var(--green)':'var(--text3)'}" stroke-width="1.2"/><path d="M1 6h14M5 1v3M11 1v3" stroke="${gcalToken?'var(--green)':'var(--text3)'}" stroke-width="1.2" stroke-linecap="round"/></svg>
+              </div>
+              <div>
+                <div style="font-size:14px;font-weight:500;color:var(--text);">Google Calendar</div>
+                <div style="font-size:12px;color:var(--text3);margin-top:1px;">Add confirmed meetings to a "Telos Meetings" calendar automatically.</div>
+              </div>
+            </div>
+            ${gcalToken
+              ? `<div style="display:flex;align-items:center;gap:8px;">
+                   <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--green-l);color:var(--green);">Connected</span>
+                   <button onclick="disconnectGoogleCalendar()"
+                     style="height:30px;padding:0 12px;border-radius:var(--r);background:var(--surface);color:var(--text2);border:1px solid var(--border-em);font-size:13px;cursor:pointer;">
+                     Disconnect
+                   </button>
+                 </div>`
+              : `<button onclick="connectGoogleCalendar()"
+                   style="display:flex;align-items:center;gap:6px;height:30px;padding:0 14px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;">
+                   <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                   Connect
+                 </button>`
+            }
+          </div>
+          ${gcalToken
+            ? `<div style="display:flex;align-items:center;gap:6px;margin-top:10px;padding:8px 10px;background:var(--surface2);border-radius:var(--r);border:1px solid var(--border);font-size:12px;color:var(--text2);">
+                 <div style="width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;"></div>
+                 Calendar: <span style="color:var(--text);font-weight:500;margin-left:4px;">Telos Meetings</span>
+               </div>`
+            : ''
+          }
+        </div>
+      </div>
 
-  <div class="settings-section-divider">
-    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="8" width="10" height="6" rx="1.5"/><path d="M5 8V6a3 3 0 0 1 6 0v2"/></svg>
-    Managed by administrator
-  </div>
-  ${[['Email', FACULTY_EMAIL],['School', FACULTY_SCHOOL],['Role', roleLabel]].map(([l,v])=>`
-    <div class="settings-field-row">
-      <div class="settings-field-label">${l}</div>
-      <div class="settings-field-val">${esc(v)}</div>
-    </div>`).join('')}
+      <!-- MY PROFILE -->
+      <div class="tbl-wrap" style="border-radius:var(--r-lg);">
+        <div style="padding:11px 16px;border-bottom:1px solid var(--border);">
+          <div style="font-size:17px;font-weight:600;">My profile</div>
+        </div>
 
-  <div class="settings-section-divider">
-    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-8 8H3v-3l8-8z"/></svg>
-    Editable by you
-  </div>
-  <div class="settings-field-row editable">
-    <div class="settings-edit-bar"></div>
-    <div class="settings-field-label">Display name</div>
-    <div class="settings-field-input">
-      <input class="fi" id="prof-name" value="${esc(FACULTY)}"
-        style="height:30px;font-size:14px;" oninput="markProfileDirty()">
-    </div>
-  </div>
-  <div class="settings-field-row editable">
-    <div class="settings-edit-bar"></div>
-    <div class="settings-field-label">Timezone</div>
-    <div class="settings-field-input">
-      <select class="fsel" id="tz-select" onchange="markProfileDirty()"
-        style="height:30px;font-size:14px;width:100%;max-width:300px;">
-        ${TZ_LIST.map(tz=>
-          `<option value="${tz}" ${tz===FACULTY_TIMEZONE?'selected':''}>${tz}</option>`
-        ).join('')}
-      </select>
-    </div>
-  </div>
+        <div class="settings-section-divider">
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="8" width="10" height="6" rx="1.5"/><path d="M5 8V6a3 3 0 0 1 6 0v2"/></svg>
+          Managed by administrator
+        </div>
+        ${[['Email', FACULTY_EMAIL],['School', FACULTY_SCHOOL],['Role', roleLabel]].map(([l,v])=>`
+          <div class="settings-field-row">
+            <div class="settings-field-label">${l}</div>
+            <div class="settings-field-val">${esc(v)}</div>
+          </div>`).join('')}
 
-  <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-    <span class="save-status" id="prof-save-status"></span>
-    <button class="btn-log" id="btn-save-profile" disabled onclick="saveProfile()">Save profile</button>
-  </div>
-</div>
+        <div class="settings-section-divider">
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-8 8H3v-3l8-8z"/></svg>
+          Editable by you
+        </div>
+        <div class="settings-field-row editable">
+          <div class="settings-edit-bar"></div>
+          <div class="settings-field-label">Display name</div>
+          <div class="settings-field-input">
+            <input class="fi" id="prof-name" value="${esc(FACULTY)}"
+              style="height:30px;font-size:14px;" oninput="markProfileDirty()">
+          </div>
+        </div>
+        <div class="settings-field-row editable">
+          <div class="settings-edit-bar"></div>
+          <div class="settings-field-label">Timezone</div>
+          <div class="settings-field-input">
+            <select class="fsel" id="tz-select" onchange="markProfileDirty()"
+              style="height:30px;font-size:14px;width:100%;max-width:300px;">
+              ${TZ_LIST.map(tz=>
+                `<option value="${tz}" ${tz===FACULTY_TIMEZONE?'selected':''}>${tz}</option>`
+              ).join('')}
+            </select>
+          </div>
+        </div>
 
-  </div>`;
+        <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <span class="save-status" id="prof-save-status"></span>
+          <button class="btn-log" id="btn-save-profile" disabled onclick="saveProfile()">Save profile</button>
+        </div>
+      </div>
+
+    </div>`;
 
   await loadAvailability();
 }
@@ -3971,6 +4146,8 @@ const FALLBACK_MEETINGS = [
     createdBy: 'advisor',
     logId: 'LOG-002',
     meetingLink: '',
+
+
   },
   {
     id: 2,
@@ -3985,6 +4162,8 @@ const FALLBACK_MEETINGS = [
     createdBy: 'advisor',
     logId: 'LOG-001',
     meetingLink: '',
+
+
   },
 ];
 
