@@ -1144,6 +1144,9 @@ async function loadData() {
     document.getElementById('setup-banner').style.display = 'none';
     console.log('[Supabase] Loaded:', students.length, 'students,', sessions.length, 'sessions');
     renderCurrent();
+    if (localStorage.getItem('telos_gcal_connected') === 'true') {
+      connectGoogleCalendar(true);
+    }
   } catch(e) {
     console.error('Supabase load error:', e);
     dot.className = 'src-dot error';
@@ -1367,6 +1370,7 @@ function connectGoogleCalendar(silent = false) {
 async function ensureTelosMeetingsCalendar() {
   // Check if already stored
   if (gcalCalendarId) return gcalCalendarId;
+  if (!gcalToken) { showToast('Google token missing — please reconnect.'); return null; }
 
   // Search existing calendars
   const listRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
@@ -1734,10 +1738,6 @@ async function confirmMeetingRequest(meetingId) {
     delete pendingSelSlot[meetingId];
     showToast(`✓ Confirmed — ${chosenSlot.dateLabel || chosenSlot.dateStr} ${chosenSlot.start}`);
     renderCurrent();
-    // Google Calendar silent re-auth (팝업 없이 기존 동의 재사용)
-    if (localStorage.getItem('telos_gcal_connected') === 'true') {
-      connectGoogleCalendar(true);
-    }
   } catch(e) {
     showToast(`Confirm failed: ${e.message}`);
   }
