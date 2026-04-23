@@ -2098,8 +2098,11 @@ function convertTime(timeStr, fromTz, toTz) {
 function tzAbbr(tz) {
   if (!tz) return '';
   try {
-    return new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' })
-      .formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value || tz;
+    return new Intl.DateTimeFormat('en-US', { 
+      timeZone: tz, 
+      timeZoneName: 'shortOffset'  // 항상 GMT-4, GMT+9 등
+    }).formatToParts(new Date())
+      .find(p => p.type === 'timeZoneName')?.value || tz;
   } catch { return tz; }
 }
 
