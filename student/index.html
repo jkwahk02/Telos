@@ -2089,7 +2089,9 @@ function convertTime(timeStr, fromTz, toTz) {
     const [h, m] = timeStr.split(':').map(Number);
     // fromTz에서 2000-01-03 h:m 이 UTC로 몇 시인지를
     // Intl.DateTimeFormat으로 역산
-    const base = new Date(`2000-01-03T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
+    const today = new Date();
+    const datePrefix = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    const base = new Date(`${datePrefix}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
     // base는 로컬 timezone 기준 — fromTz 기준으로 재해석 필요
     // fromTz offset을 구해서 보정
     const fmt = new Intl.DateTimeFormat('en-US', {
