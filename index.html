@@ -3610,12 +3610,15 @@ function renderMeetings() {
     return list.map(m => {
       const st = students.find(s => s.id === m.studentId);
       const isPending = cat==='pending'||cat==='rescheduling';
-      const clickAction = isPending
-        ? `pendingExpanded['${m.id}']=!pendingExpanded['${m.id}'];renderMeetings()`
-        : `openMeetingDetail('${m.id}')`;
-
       const isConfirmed = cat==='upcoming';
       const isPast = cat==='past';
+
+      const clickAction = isPending
+        ? `pendingExpanded['${m.id}']=!pendingExpanded['${m.id}'];renderMeetings()`
+        : isConfirmed
+        ? `confirmedExpanded['${m.id}']=!confirmedExpanded['${m.id}'];renderMeetings()`
+        : `openMeetingDetail('${m.id}')`;
+
 
       const dateStr = (() => {
         if (isPending) {
