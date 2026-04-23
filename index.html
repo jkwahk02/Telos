@@ -2374,8 +2374,8 @@ function buildProfileSection(st) {
 function buildStudPanel(st){
   const sec2label = st.major2 ? '2nd major' : st.minor ? 'Minor' : '';
   const sec2value = st.major2 ? shortMajor(st.major2) : st.minor ? shortMajor(st.minor) : '';
-  const adv1 = facultyName(st.advisor1_email);
-  const adv2 = facultyName(st.advisor2_email);
+  const adv1 = getFacultyName(st.advisor1_email);
+  const adv2 = getFacultyName(st.advisor2_email);
   const myRole = st.advisor1_email === FACULTY_EMAIL ? 'Primary' : st.advisor2_email === FACULTY_EMAIL ? 'Secondary' : '';
 
   const abExtra = `
