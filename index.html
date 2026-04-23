@@ -1355,9 +1355,12 @@ function connectGoogleCalendar(silent = false) {
   const client = google.accounts.oauth2.initTokenClient({
     client_id: GCAL_CLIENT_ID,
     scope: GCAL_SCOPE,
-    prompt: silent ? '' : 'consent',
+    prompt: silent ? 'none' : 'select_account',
     callback: async (resp) => {
-      if (resp.error) { showToast('Google sign-in failed: ' + resp.error); return; }
+      if (resp.error) {
+        if (!silent) showToast('Google sign-in failed: ' + resp.error);
+        return;
+      }
       gcalToken = resp.access_token;
       showToast('Signed in to Google — setting up Telos Meetings calendar…');
       localStorage.setItem('telos_gcal_connected', 'true');
