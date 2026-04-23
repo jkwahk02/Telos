@@ -1349,26 +1349,22 @@ async function saveConfirmedLink(meetingId) {
   }
 }
 
-function connectGoogleCalendar(silent = false) {
+function connectGoogleCalendar() {
   const client = google.accounts.oauth2.initTokenClient({
     client_id: GCAL_CLIENT_ID,
     scope: GCAL_SCOPE,
     prompt: 'select_account',
     callback: async (resp) => {
-      if (resp.error) {
-        if (!silent) showToast('Google sign-in failed: ' + resp.error);
-        return;
-      }
+      if (resp.error) { showToast('Google sign-in failed: ' + resp.error); return; }
       gcalToken = resp.access_token;
       showToast('Signed in to Google — setting up Telos Meetings calendar…');
-      localStorage.setItem('telos_gcal_connected', 'true');
       await ensureTelosMeetingsCalendar();
       renderSettings();
     },
   });
   client.requestAccessToken();
 }
-
+  
 async function ensureTelosMeetingsCalendar() {
   // Check if already stored
   if (gcalCalendarId) return gcalCalendarId;
@@ -1410,7 +1406,6 @@ function disconnectGoogleCalendar() {
   gcalToken = null;
   gcalCalendarId = null;
   localStorage.removeItem('telos_gcal_calendar_id');
-  localStorage.removeItem('telos_gcal_connected');
   renderSettings();
   showToast('Google Calendar disconnected');
 }
