@@ -605,6 +605,7 @@ let FACULTY_EMAIL = '';   // ← 신규: 이름 대신 email로 식별
 let FACULTY_SCHOOL = '';  // chair's school for program filtering
 let FACULTY_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let SCHOOL_FACULTY_NAMES = []; // 같은 school 소속 교수 이름 목록
+let facultyMap = {};
 
 const GCAL_CLIENT_ID = '290444850759-26d8ch9qjk7hvsudgavlqi8tdngsgism.apps.googleusercontent.com'; 
 const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar';
@@ -941,6 +942,13 @@ async function handleWallLogin() {
       const allProfData = await allProfRes.json();
       SCHOOL_FACULTY_NAMES = allProfData.map(p => p.name_en);
     }
+
+    const allFacRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/faculty_profiles?select=name_en,email`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}` } }
+    );
+    const allFacData = await allFacRes.json();
+    allFacData.forEach(f => { facultyMap[f.email] = f.name_en; });
     
     FACULTY_INITIALS = FACULTY.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 
@@ -1220,8 +1228,8 @@ function mapSession(r) {
 
 // 신규 헬퍼
 function getFacultyName(email) {
-  const f = SCHOOL_FACULTY_NAMES.find(x => x.email === email);
-  return f?.name || email;
+  if (!email) return '—';
+  return facultyMap[email] || email;
 }
 
 function mapMeeting(r) {
@@ -2389,8 +2397,7 @@ function buildStudPanel(st){
       ${sec2label ? `
       <div style="width:1px;background:var(--border-em);margin:0 12px;align-self:stretch;"></div>
       <div class="ab-item"><div class="ab-lbl">${esc(sec2label)}</div><div class="ab-val">${esc(sec2value)}</div></div>
-            <div class="ab-item"><div class="ab-lbl">Advisor 2</div><div class="ab-val">${esc(adv2)}</div></div>` : ''}
-      </div></div>
+      <div class="ab-item"><div class="ab-lbl">Advisor 2</div><div class="ab-val">${esc(adv2)}</div></div>` : ''}
     </div>`;
     
   const stSess=sessions.filter(s=>s.studentId===st.id).sort((a,b)=>b.date.localeCompare(a.date));
