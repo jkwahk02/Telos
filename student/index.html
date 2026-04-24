@@ -2297,7 +2297,7 @@ function buildRequestForm(){
             const sel=isSel(dateStr,o.start);
             return `<div class="spop-row ${sel?'sel':''}"
               onmouseenter="this.classList.add('hov')" onmouseleave="this.classList.remove('hov')"
-              onclick="toggleMeetingSlot('${dateStr}','${o.start}','${o.end}','${dateLabel}');event.stopPropagation()">
+              onclick="toggleMeetingSlot('${dateStr}','${convertDateTime(sl.facDateStr, o.start, facTz, stuTz).time||o.start}','${convertDateTime(sl.facDateStr, o.end, facTz, stuTz).time||o.end}','${dateLabel}','${o.start}','${o.end}','${sl.facDateStr}');event.stopPropagation()">
               <div class="spop-bar"></div>
               <div class="spop-lbl">${convertTime(o.start, facTz, stuTz) || o.start}</div>
               <div class="spop-tz">
@@ -2361,7 +2361,7 @@ function buildRequestForm(){
                   </div>
                   ${facTz&&facTz!==stuTz?`<div class="spop-tz-line" style="justify-content:flex-start;">
                     <span class="tz-pill">${tzAbbr(facTz)}</span>
-                    ${formatShortDate(convertDateTime(s.dateStr, s.start, stuTz, facTz).date)} · ${convertDateTime(s.dateStr, s.start, stuTz, facTz).time}–${convertDateTime(s.dateStr, s.end, stuTz, facTz).time}
+                    ${formatShortDate(s.facDateStr)} · ${s.facStart.slice(0,5)}–${s.facEnd.slice(0,5)}
                   </div>`:''}
                 </div>
               </div>
@@ -2512,10 +2512,10 @@ function toggleSlotPop(id){
   document.querySelectorAll('.slot-popover.open').forEach(p=>p.classList.remove('open'));
   if(!isOpen)el.classList.add('open');
 }
-function toggleMeetingSlot(dateStr,start,end,dateLabel){
-  const idx=selectedMeetingSlots.findIndex(x=>x.dateStr===dateStr&&x.start===start);
-  if(idx>=0) selectedMeetingSlots.splice(idx,1);
-  else selectedMeetingSlots.push({dateStr,start,end,dateLabel});
+function toggleMeetingSlot(dateStr, start, end, dateLabel, facStart, facEnd, facDateStr) {
+  const idx = selectedMeetingSlots.findIndex(x => x.dateStr===dateStr && x.start===start);
+  if (idx>=0) selectedMeetingSlots.splice(idx,1);
+  else selectedMeetingSlots.push({dateStr, start, end, dateLabel, facStart: facStart||start, facEnd: facEnd||end, facDateStr: facDateStr||dateStr});
   document.querySelectorAll('.slot-popover.open').forEach(p=>p.classList.remove('open'));
   renderMeetings();
 }
