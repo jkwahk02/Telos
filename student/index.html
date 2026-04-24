@@ -2302,7 +2302,7 @@ function buildRequestForm(){
             const facDateChanged = sl.facDateStr !== dateStr;
             return `<div class="spop-row ${sel?'sel':''}"
                           onmouseenter="this.classList.add('hov')" onmouseleave="this.classList.remove('hov')"
-                          onclick="toggleMeetingSlot('${dateStr}','${stuConverted.time||o.start}','${stuEndConverted.time||o.end}','${dateLabel}','${o.start}','${o.end}','${sl.facDateStr}');event.stopPropagation()">
+                          onclick="toggleMeetingSlot('${stuConverted.date||dateStr}','${stuConverted.time||o.start}','${stuEndConverted.time||o.end}','${formatShortDate(stuConverted.date||dateStr)}','${o.start}','${o.end}','${sl.facDateStr}');event.stopPropagation()">
                           <div class="spop-bar"></div>
                           <div class="spop-lbl">${stuConverted.time||o.start}</div>
                           <div class="spop-tz">
@@ -2364,7 +2364,7 @@ function buildRequestForm(){
                 <div class="spop-tz" style="text-align:left;">
                   <div class="spop-tz-line" style="justify-content:flex-start;color:var(--text);font-size:12px;font-weight:500;">
                     <span class="tz-pill">${tzAbbr(stuTz)||'local'}</span>
-                    ${formatShortDate(convertDateTime(s.dateStr, s.start, facTz, stuTz).date)} · ${convertTime(s.start, facTz, stuTz)||s.start}–${convertTime(s.end, facTz, stuTz)||s.end}
+                    ${formatShortDate(s.dateStr)} · ${s.start}–${s.end}
                   </div>
                   ${facTz&&facTz!==stuTz?`<div class="spop-tz-line" style="justify-content:flex-start;">
                     <span class="tz-pill">${tzAbbr(facTz)}</span>
