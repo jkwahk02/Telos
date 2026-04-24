@@ -2086,30 +2086,8 @@ async function requestRescheduleConfirmed(meetingId) {
 function convertTime(timeStr, fromTz, toTz) {
   if (!fromTz || !toTz || fromTz === toTz) return null;
   try {
-    const [h, m] = timeStr.split(':').map(Number);
-    // fromTz에서 2000-01-03 h:m 이 UTC로 몇 시인지를
-    // Intl.DateTimeFormat으로 역산
-    const today = new Date();
-    const datePrefix = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-    const base = new Date(`${datePrefix}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
-    // base는 로컬 timezone 기준 — fromTz 기준으로 재해석 필요
-    // fromTz offset을 구해서 보정
-    const fmt = new Intl.DateTimeFormat('en-US', {
-      timeZone: fromTz,
-      year: 'numeric', month: 'numeric', day: 'numeric',
-      hour: 'numeric', minute: 'numeric', second: 'numeric',
-      hour12: false
-    });
-    const parts = fmt.formatToParts(base);
-    const p = {};
-    parts.forEach(x => { p[x.type] = x.value; });
-    const localH = parseInt(p.hour) % 24;
-    const localM = parseInt(p.minute);
-    const diffMin = (h - localH) * 60 + (m - localM);
-    const utcDate = new Date(base.getTime() + diffMin * 60000);
-    return utcDate.toLocaleTimeString('en-US', {
-      timeZone: toTz, hour: '2-digit', minute: '2-digit', hour12: false
-    });
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: fromTz });
+    return convertDateTime(today, timeStr, fromTz, toTz).time || null;
   } catch { return null; }
 }
 
@@ -2117,18 +2095,23 @@ function convertDateTime(dateStr, timeStr, fromTz, toTz) {
   if (!fromTz || !toTz || fromTz === toTz) return { date: dateStr, time: timeStr };
   try {
     const [h, m] = timeStr.split(':').map(Number);
-    const base = new Date(`${dateStr}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
+    // dateStr+timeStr을 fromTz 기준 시각으로 해석해서 UTC timestamp 구하기
+    // 방법: 일단 UTC로 Date 만들고, fromTz offset만큼 역보정
+    const utcApprox = new Date(`${dateStr}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00Z`);
+    // utcApprox를 fromTz로 읽으면 몇 시인지 확인
     const fmt = new Intl.DateTimeFormat('en-US', {
       timeZone: fromTz,
-      hour: 'numeric', minute: 'numeric', hour12: false
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false
     });
-    const parts = fmt.formatToParts(base);
+    const parts = fmt.formatToParts(utcApprox);
     const p = {};
     parts.forEach(x => { p[x.type] = x.value; });
-    const localH = parseInt(p.hour) % 24;
-    const localM = parseInt(p.minute);
-    const diffMin = (h - localH) * 60 + (m - localM);
-    const utcDate = new Date(base.getTime() + diffMin * 60000);
+    const tzH = parseInt(p.hour) % 24;
+    const tzM = parseInt(p.minute);
+    // fromTz에서 h:m이 되려면 utcApprox에서 얼마나 조정해야 하는지
+    const diffMin = (h - tzH) * 60 + (m - tzM);
+    const utcDate = new Date(utcApprox.getTime() + diffMin * 60000);
     const convertedTime = utcDate.toLocaleTimeString('en-US', {
       timeZone: toTz, hour: '2-digit', minute: '2-digit', hour12: false
     });
