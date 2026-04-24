@@ -2300,8 +2300,12 @@ function buildRequestForm(){
             const stuDateChanged = stuConverted.date !== dateStr;
             const facEndConverted = convertDateTime(dateStr, o.end, stuTz, facTz);
             const facDateChanged = sl.facDateStr !== dateStr;
-            return `...
-              <div class="spop-tz">
+            return `<div class="spop-row ${sel?'sel':''}"
+                          onmouseenter="this.classList.add('hov')" onmouseleave="this.classList.remove('hov')"
+                          onclick="toggleMeetingSlot('${dateStr}','${stuConverted.time||o.start}','${stuEndConverted.time||o.end}','${dateLabel}','${o.start}','${o.end}','${sl.facDateStr}');event.stopPropagation()">
+                          <div class="spop-bar"></div>
+                          <div class="spop-lbl">${stuConverted.time||o.start}</div>
+                          <div class="spop-tz">
                 <div class="spop-tz-line">
                   <span class="tz-pill">${tzAbbr(stuTz)||'local'}</span>
                   ${stuDateChanged ? `<span style="font-size:11px;color:var(--text2);margin-right:2px;">${formatShortDate(stuConverted.date)} ·</span>` : ''}
