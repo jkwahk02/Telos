@@ -1635,7 +1635,8 @@ function renderPendingRequestsCard(requests) {
       </div>
       ${requests.map(m => {
         const st = students.find(s => s.id === m.studentId);
-        const isPending = cat==='pending'||cat==='rescheduling';
+        const isPending = (m.status === 'scheduled' && !m.advisorConfirmed) || m.status === 'rescheduling';
+        const isConfirmed = m.status === 'scheduled' && m.advisorConfirmed;
         const clickAction = isPending
           ? `pendingExpanded['${m.id}']=!pendingExpanded['${m.id}'];renderMeetings()`
           : isConfirmed
