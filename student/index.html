@@ -2266,15 +2266,25 @@ function buildRequestForm(){
     if(!slots.length) return '<div class="no-slots">No availability registered for this professor.</div>';
     const today=new Date();today.setHours(0,0,0,0);
     const withDates=[];const seen={};
+    const todayFacStr = new Date().toLocaleDateString('en-CA', {timeZone: facTz||'UTC'});
+    const todayFac = new Date(todayFacStr + 'T12:00:00');
+    const todayFacDay = new Date().toLocaleDateString('en-US', {timeZone: facTz||'UTC', weekday: 'short'});
+    const DAYMAP = {Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+    const todayFacDow = DAYMAP[todayFacDay.slice(0,3)];
     for(let week=0;week<2;week++){
       slots.forEach(sl=>{
-        const diff=(sl.day_of_week-today.getDay()+7)%7||(week===0?7:0);
-        const d=new Date(today);
-        d.setDate(today.getDate()+diff+week*7);
-        const key=d.toISOString().slice(0,10)+'_'+sl.start_time;
-        if(!seen[key]){seen[key]=true;withDates.push({...sl,date:d});}
+        const diff=(sl.day_of_week-todayFacDow+7)%7||(week===0?7:0);
+        const d=new Date(todayFac);
+        d.setDate(todayFac.getDate()+diff+week*7);
+        const facDateStr=d.toISOString().slice(0,10);
+        // 교수 timezone 기준 날짜+시간을 학생 timezone으로 변환
+        const converted = convertDateTime(facDateStr, sl.start_time.slice(0,5), facTz, stuTz);
+        const stuDate = new Date(converted.date + 'T12:00:00');
+        const key=facDateStr+'_'+sl.start_time;
+        if(!seen[key]){seen[key]=true;withDates.push({...sl, date:stuDate, facDateStr, convertedStart:converted.time});}
       });
     }
+    
     withDates.sort((a,b)=>a.date-b.date);
     const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const weeks={};
@@ -2294,8 +2304,8 @@ function buildRequestForm(){
         const daySlots=wk.slots.filter(sl=>new Date(sl.date).getDay()===di);
         if(!daySlots.length)return `<div class="slot-day-col">${hd}<div class="slot-cell-empty"></div></div>`;
         const cells=daySlots.map(sl=>{
-        const dateStr   = sl.date.toISOString().slice(0,10);
-        const dateLabel = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
+          const dateStr = sl.date.toISOString().slice(0,10); // 이미 학생 tz 기준 날짜
+          const dateLabel = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
           const opts=getOpts(sl);
           const pc=pickedCount(dateStr,opts);
           const dis=opts.length===0;
@@ -2324,8 +2334,8 @@ function buildRequestForm(){
             onclick="${dis?'':` toggleSlotPop('${popId}');event.stopPropagation()`}">
             <div class="slot-cell-num">${new Date(sl.date).getDate()}</div>
             <div class="slot-cell-time">
-              ${convertTime(sl.start_time, facTz, stuTz) || sl.start_time.slice(0,5)}<br>
-              ${convertTime(sl.end_time,   facTz, stuTz) || sl.end_time.slice(0,5)}
+              ${convertDateTime(sl.facDateStr, sl.start_time.slice(0,5), facTz, stuTz).time || sl.start_time.slice(0,5)}<br>
+              ${convertDateTime(sl.facDateStr, sl.end_time.slice(0,5),   facTz, stuTz).time || sl.end_time.slice(0,5)}
             </div>
             <div class="slot-cell-tz">${tzAbbr(stuTz)||tzAbbr(facTz)}</div>
             ${pc?`<div class="s-picked" style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:1px;">${pc} picked</div>`:''}
@@ -2368,7 +2378,7 @@ function buildRequestForm(){
                   </div>
                   ${facTz&&facTz!==stuTz?`<div class="spop-tz-line" style="justify-content:flex-start;">
                     <span class="tz-pill">${tzAbbr(facTz)}</span>
-                    ${s.dateLabel} · ${s.start}–${s.end}
+                    ${formatShortDate(convertDateTime(s.dateStr, s.start, stuTz, facTz).date)} · ${convertDateTime(s.dateStr, s.start, stuTz, facTz).time}–${convertDateTime(s.dateStr, s.end, stuTz, facTz).time}
                   </div>`:''}
                 </div>
               </div>
