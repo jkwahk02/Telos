@@ -2294,8 +2294,8 @@ function buildRequestForm(){
         const daySlots=wk.slots.filter(sl=>new Date(sl.date).getDay()===di);
         if(!daySlots.length)return `<div class="slot-day-col">${hd}<div class="slot-cell-empty"></div></div>`;
         const cells=daySlots.map(sl=>{
-          const dateStr   = sl.date.slice(0,10);
-          const dateLabel = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
+        const dateStr   = String(sl.date).slice(0,10);
+        const dateLabel = new Date(String(sl.date).slice(0,10) + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
           const opts=getOpts(sl);
           const pc=pickedCount(dateStr,opts);
           const dis=opts.length===0;
