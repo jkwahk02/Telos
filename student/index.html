@@ -2308,7 +2308,7 @@ function buildRequestForm(){
                           <div class="spop-tz">
                 <div class="spop-tz-line">
                   <span class="tz-pill">${tzAbbr(stuTz)||'local'}</span>
-                  ${stuDateChanged ? `<span style="font-size:11px;color:var(--text2);margin-right:2px;">${formatShortDate(stuConverted.date)} ·</span>` : ''}
+                  ${formatShortDate(s.dateStr)} · ${s.start}–${s.end}
                   ${stuConverted.time||o.start}–${stuEndConverted.time||o.end}
                 </div>
                 ${facTz&&facTz!==stuTz?`<div class="spop-tz-line">
