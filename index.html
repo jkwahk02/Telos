@@ -1635,17 +1635,11 @@ function renderPendingRequestsCard(requests) {
       </div>
       ${requests.map(m => {
         const st = students.find(s => s.id === m.studentId);
-        const isPending = (m.status === 'scheduled' && !m.advisorConfirmed) || m.status === 'rescheduling';
-        const isConfirmed = m.status === 'scheduled' && m.advisorConfirmed;
-        const clickAction = isPending
-          ? `pendingExpanded['${m.id}']=!pendingExpanded['${m.id}'];renderMeetings()`
-          : isConfirmed
-          ? `confirmedExpanded['${m.id}']=!confirmedExpanded['${m.id}'];renderMeetings()`
-          : `openMeetingDetail('${m.id}')`;
+        const isOpen = !!pendingExpanded[m.id];
         return `
           <div>
             <div class="ov-item" style="cursor:pointer;padding:10px 16px;"
-              onclick="pendingExpanded[${m.id}]=!pendingExpanded[${m.id}];renderOverview();">
+              onclick="pendingExpanded['${m.id}']=!pendingExpanded['${m.id}'];renderOverview();">
               <div class="ov-dot dot-amber"></div>
               <div class="ov-name">${esc(st?.name || m.studentId)}</div>
               <div class="ov-detail">${esc(m.meetingType)} · ${m.meetingDuration} min · ${m.proposedSlots?.length||0} slot${(m.proposedSlots?.length||0)!==1?'s':''} proposed</div>
