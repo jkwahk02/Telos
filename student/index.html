@@ -2245,13 +2245,13 @@ function buildRequestForm(){
   function pickedCount(dateStr,opts){return opts.filter(o=>isSel(dateStr,o.start)).length;}
 
   // ── slot grid ──
-  function buildSlotGrid(slots, facTz){
+  function buildSlotGrid(slots, slotFacTz){
     if(!slots.length) return '<div class="no-slots">No availability registered for this professor.</div>';
     const today=new Date();today.setHours(0,0,0,0);
     const withDates=[];const seen={};
-    const todayFacStr = new Date().toLocaleDateString('en-CA', {timeZone: facTz||'UTC'});
+    const todayFacStr = new Date().toLocaleDateString('en-CA', {timeZone: slotFacTz||'UTC'});
     const todayFac = new Date(todayFacStr + 'T12:00:00');
-    const todayFacDay = new Date().toLocaleDateString('en-US', {timeZone: facTz||'UTC', weekday: 'short'});
+    const todayFacDay = new Date().toLocaleDateString('en-US', {timeZone: slotFacTz||'UTC', weekday: 'short'});
     const DAYMAP = {Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
     const todayFacDow = DAYMAP[todayFacDay.slice(0,3)];
     for(let week=0;week<2;week++){
@@ -2261,7 +2261,7 @@ function buildRequestForm(){
         d.setDate(todayFac.getDate()+diff+week*7);
         const facDateStr=d.toISOString().slice(0,10);
         // 교수 timezone 기준 날짜+시간을 학생 timezone으로 변환
-        const converted = convertDateTime(facDateStr, sl.start_time.slice(0,5), facTz, stuTz);
+        const converted = convertDateTime(facDateStr, sl.start_time.slice(0,5), slotFacTz, stuTz);
         const stuDate = new Date(converted.date + 'T12:00:00');
         const key=facDateStr+'_'+sl.start_time;
         if(!seen[key]){seen[key]=true;withDates.push({...sl, date:stuDate, facDateStr, convertedStart:converted.time});}
@@ -2295,10 +2295,10 @@ function buildRequestForm(){
           const popId=`spop-${dateStr}-${sl.start_time.replace(':','')}`;
           const tRows=opts.map(o=>{
             const sel=isSel(dateStr,o.start);
-            const stuConverted = convertDateTime(sl.facDateStr, o.start, facTz, stuTz);
-            const stuEndConverted = convertDateTime(sl.facDateStr, o.end, facTz, stuTz);
-            const stuDateChanged = stuConverted.date !== dateStr;
-            const facEndConverted = convertDateTime(dateStr, o.end, stuTz, facTz);
+            const stuConverted = convertDateTime(sl.facDateStr, o.start, slotFacTz, stuTz);
+            const stuEndConverted = convertDateTime(sl.facDateStr, o.end, slotFacTz, stuTz);
+            const stuDateChanged = slotFacTz && stuTz && slotFacTz !== stuTz && stuConverted.date && stuConverted.date !== dateStr;
+            const facEndConverted = convertDateTime(dateStr, o.end, stuTz, slotFacTz);
             const facDateChanged = sl.facDateStr !== dateStr;
             return `<div class="spop-row ${sel?'sel':''}"
                           onmouseenter="this.classList.add('hov')" onmouseleave="this.classList.remove('hov')"
@@ -2308,11 +2308,11 @@ function buildRequestForm(){
                           <div class="spop-tz">
                 <div class="spop-tz-line">
                   <span class="tz-pill">${tzAbbr(stuTz)||'local'}</span>
-                  ${formatShortDate(s.dateStr)} · ${s.start}–${s.end}
+                  ${stuDateChanged ? `<span style="font-size:11px;color:var(--text2);margin-right:2px;">${formatShortDate(stuConverted.date)} ·</span>` : ''}
                   ${stuConverted.time||o.start}–${stuEndConverted.time||o.end}
                 </div>
-                ${facTz&&facTz!==stuTz?`<div class="spop-tz-line">
-                  <span class="tz-pill">${tzAbbr(facTz)}</span>
+                ${slotFacTz&&slotFacTz!==stuTz?`<div class="spop-tz-line">
+                  <span class="tz-pill">${tzAbbr(slotFacTz)}</span>
                   ${facDateChanged ? `<span style="font-size:11px;color:var(--text2);margin-right:2px;">${formatShortDate(sl.facDateStr)} ·</span>` : ''}
                   ${o.start}–${o.end}
                 </div>`:''}
@@ -2324,13 +2324,13 @@ function buildRequestForm(){
             onclick="${dis?'':` toggleSlotPop('${popId}');event.stopPropagation()`}">
             <div class="slot-cell-num">${new Date(sl.date).getDate()}</div>
             <div class="slot-cell-time">
-              ${convertDateTime(sl.facDateStr, sl.start_time.slice(0,5), facTz, stuTz).time || sl.start_time.slice(0,5)}<br>
-              ${convertDateTime(sl.facDateStr, sl.end_time.slice(0,5),   facTz, stuTz).time || sl.end_time.slice(0,5)}
+              ${convertDateTime(sl.facDateStr, sl.start_time.slice(0,5), slotFacTz, stuTz).time || sl.start_time.slice(0,5)}<br>
+              ${convertDateTime(sl.facDateStr, sl.end_time.slice(0,5),   slotFacTz, stuTz).time || sl.end_time.slice(0,5)}
             </div>
-            <div class="slot-cell-tz">${tzAbbr(stuTz)||tzAbbr(facTz)}</div>
+            <div class="slot-cell-tz">${tzAbbr(stuTz)||tzAbbr(slotFacTz)}</div>
             ${pc?`<div class="s-picked" style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:1px;">${pc} picked</div>`:''}
             ${!dis?`<div class="slot-popover" id="${popId}">
-              <div class="spop-hd"><div class="spop-date">${dateLabel} · ${convertTime(sl.start_time,facTz,stuTz)||sl.start_time.slice(0,5)}–${convertTime(sl.end_time,facTz,stuTz)||sl.end_time.slice(0,5)} ${tzAbbr(stuTz)?`<span class="tz-pill">${tzAbbr(stuTz)}</span>`:''}</div>
+              <div class="spop-hd"><div class="spop-date">${dateLabel} · ${convertTime(sl.start_time,slotFacTz,stuTz)||sl.start_time.slice(0,5)}–${convertTime(sl.end_time,slotFacTz,stuTz)||sl.end_time.slice(0,5)} ${tzAbbr(stuTz)?`<span class="tz-pill">${tzAbbr(stuTz)}</span>`:''}</div>
               <div class="spop-hint">Choose start time (${meetingDuration} min)</div></div>
               <div class="spop-body">${tRows}</div>
             </div>`:''}
