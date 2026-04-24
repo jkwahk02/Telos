@@ -2112,6 +2112,35 @@ function convertTime(timeStr, fromTz, toTz) {
     });
   } catch { return null; }
 }
+
+function convertDateTime(dateStr, timeStr, fromTz, toTz) {
+  if (!fromTz || !toTz || fromTz === toTz) return { date: dateStr, time: timeStr };
+  try {
+    const [h, m] = timeStr.split(':').map(Number);
+    const base = new Date(`${dateStr}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: fromTz,
+      hour: 'numeric', minute: 'numeric', hour12: false
+    });
+    const parts = fmt.formatToParts(base);
+    const p = {};
+    parts.forEach(x => { p[x.type] = x.value; });
+    const localH = parseInt(p.hour) % 24;
+    const localM = parseInt(p.minute);
+    const diffMin = (h - localH) * 60 + (m - localM);
+    const utcDate = new Date(base.getTime() + diffMin * 60000);
+    const convertedTime = utcDate.toLocaleTimeString('en-US', {
+      timeZone: toTz, hour: '2-digit', minute: '2-digit', hour12: false
+    });
+    const convertedDate = utcDate.toLocaleDateString('en-CA', { timeZone: toTz });
+    return { date: convertedDate, time: convertedTime };
+  } catch { return { date: dateStr, time: timeStr }; }
+}
+
+function formatShortDate(dateStr) {
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  return new Date(y, mo-1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
   
 function tzAbbr(tz) {
   if (!tz) return '';
@@ -2265,8 +2294,8 @@ function buildRequestForm(){
         const daySlots=wk.slots.filter(sl=>new Date(sl.date).getDay()===di);
         if(!daySlots.length)return `<div class="slot-day-col">${hd}<div class="slot-cell-empty"></div></div>`;
         const cells=daySlots.map(sl=>{
-          const dateStr=new Date(sl.date).toISOString().slice(0,10);
-          const dateLabel=new Date(sl.date).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+          const dateStr   = sl.date.slice(0,10);
+          const dateLabel = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
           const opts=getOpts(sl);
           const pc=pickedCount(dateStr,opts);
           const dis=opts.length===0;
@@ -2335,7 +2364,7 @@ function buildRequestForm(){
                 <div class="spop-tz" style="text-align:left;">
                   <div class="spop-tz-line" style="justify-content:flex-start;color:var(--text);font-size:12px;font-weight:500;">
                     <span class="tz-pill">${tzAbbr(stuTz)||'local'}</span>
-                    ${s.dateLabel} · ${convertTime(s.start,facTz,stuTz)||s.start}–${convertTime(s.end,facTz,stuTz)||s.end}
+                    ${formatShortDate(convertDateTime(s.dateStr, s.start, facTz, stuTz).date)} · ${convertTime(s.start, facTz, stuTz)||s.start}–${convertTime(s.end, facTz, stuTz)||s.end}
                   </div>
                   ${facTz&&facTz!==stuTz?`<div class="spop-tz-line" style="justify-content:flex-start;">
                     <span class="tz-pill">${tzAbbr(facTz)}</span>
