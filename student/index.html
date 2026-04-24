@@ -2295,18 +2295,21 @@ function buildRequestForm(){
           const popId=`spop-${dateStr}-${sl.start_time.replace(':','')}`;
           const tRows=opts.map(o=>{
             const sel=isSel(dateStr,o.start);
-            return `<div class="spop-row ${sel?'sel':''}"
-              onmouseenter="this.classList.add('hov')" onmouseleave="this.classList.remove('hov')"
-              onclick="toggleMeetingSlot('${dateStr}','${convertDateTime(sl.facDateStr, o.start, facTz, stuTz).time||o.start}','${convertDateTime(sl.facDateStr, o.end, facTz, stuTz).time||o.end}','${dateLabel}','${o.start}','${o.end}','${sl.facDateStr}');event.stopPropagation()">
-              <div class="spop-bar"></div>
-              <div class="spop-lbl">${convertTime(o.start, facTz, stuTz) || o.start}</div>
+            const stuConverted = convertDateTime(sl.facDateStr, o.start, facTz, stuTz);
+            const stuEndConverted = convertDateTime(sl.facDateStr, o.end, facTz, stuTz);
+            const stuDateChanged = stuConverted.date !== dateStr;
+            const facEndConverted = convertDateTime(dateStr, o.end, stuTz, facTz);
+            const facDateChanged = sl.facDateStr !== dateStr;
+            return `...
               <div class="spop-tz">
                 <div class="spop-tz-line">
                   <span class="tz-pill">${tzAbbr(stuTz)||'local'}</span>
-                  ${convertTime(o.start,facTz,stuTz)||o.start}–${convertTime(o.end,facTz,stuTz)||o.end}
+                  ${stuDateChanged ? `<span style="font-size:11px;color:var(--text2);margin-right:2px;">${formatShortDate(stuConverted.date)} ·</span>` : ''}
+                  ${stuConverted.time||o.start}–${stuEndConverted.time||o.end}
                 </div>
                 ${facTz&&facTz!==stuTz?`<div class="spop-tz-line">
                   <span class="tz-pill">${tzAbbr(facTz)}</span>
+                  ${facDateChanged ? `<span style="font-size:11px;color:var(--text2);margin-right:2px;">${formatShortDate(sl.facDateStr)} ·</span>` : ''}
                   ${o.start}–${o.end}
                 </div>`:''}
               </div>
