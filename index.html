@@ -1552,7 +1552,10 @@ function buildPendingExpand(m, st) {
         <input type="radio" name="slot-${m.id}" value="${i}" ${sel===i?'checked':''} style="accent-color:var(--blue);flex-shrink:0;"
           onchange="pendingSelSlot[${m.id}]=${i};renderOverview();renderMeetings();">
         <div style="flex:1;">
-          <div style="font-size:14px;font-weight:500;${sel===i?'color:#0C447C;':''}">${esc(sl.dateLabel || sl.dateStr)}</div>
+          <div style="font-size:14px;font-weight:500;${sel===i?'color:#0C447C;':''}">${esc(sl.facDateStr
+            ? new Date(sl.facDateStr + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'})
+            : (sl.dateLabel || sl.dateStr))}
+          </div>
           <div class="spop-tz" style="margin-top:2px;">
           <div class="spop-tz-line">
             <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span>
@@ -1736,17 +1739,19 @@ async function confirmMeetingRequest(meetingId) {
   try {
     await sbUpdate(TBL_MEETING, 'id', meetingId, {
       advisor_confirmed: true,
-      meeting_date:      chosenSlot.dateStr,
-      confirmed_start_time: chosenSlot.start ? chosenSlot.start + ':00' : null,
-      confirmed_end_time:   chosenSlot.end   ? chosenSlot.end   + ':00' : null,
+      meeting_date:         chosenSlot.facDateStr || chosenSlot.dateStr,
+      confirmed_start_time: (chosenSlot.facStart || chosenSlot.start) ? (chosenSlot.facStart || chosenSlot.start) + ':00' : null,
+      confirmed_end_time:   (chosenSlot.facEnd   || chosenSlot.end)   ? (chosenSlot.facEnd   || chosenSlot.end)   + ':00' : null,
       status:            'scheduled',
       ...(meetingLink ? { meeting_link: meetingLink } : {}),
     });
     m.advisorConfirmed = true;
-    m.meetingDate = chosenSlot.dateStr;
+    m.meetingDate = chosenSlot.facDateStr || chosenSlot.dateStr;
     if (meetingLink) m.meetingLink = meetingLink;
     delete pendingSelSlot[meetingId];
-    showToast(`✓ Confirmed — ${chosenSlot.dateLabel || chosenSlot.dateStr} ${chosenSlot.start}`);
+    showToast(`✓ Confirmed — ${chosenSlot.facDateStr
+      ? new Date(chosenSlot.facDateStr+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})
+      : (chosenSlot.dateLabel || chosenSlot.dateStr)} ${chosenSlot.facStart || chosenSlot.start}`);
     renderCurrent();
   } catch(e) {
     showToast(`Confirm failed: ${e.message}`);
