@@ -1672,7 +1672,7 @@ function buildPendingExpand(m, st) {
   let actionHtml = '';
   if (hasSlots) {
     actionHtml = `
-      <div style="margin-top:12px;border-top:1px solid var(--border);padding:12px 16px 14px 16px;margin-left:-16px;margin-right:-16px;background:var(--surface2);">
+      <div style="border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2);">
         <div style="display:flex;align-items:center;gap:8px;">
           <input data-zoom-id="${m.id}" class="fi" placeholder="Zoom link (optional)" style="flex:1;min-width:0;height:34px;background:var(--surface);">
           <button class="btn-log" onclick="confirmMeetingRequest(${m.id})" ${sel===null?'disabled style="opacity:.4;cursor:default;"':''}>✓ Confirm</button>
@@ -1707,8 +1707,8 @@ function buildPendingExpand(m, st) {
         </div>` : ''}
       ${studentSlotsHtml}
       ${proposePanelHtml}
-      ${actionHtml}
-    </div>`;
+    </div>
+    ${actionHtml}`;
 }
 
 function renderPendingRequestsCard(requests) {
