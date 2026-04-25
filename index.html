@@ -632,6 +632,7 @@ let pendingPropose   = {};   // { meetingId: Set<availIndex> }
 let pendingPropMode  = {};   // { meetingId: boolean }
 let pendingExpanded = {};  // { meetingId: boolean }
 let confirmedExpanded = {};
+let pastExpanded = {};
 let confirmedLinkEditing = {};
 
 let gcalToken = null;
@@ -1502,15 +1503,18 @@ return `
         ${linkSection}
       </div>
       <div style="height:1px;background:var(--border);"></div>
+
       <div>
         <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Session log</div>
-        ${m.logId
-          ? `<div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:13px;color:var(--text2);">${esc(m.logId)} linked</span>
-              <span class="go-link" style="font-size:13px;" onclick="event.stopPropagation();goToLog('${m.logId}')">View ${esc(m.logId)} →</span>
-             </div>`
-          : `<div style="font-size:13px;color:var(--text3);font-style:italic;">No session log yet — log after the meeting from My Students.</div>`
-        }
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;color:var(--text3);">
+            ${m.logId ? '' : 'No session log yet'}
+          </span>
+          <button onclick="event.stopPropagation();${m.logId ? `goToLog('${m.logId}')` : `goToStudent('${m.studentId}')`}"
+            style="font-size:13px;${m.logId ? 'padding:6px 12px;border-radius:var(--r);background:transparent;color:var(--blue);border:1px solid var(--blue-b);' : 'font-weight:600;padding:6px 14px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;'}cursor:pointer;">
+            ${m.logId ? 'View session log →' : '+ Log session'}
+          </button>
+        </div>
       </div>
       <div style="height:1px;background:var(--border);"></div>
       <div>
@@ -1544,6 +1548,50 @@ return `
         </button>
         <span style="font-size:12px;color:var(--text3);margin-left:10px;">Session log can be added later from My Students.</span>
       </div>
+    </div>`;
+}
+
+function buildCompletedExpand(m, st) {
+  const sess = sessions.find(s => s.logId === m.logId);
+  return `
+    <div style="padding:14px 16px;background:var(--surface);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;">
+      ${sess ? `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">
+          <div style="padding:9px 12px;background:var(--blue-l);">
+            <div style="font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Discussion summary</div>
+            <div style="font-size:13px;color:#0C447C;line-height:1.5;">${esc(sess.disc) || '<span style="color:var(--text3);font-style:italic;">—</span>'}</div>
+          </div>
+          <div style="padding:9px 12px;background:var(--amber-l);border-left:1px solid var(--border);">
+            <div style="font-size:11px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Student concerns</div>
+            <div style="font-size:13px;color:var(--amber-d);line-height:1.5;">${sess.conc ? esc(sess.conc) : '<span style="color:var(--text3);font-style:italic;">None raised</span>'}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">Advisor advice</div>
+            <div style="font-size:13px;color:var(--text);line-height:1.5;">${esc(sess.advice) || '—'}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">Student action items</div>
+            <div style="font-size:13px;color:var(--text);line-height:1.5;">${esc(sess.studentAction) || '—'}</div>
+          </div>
+        </div>
+        <div style="height:1px;background:var(--border);"></div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button onclick="event.stopPropagation();goToLog('${m.logId}')"
+            style="font-size:13px;padding:6px 12px;border-radius:var(--r);background:transparent;color:var(--blue);border:1px solid var(--blue-b);cursor:pointer;">
+            View session log →
+          </button>
+        </div>
+      ` : `
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;color:var(--text3);">No session log yet</span>
+          <button onclick="event.stopPropagation();goToStudent('${m.studentId}')"
+            style="font-size:13px;font-weight:600;padding:6px 14px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;cursor:pointer;">
+            + Log session
+          </button>
+        </div>
+      `}
     </div>`;
 }
 
@@ -3879,8 +3927,7 @@ function renderMeetings() {
         ? `pendingExpanded['${m.id}']=!pendingExpanded['${m.id}'];renderMeetings()`
         : isConfirmed
         ? `confirmedExpanded['${m.id}']=!confirmedExpanded['${m.id}'];renderMeetings()`
-        : `openMeetingDetail('${m.id}')`;
-
+        : `pastExpanded['${m.id}']=!pastExpanded['${m.id}'];renderMeetings()`;
 
       const dateStr = (() => {
         if (isPending) {
@@ -3937,7 +3984,7 @@ function renderMeetings() {
       const actionHtml = (() => {
         if (isConfirmed) return `<span style="font-size:12px;color:var(--blue);">${confirmedExpanded[m.id]?'▴ Collapse':'▾ Manage'}</span>`;
         if (isPending||cat==='rescheduling') return `<span style="font-size:12px;color:var(--blue);">${pendingExpanded[m.id]?'▴ Collapse':'▾ Review'}</span>`;
-        return `<span style="font-size:12px;color:var(--blue);">View log →</span>`;
+        return `<span style="font-size:12px;color:var(--blue);">${pastExpanded[m.id]?'▴ Collapse':'▾ Expand'}</span>`;
       })();
 
       const expandHtml = (isPending||cat==='rescheduling') ? `
@@ -3946,7 +3993,10 @@ function renderMeetings() {
         </div>` : isConfirmed ? `
         <div class="mtg-expand ${confirmedExpanded[m.id]?'open':''}">
           ${confirmedExpanded[m.id] ? buildConfirmedExpand(m, st) : ''}
-        </div>` : '';
+        </div>` : `
+        <div class="mtg-expand ${pastExpanded[m.id]?'open':''}">
+          ${pastExpanded[m.id] ? buildCompletedExpand(m, st) : ''}
+        </div>`;
 
       const accentClass = isConfirmed ? 'confirmed' : isPending||cat==='rescheduling' ? 'pending' : '';
       const opacity = isPast ? 'opacity:.75;' : '';
