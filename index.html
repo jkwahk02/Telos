@@ -1575,24 +1575,24 @@ function buildPendingExpand(m, st) {
         <input type="radio" name="slot-${m.id}" value="${i}" ${sel===i?'checked':''} style="accent-color:var(--blue);flex-shrink:0;"
           onchange="pendingSelSlot[${m.id}]=${i};renderCurrent();">
         <div style="flex:1;">
-          <div style="font-size:14px;font-weight:500;${sel===i?'color:#0C447C;':''}">${esc(sl.facDateStr
-            ? new Date(sl.facDateStr + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'})
-            : (sl.dateLabel || sl.dateStr))}
+          <div style="font-size:15px;font-weight:600;${sel===i?'color:#0C447C;':'color:var(--text);'}">
+            ${esc(sl.facDateStr
+              ? new Date(sl.facDateStr + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'})
+              : (sl.dateLabel || sl.dateStr))}
+            <span style="font-size:15px;font-weight:500;margin-left:6px;">
+              ${esc(sl.facStart || sl.start)} – ${esc(sl.facEnd || sl.end)}
+            </span>
+            <span class="tz-pill" style="margin-left:4px;">${tzAbbrFac(FACULTY_TIMEZONE)}</span>
           </div>
-          <div class="spop-tz" style="margin-top:2px;">
-          <div class="spop-tz-line">
-            <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span>
-            ${sl.facDateStr && sl.facDateStr !== sl.dateStr
-              ? `<span style="font-size:11px;color:var(--text3);margin-right:2px;">${sl.facDateStr}</span> ` : ''}
-            ${esc(sl.facStart || sl.start)} – ${esc(sl.facEnd || sl.end)}
-          </div>
-          ${st?.timezone ? `<div class="spop-tz-line">
-            <span class="tz-pill">${tzAbbrFac(st.timezone)}</span>
-            ${sl.facDateStr && sl.facDateStr !== sl.dateStr
-              ? `<span style="font-size:11px;color:var(--text3);margin-right:2px;">${sl.dateStr}</span> ` : ''}
-            ${esc(sl.start)} – ${esc(sl.end)}
+          ${st?.timezone ? `
+          <div style="margin-top:5px;font-size:12px;color:var(--text3);">
+            Student's Local Time:
+            <span style="font-weight:500;color:var(--text2);margin-left:4px;">
+              ${esc(sl.facDateStr && sl.facDateStr !== sl.dateStr ? new Date(sl.dateStr+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+' · ' : '')}${esc(sl.start)} – ${esc(sl.end)}
+            </span>
+            <span class="tz-pill" style="margin-left:3px;">${tzAbbrFac(st.timezone)}</span>
           </div>` : ''}
-          </div>
+        </div>
         </div>
       </label>`).join('')}` : '';
 
