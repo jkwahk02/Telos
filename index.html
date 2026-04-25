@@ -1573,7 +1573,7 @@ function buildPendingExpand(m, st) {
       <label style="display:flex;align-items:center;gap:12px;padding:9px 13px;border:1px solid var(--border-em);border-radius:var(--r);background:${sel===i?'var(--blue-l)':'var(--surface2)'};cursor:pointer;margin-bottom:6px;transition:all .12s;${sel===i?'border-color:var(--blue-m);':''}"
         onmouseover="if(${sel}!==${i})this.style.background='var(--blue-l)'" onmouseout="if(${sel}!==${i})this.style.background='var(--surface2)'">
         <input type="radio" name="slot-${m.id}" value="${i}" ${sel===i?'checked':''} style="accent-color:var(--blue);flex-shrink:0;"
-          onchange="pendingSelSlot[${m.id}]=${i};renderOverview();renderMeetings();">
+          onchange="pendingSelSlot[${m.id}]=${i};renderCurrent();">
         <div style="flex:1;">
           <div style="font-size:14px;font-weight:500;${sel===i?'color:#0C447C;':''}">${esc(sl.facDateStr
             ? new Date(sl.facDateStr + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'})
