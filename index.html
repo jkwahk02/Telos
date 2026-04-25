@@ -442,8 +442,8 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .mtg-expand{overflow:hidden;max-height:0;transition:max-height .3s cubic-bezier(.4,0,.2,1);}
 .mtg-expand.open{max-height:800px;}
 .spop-tz{display:flex;flex-direction:column;gap:1px;}
-.spop-tz-line{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:3px;}
-.tz-pill{font-size:9px;font-weight:600;padding:1px 4px;border-radius:3px;background:var(--gray-l);color:var(--gray-m);white-space:nowrap;}
+.spop-tz-line{font-size:13px;color:var(--text2);display:flex;align-items:center;gap:3px;}
+.tz-pill{font-size:11px;font-weight:600;padding:1px 4px;border-radius:3px;background:var(--gray-l);color:var(--gray-m);white-space:nowrap;}
 .mtg-item-new{display:grid;grid-template-columns:130px 1fr auto auto;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
 .mtg-item-new:hover{background:var(--surface2);}
 .mtg-item-new:last-child{border-bottom:none;}
@@ -1511,7 +1511,7 @@ return `
             ${m.logId ? '' : 'No session log yet'}
           </span>
           <button onclick="event.stopPropagation();${m.logId ? `goToLog('${m.logId}')` : `goToStudent('${m.studentId}')`}"
-            style="font-size:13px;${m.logId ? 'padding:6px 12px;border-radius:var(--r);background:transparent;color:var(--blue);border:1px solid var(--blue-b);' : 'font-weight:600;padding:6px 14px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;'}cursor:pointer;">
+            style="font-size:17px;${m.logId ? 'padding:6px 12px;border-radius:var(--r);background:transparent;color:var(--blue);border:1px solid var(--blue-b);' : 'font-weight:600;padding:6px 14px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;'}cursor:pointer;">
             ${m.logId ? 'View session log →' : '+ Log session'}
           </button>
         </div>
@@ -1558,28 +1558,28 @@ function buildCompletedExpand(m, st) {
       ${sess ? `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">
           <div style="padding:9px 12px;background:var(--blue-l);">
-            <div style="font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Discussion summary</div>
-            <div style="font-size:13px;color:#0C447C;line-height:1.5;">${esc(sess.disc) || '<span style="color:var(--text3);font-style:italic;">—</span>'}</div>
+            <div style="font-size:17px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Discussion summary</div>
+            <div style="font-size:17px;color:#0C447C;line-height:1.5;">${esc(sess.disc) || '<span style="color:var(--text3);font-style:italic;">—</span>'}</div>
           </div>
           <div style="padding:9px 12px;background:var(--amber-l);border-left:1px solid var(--border);">
-            <div style="font-size:11px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Student concerns</div>
-            <div style="font-size:13px;color:var(--amber-d);line-height:1.5;">${sess.conc ? esc(sess.conc) : '<span style="color:var(--text3);font-style:italic;">None raised</span>'}</div>
+            <div style="font-size:17px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Student concerns</div>
+            <div style="font-size:17px;color:var(--amber-d);line-height:1.5;">${sess.conc ? esc(sess.conc) : '<span style="color:var(--text3);font-style:italic;">None raised</span>'}</div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
-            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">Advisor advice</div>
-            <div style="font-size:13px;color:var(--text);line-height:1.5;">${esc(sess.advice) || '—'}</div>
+            <div style="font-size:17px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">Advisor advice</div>
+            <div style="font-size:17px;color:var(--text);line-height:1.5;">${esc(sess.advice) || '—'}</div>
           </div>
           <div>
-            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">Student action items</div>
-            <div style="font-size:13px;color:var(--text);line-height:1.5;">${esc(sess.studentAction) || '—'}</div>
+            <div style="font-size:17px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">Student action items</div>
+            <div style="font-size:17px;color:var(--text);line-height:1.5;">${esc(sess.studentAction) || '—'}</div>
           </div>
         </div>
         <div style="height:1px;background:var(--border);"></div>
         <div style="display:flex;justify-content:flex-end;">
           <button onclick="event.stopPropagation();goToLog('${m.logId}')"
-            style="font-size:13px;padding:6px 12px;border-radius:var(--r);background:transparent;color:var(--blue);border:1px solid var(--blue-b);cursor:pointer;">
+            style="font-size:17px;padding:6px 12px;border-radius:var(--r);background:transparent;color:var(--blue);border:1px solid var(--blue-b);cursor:pointer;">
             View session log →
           </button>
         </div>
@@ -1616,7 +1616,7 @@ function buildPendingExpand(m, st) {
   const picked      = pendingPropose[m.id] || new Set();
 
   const studentSlotsHtml = hasSlots ? `
-    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Select a slot to confirm</div>
+    <div style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Select a slot to confirm</div>
     ${m.proposedSlots.map((sl, i) => `
       <label style="display:flex;align-items:center;gap:12px;padding:9px 13px;border:1px solid var(--border-em);border-radius:var(--r);background:${sel===i?'var(--blue-l)':'var(--surface2)'};cursor:pointer;margin-bottom:6px;transition:all .12s;${sel===i?'border-color:var(--blue-m);':''}"
         onmouseover="if(${sel}!==${i})this.style.background='var(--blue-l)'" onmouseout="if(${sel}!==${i})this.style.background='var(--surface2)'">
@@ -1672,8 +1672,8 @@ function buildPendingExpand(m, st) {
   let actionHtml = '';
   if (hasSlots) {
     actionHtml = `
-      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;">
-        <input id="zoom-${m.id}" class="fi" placeholder="Zoom link (optional)" style="flex:1;min-width:180px;height:34px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;margin-bottom:4px;flex-wrap:wrap;padding-bottom:2px;">
+        <input id="zoom-${m.id}" class="fi" placeholder="Zoom link (optional)" style="flex:1;min-width:120px;max-width:320px;height:34px;overflow:hidden;text-overflow:ellipsis;">
         <button class="btn-log" onclick="confirmMeetingRequest(${m.id})" ${sel===null?'disabled style="opacity:.4;cursor:default;"':''}>✓ Confirm</button>
         <button class="btn-cancel" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border-em);" onclick="rescheduleMeetingRequest(${m.id})">Ask to reschedule</button>
       </div>`;
@@ -1694,14 +1694,14 @@ function buildPendingExpand(m, st) {
   }
 
   return `
-    <div style="padding:14px 16px;background:var(--surface);">
-      <div style="font-size:13px;color:var(--text3);margin-bottom:${m.studentAgenda?'10px':'12px'};">
+    <div style="padding:14px 16px 16px;background:var(--surface);">
+      <div style="font-size:15px;color:var(--text3);margin-bottom:${m.studentAgenda?'10px':'12px'};">
         ${esc(m.meetingType)} · ${esc(m.meetingFormat)} · ${m.meetingDuration} min
       </div>
       ${m.studentAgenda ? `
         <div style="background:var(--blue-l);border-left:3px solid var(--blue-m);border-radius:0 var(--r) var(--r) 0;padding:9px 13px;margin-bottom:12px;">
-          <div style="font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">Student agenda</div>
-          <div style="font-size:13px;color:#0C447C;">${esc(m.studentAgenda)}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">Student agenda</div>
+          <div style="font-size:15px;color:#0C447C;">${esc(m.studentAgenda)}</div>
         </div>` : ''}
       ${studentSlotsHtml}
       ${proposePanelHtml}
