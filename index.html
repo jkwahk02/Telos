@@ -1646,7 +1646,7 @@ function buildPendingExpand(m, st) {
   }
 
   return `
-    <div style="padding:14px 16px;border-left:3px solid var(--amber-b);background:var(--surface);">
+    <div style="padding:14px 16px;background:var(--surface);">
       <div style="font-size:13px;color:var(--text3);margin-bottom:${m.studentAgenda?'10px':'12px'};">
         ${esc(m.meetingType)} · ${esc(m.meetingFormat)} · ${m.meetingDuration} min
       </div>
@@ -3885,10 +3885,11 @@ function renderMeetings() {
       const dateStr = (() => {
         if (isPending) {
           const slots = Array.isArray(m.proposedSlots) ? m.proposedSlots : [];
-          const first = [...slots].sort((a,b)=>(a.dateStr||'').localeCompare(b.dateStr||''))[0];
-          const fLabel = first?.dateLabel || '';
-          const fParts = fLabel.split(' ');
-          return fParts.length===2 ? `${fParts[1]} ${fParts[0]}, ${new Date().getFullYear()}` : 'TBD';
+          const first = [...slots].sort((a,b)=>(a.facDateStr||a.dateStr||'').localeCompare(b.facDateStr||b.dateStr||''))[0];
+          const facDate = first?.facDateStr || first?.dateStr;
+          return facDate
+            ? new Date(facDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+            : 'TBD';
         }
         return m.meetingDate
           ? new Date(m.meetingDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
@@ -3898,8 +3899,11 @@ function renderMeetings() {
       const dtHtml = (() => {
         if (isPending) {
           const slots = Array.isArray(m.proposedSlots) ? m.proposedSlots : [];
-          const first = [...slots].sort((a,b)=>(a.dateStr||'').localeCompare(b.dateStr||''))[0];
-          const fLabel = first?.dateLabel || 'TBD';
+          const first = [...slots].sort((a,b)=>(a.facDateStr||a.dateStr||'').localeCompare(b.facDateStr||b.dateStr||''))[0];
+          const facDate = first?.facDateStr || first?.dateStr;
+          const fLabel = facDate
+            ? new Date(facDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+            : 'TBD';
           const extra = slots.length > 1 ? `+${slots.length-1} more` : '';
           return `
             <div class="mtg-dt-date">${fLabel}</div>
