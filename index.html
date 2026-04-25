@@ -1535,7 +1535,30 @@ return `
           : `<span style="font-size:12px;color:var(--text3);">Connect Google Calendar in Settings to enable this feature.</span>`
         }
       </div>
+      <div style="height:1px;background:var(--border);"></div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Meeting status</div>
+        <button onclick="event.stopPropagation();markMeetingCompleted(${m.id})"
+          style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--green-l);color:var(--green);border:1px solid var(--green-b);font-size:13px;font-weight:600;cursor:pointer;">
+          ✓ Mark as completed
+        </button>
+        <span style="font-size:12px;color:var(--text3);margin-left:10px;">Session log can be added later from My Students.</span>
+      </div>
     </div>`;
+}
+
+async function markMeetingCompleted(meetingId) {
+  if (!confirm('Mark this meeting as completed?\nYou can add a session log later from My Students.')) return;
+  try {
+    await sbUpdate(TBL_MEETING, 'id', meetingId, { status: 'completed' });
+    const m = meetings.find(x => x.id === meetingId);
+    if (m) m.status = 'completed';
+    delete confirmedExpanded[meetingId];
+    showToast('✓ Meeting marked as completed');
+    renderCurrent();
+  } catch(e) {
+    showToast(`Failed: ${e.message}`);
+  }
 }
   
 function buildPendingExpand(m, st) {
@@ -2714,13 +2737,14 @@ async function saveSession(studId){
       // status → completed, log_id 연결
       const linkedMeeting = meetings.find(m =>
         m.studentId === studId &&
-        m.status === 'scheduled' &&
-        m.advisorConfirmed === true
+        (m.status === 'scheduled' || m.status === 'completed') &&
+        m.advisorConfirmed === true &&
+        !m.logId
       );
   
       if (linkedMeeting) {
         await sbUpdate(TBL_MEETING, 'id', linkedMeeting.id, {
-          status: 'completed',
+          ...(linkedMeeting.status === 'scheduled' ? { status: 'completed' } : {}),
           log_id: newSess.logId,
         });
         linkedMeeting.status = 'completed';
