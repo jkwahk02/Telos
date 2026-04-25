@@ -1672,8 +1672,8 @@ function buildPendingExpand(m, st) {
   let actionHtml = '';
   if (hasSlots) {
     actionHtml = `
-      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;margin-bottom:4px;flex-wrap:wrap;padding-bottom:2px;">
-        <input id="zoom-${m.id}" class="fi" placeholder="Zoom link (optional)" style="flex:1;min-width:120px;max-width:320px;height:34px;overflow:hidden;text-overflow:ellipsis;">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:nowrap;">
+        <input data-zoom-id="${m.id}" class="fi" placeholder="Zoom link (optional)" style="flex:1;min-width:0;height:34px;">
         <button class="btn-log" onclick="confirmMeetingRequest(${m.id})" ${sel===null?'disabled style="opacity:.4;cursor:default;"':''}>✓ Confirm</button>
         <button class="btn-cancel" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border-em);" onclick="rescheduleMeetingRequest(${m.id})">Ask to reschedule</button>
       </div>`;
@@ -1694,7 +1694,7 @@ function buildPendingExpand(m, st) {
   }
 
   return `
-    <div style="padding:14px 16px 16px;background:var(--surface);">
+    <div style="padding:14px 16px 16px 16px;background:var(--surface);">
       <div style="font-size:15px;color:var(--text3);margin-bottom:${m.studentAgenda?'10px':'12px'};">
         ${esc(m.meetingType)} · ${esc(m.meetingFormat)} · ${m.meetingDuration} min
       </div>
