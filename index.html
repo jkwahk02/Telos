@@ -1203,6 +1203,8 @@ function mapStudent(r) {
     strengthText:        r.strength_text        || '',
     concernsTags:        r.concerns_tags        || [],
     concernsText:        r.concerns_text        || '',
+    timezone:            r.timezone             || '',
+
   };
 }
 
@@ -1552,8 +1554,18 @@ function buildPendingExpand(m, st) {
         <div style="flex:1;">
           <div style="font-size:14px;font-weight:500;${sel===i?'color:#0C447C;':''}">${esc(sl.dateLabel || sl.dateStr)}</div>
           <div class="spop-tz" style="margin-top:2px;">
-          <div class="spop-tz-line"><span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span> ${esc(sl.start)} – ${esc(sl.end)}</div>
-          ${st?.timezone && st.timezone !== FACULTY_TIMEZONE ? `<div class="spop-tz-line"><span class="tz-pill">${tzAbbrFac(st.timezone)}</span> ${convertTimeFac(sl.start, FACULTY_TIMEZONE, st.timezone)||sl.start} – ${convertTimeFac(sl.end, FACULTY_TIMEZONE, st.timezone)||sl.end}</div>` : ''}
+          <div class="spop-tz-line">
+            <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span>
+            ${sl.facDateStr && sl.facDateStr !== sl.dateStr
+              ? `<span style="font-size:11px;color:var(--text3);margin-right:2px;">${sl.facDateStr}</span> ` : ''}
+            ${esc(sl.facStart || sl.start)} – ${esc(sl.facEnd || sl.end)}
+          </div>
+          ${st?.timezone ? `<div class="spop-tz-line">
+            <span class="tz-pill">${tzAbbrFac(st.timezone)}</span>
+            ${sl.facDateStr && sl.facDateStr !== sl.dateStr
+              ? `<span style="font-size:11px;color:var(--text3);margin-right:2px;">${sl.dateStr}</span> ` : ''}
+            ${esc(sl.start)} – ${esc(sl.end)}
+          </div>` : ''}
           </div>
         </div>
       </label>`).join('')}` : '';
