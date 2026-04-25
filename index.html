@@ -447,8 +447,8 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .mtg-item-new{display:grid;grid-template-columns:130px 1fr auto auto;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
 .mtg-item-new:hover{background:var(--surface2);}
 .mtg-item-new:last-child{border-bottom:none;}
-.mtg-item-new.confirmed{border-left:3px solid var(--green-b);padding-left:13px;}
-.mtg-item-new.pending{border-left:3px solid var(--amber-b);padding-left:13px;}
+.mtg-item-new.confirmed{padding-left:13px;}
+.mtg-item-new.pending{padding-left:13px;}
 .mtg-dt{display:flex;flex-direction:column;gap:2px;}
 .mtg-dt-date{font-size:15px;font-weight:600;color:var(--text);}
 .mtg-dt-time{font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px;}
@@ -3947,7 +3947,7 @@ function renderMeetings() {
       const accentClass = isConfirmed ? 'confirmed' : isPending||cat==='rescheduling' ? 'pending' : '';
       const opacity = isPast ? 'opacity:.75;' : '';
 
-      return `<div>
+      return `<div style="border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:6px;${accentClass==='pending'?'border-left:3px solid var(--amber-b);':accentClass==='confirmed'?'border-left:3px solid var(--green-b);':''}">
         <div class="mtg-item-new ${accentClass}" style="${opacity}" onclick="${clickAction}">
           <div class="mtg-dt">${dtHtml}</div>
           <div class="mtg-center">
@@ -3989,7 +3989,7 @@ function renderMeetings() {
       </div>
     </div>
 
-    <div class="tbl-wrap" id="mtg-list-wrap">
+    <div id="mtg-list-wrap">
       <div id="mtg-rows-upcoming">${buildRows(upcoming,'upcoming')}</div>
       <div id="mtg-rows-rescheduling">${buildRows(rescheduling,'rescheduling')}</div>
       <div id="mtg-rows-pending">${buildRows(pending,'pending')}</div>
