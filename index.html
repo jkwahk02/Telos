@@ -1827,6 +1827,29 @@ async function confirmMeetingRequest(meetingId) {
       ? new Date(chosenSlot.facDateStr+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})
       : (chosenSlot.dateLabel || chosenSlot.dateStr)} ${chosenSlot.facStart || chosenSlot.start}`);
     renderCurrent();
+
+    // 학생에게 확인 이메일 발송
+    const st = students.find(s => s.id === m.studentId);
+    fetch(`${SUPABASE_URL}/functions/v1/notify-student-confirmed`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseUser.access_token}`,
+      },
+      body: JSON.stringify({
+        studentEmail: st?.email || '',
+        studentName:  st?.name  || m.studentId,
+        facultyName:  FACULTY,
+        dateLabel:    chosenSlot.dateLabel || chosenSlot.dateStr,
+        dateStr:      chosenSlot.facDateStr || chosenSlot.dateStr,
+        start:        chosenSlot.facStart || chosenSlot.start,
+        end:          chosenSlot.facEnd   || chosenSlot.end,
+        format:       m.meetingFormat || 'Zoom',
+        duration:     m.meetingDuration || 60,
+        agenda:       m.studentAgenda || '',
+      }),
+    }).catch(e => console.warn('Student notification failed:', e));
+
   } catch(e) {
     showToast(`Confirm failed: ${e.message}`);
   }
