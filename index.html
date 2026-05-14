@@ -1808,7 +1808,7 @@ async function confirmMeetingRequest(meetingId) {
   if (!chosenSlot) { showToast('Slot not found.'); return; }
 
   const meetingLink = document.getElementById(`zoom-${meetingId}`)?.value.trim() || '';
-  if (!confirm(`Confirm meeting for ${chosenSlot.dateLabel || chosenSlot.dateStr} ${chosenSlot.start}–${chosenSlot.end}?`)) return;
+  if (!confirm(`Confirm meeting for ${chosenSlot.dateLabel || chosenSlot.dateStr} ${chosenSlot.facStart || chosenSlot.start}–${chosenSlot.facEnd || chosenSlot.end}?`)) return;
 
   try {
     await sbUpdate(TBL_MEETING, 'id', meetingId, {
