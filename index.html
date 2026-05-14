@@ -1773,6 +1773,7 @@ function renderConfirmedMeetingsCard(list) {
             : 'TBD';
 
           const timeText = (() => {
+            if (m.confirmedStart) return `${m.confirmedStart}${m.confirmedEnd ? '–' + m.confirmedEnd : ''}`;
             const slots = Array.isArray(m.proposedSlots) ? m.proposedSlots : [];
             const slot = slots.find(sl => (sl.dateStr || '') === m.meetingDate) || slots[0];
             return slot?.start ? `${slot.start}${slot.end ? '–' + slot.end : ''}` : '';
