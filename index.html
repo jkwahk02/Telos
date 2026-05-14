@@ -1819,8 +1819,10 @@ async function confirmMeetingRequest(meetingId) {
       status:            'scheduled',
       ...(meetingLink ? { meeting_link: meetingLink } : {}),
     });
-    m.advisorConfirmed = true;
+m.advisorConfirmed = true;
     m.meetingDate = chosenSlot.facDateStr || chosenSlot.dateStr;
+    m.confirmedStart = (chosenSlot.facStart || chosenSlot.start) || '';
+    m.confirmedEnd   = (chosenSlot.facEnd   || chosenSlot.end)   || '';
     if (meetingLink) m.meetingLink = meetingLink;
     delete pendingSelSlot[meetingId];
     showToast(`✓ Confirmed — ${chosenSlot.facDateStr
