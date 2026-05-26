@@ -1510,7 +1510,7 @@ return `
           <span style="font-size:13px;color:var(--text3);">
             ${m.logId ? '' : 'No session log yet'}
           </span>
-          <button onclick="event.stopPropagation();${m.logId ? `goToLog('${m.logId}')` : `goToStudent('${m.studentId}')`}"
+          <button onclick="event.stopPropagation();${m.logId ? `goToLog('${m.logId}')` : `logSessionFromMeeting('${m.studentId}')`}"
             style="font-size:17px;${m.logId ? 'padding:6px 12px;border-radius:var(--r);background:transparent;color:var(--blue);border:1px solid var(--blue-b);' : 'font-weight:600;padding:6px 14px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;'}cursor:pointer;">
             ${m.logId ? 'View session log →' : '+ Log session'}
           </button>
@@ -1586,7 +1586,7 @@ function buildCompletedExpand(m, st) {
       ` : `
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <span style="font-size:13px;color:var(--text3);">No session log yet</span>
-          <button onclick="event.stopPropagation();goToStudent('${m.studentId}')"
+          <button onclick="event.stopPropagation();logSessionFromMeeting('${m.studentId}')"
             style="font-size:13px;font-weight:600;padding:6px 14px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;cursor:pointer;">
             + Log session
           </button>
@@ -4244,6 +4244,23 @@ function goToStudent(id){
     const r=document.querySelector('#stud-tbody tr.row-active');
     if(r)r.scrollIntoView({behavior:'smooth',block:'center'});
   },100);
+}
+
+function logSessionFromMeeting(studentId) {
+  openStudId = studentId;
+  showFormFor = studentId;
+  selTopics = [];
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.page === 'students');
+  });
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-students').classList.add('active');
+  currentPage = 'students';
+  renderStudents();
+  setTimeout(() => {
+    const el = document.getElementById('sp-' + studentId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 120);
 }
 
 function switchMeetingView(v, btn) {
