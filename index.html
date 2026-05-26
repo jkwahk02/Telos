@@ -2551,7 +2551,10 @@ function buildStudPanel(st){
   return `<div class="action-bar">
       <div class="ab-items">${abExtra}</div>
       <div class="ab-btns">
-        <button class="btn-log" onclick="event.stopPropagation();toggleForm('${st.id}')">+ Log session</button>
+        ${showFormFor === st.id
+          ? ''
+          : `<button class="btn-log" onclick="event.stopPropagation();toggleForm('${st.id}')">+ Log session</button>`
+        }
         <button class="btn-cls" onclick="event.stopPropagation();closeStud()">×</button>
       </div>
     </div>
