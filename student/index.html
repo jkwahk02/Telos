@@ -2436,9 +2436,18 @@ function buildRequestForm(){
           <div class="fta-lbl">Step 3 — Agenda *</div>
           <textarea class="fta" id="req-agenda" rows="3" placeholder="Topics, questions, or decisions you need help with…">${editingRequestId ? esc(scheduledMeetings.find(x=>x.id===editingRequestId)?.student_agenda||'') : ''}</textarea>
         </div>
-        <div>
-          <div class="fta-lbl">Meeting type</div>
-          <select class="fsel" id="req-type" style="max-width:180px;"><option>Regular</option><option>Ad-hoc</option></select>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div>
+            <div class="fta-lbl">Meeting type</div>
+            <select class="fsel" id="req-type" style="max-width:180px;"><option>Regular</option><option>Ad-hoc</option></select>
+          </div>
+          <div>
+            <div class="fta-lbl">Meeting format</div>
+            <select class="fsel" id="req-format" style="max-width:180px;">
+              <option value="Zoom">Zoom</option>
+              <option value="In-person">In-person</option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="card-foot">
@@ -2496,9 +2505,18 @@ function buildRequestForm(){
         <div class="fta-lbl">Agenda *</div>
         <textarea class="fta" id="req-agenda" rows="3" placeholder="Topics, questions, or decisions you need help with…">${editingRequestId ? esc(scheduledMeetings.find(x=>x.id===editingRequestId)?.student_agenda||'') : ''}</textarea>
       </div>
-      <div>
-        <div class="fta-lbl">Meeting type</div>
-        <select class="fsel" id="req-type" style="max-width:180px;"><option>Regular</option><option>Ad-hoc</option></select>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div>
+          <div class="fta-lbl">Meeting type</div>
+          <select class="fsel" id="req-type" style="max-width:180px;"><option>Regular</option><option>Ad-hoc</option></select>
+        </div>
+        <div>
+          <div class="fta-lbl">Meeting format</div>
+          <select class="fsel" id="req-format" style="max-width:180px;">
+            <option value="Zoom">Zoom</option>
+            <option value="In-person">In-person</option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="card-foot">
@@ -2614,7 +2632,7 @@ async function submitRequest(){
       student_id:studentData.id,
       faculty_email:selectedFacultyEmail,
       meeting_date:selectedMeetingSlots[0].dateStr, // 첫 번째 제안 날짜
-      meeting_format:'Zoom',
+      meeting_format: document.getElementById('req-format')?.value || 'Zoom',
       meeting_type:type,
       meeting_duration:meetingDuration,
       proposed_slots:JSON.stringify(selectedMeetingSlots),
@@ -2661,6 +2679,7 @@ async function saveEditRequest(meetingId) {
     student_agenda:   agenda,
     meeting_duration: meetingDuration,
     proposed_slots:   JSON.stringify(selectedMeetingSlots),
+    meeting_format:   document.getElementById('req-format')?.value || 'Zoom',
     ...(isRescheduling ? {
       status:            'scheduled',
       created_by:        'student',
