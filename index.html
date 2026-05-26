@@ -396,6 +396,30 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .watch-title{font-weight:600;color:var(--text);margin-bottom:3px;}
 .watch-sub{font-size:14px;color:var(--text2);line-height:1.5;}
 .watch-empty{padding:16px;font-size:15px;color:var(--text3);font-style:italic;}
+.adm-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.prog-enroll-tbl{width:100%;border-collapse:collapse;font-size:15px;}
+.prog-enroll-tbl thead th{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border);}
+.prog-enroll-tbl thead th.num{text-align:right;}
+.prog-enroll-tbl tbody td{padding:7px 14px;border-bottom:1px solid var(--border);color:var(--text);}
+.prog-enroll-tbl tbody tr:last-child td{border-bottom:none;}
+.prog-enroll-tbl td.num{text-align:right;color:var(--text2);}
+.prog-enroll-tbl td.tot{text-align:right;font-weight:600;color:var(--text);}
+.prog-enroll-tbl tr.nd td{color:var(--text3);font-style:italic;}
+.enroll-tbl-foot{display:grid;grid-template-columns:1fr repeat(3,80px);padding:7px 14px;background:var(--surface2);border-top:1px solid var(--border);font-size:11px;color:var(--text3);}
+.enroll-tbl-foot span{font-size:13px;font-weight:600;color:var(--text);display:block;}
+.assign-tbl{width:100%;border-collapse:collapse;font-size:15px;}
+.assign-tbl thead th{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border);}
+.assign-tbl thead th.num{text-align:right;}
+.assign-tbl tbody td{padding:7px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.assign-tbl tbody tr:last-child td{border-bottom:none;}
+.assign-tbl td.num{text-align:right;color:var(--text2);}
+.assign-tbl td.tot{text-align:right;font-weight:600;color:var(--text);}
+.prog-pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;}
+.prog-pill-dsa{background:var(--blue-l);color:var(--blue);}
+.prog-pill-hss{background:var(--green-l);color:var(--green);}
+.prog-pill-ns{background:var(--amber-l);color:var(--amber);}
+.prog-pill-bi{background:var(--gray-l);color:var(--gray-m);}
+.mini-bar{display:inline-block;height:4px;border-radius:20px;background:var(--blue);vertical-align:middle;margin-right:6px;}
 
 /* TOAST */
 .toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;font-size:17px;font-weight:500;padding:10px 18px;border-radius:var(--r);z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;}
@@ -2221,36 +2245,142 @@ function renderProgramSummary() {
     <div style="margin:32px 0 20px;">
       <div style="border-top:2px solid var(--blue);padding-top:16px;display:flex;align-items:center;justify-content:space-between;">
         <div>
-          <div style="font-size:13px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Program Summary</div>
-          <div style="font-size:20px;font-weight:600;color:var(--text);letter-spacing:-0.02em;">${esc(FACULTY_SCHOOL)}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">University Summary</div>
+          <div style="font-size:20px;font-weight:600;color:var(--text);letter-spacing:-0.02em;">All Major Programs</div>
         </div>
-        <span class="db-chair-badge" style="padding:4px 12px;font-size:12px;">Chair view</span>
+        <span class="db-chair-badge" style="padding:4px 12px;font-size:12px;">Admin view</span>
       </div>
     </div>
 
     <div class="db-stats">
-      <div class="db-stat"><div class="db-val">${prog.length}</div><div class="db-lbl">Program students</div></div>
-      <div class="db-stat"><div class="db-val ${coveragePct>=60?'ok':coveragePct>=30?'warn':'bad'}">${coveragePct}%</div><div class="db-lbl">Coverage rate</div></div>
-      <div class="db-stat"><div class="db-val ${neverMet.length>0?'bad':'ok'}">${neverMet.length}</div><div class="db-lbl">Never met</div></div>
-      <div class="db-stat"><div class="db-val ${noNextProg.length>0?'warn':'ok'}">${noNextProg.length}</div><div class="db-lbl">No next meeting</div></div>
-      <div class="db-stat"><div class="db-val ${loaAll.length>0?'warn':'ok'}">${loaAll.length}</div><div class="db-lbl">On LOA</div></div>
+      <div class="db-stat">
+        <div class="db-val">${students.length}</div>
+        <div class="db-lbl">Total students</div>
+        <div class="adm-sub">C1 '23 · C2 '24</div>
+      </div>
+      <div class="db-stat">
+        <div class="db-val">${SCHOOL_FACULTY_NAMES.length}</div>
+        <div class="db-lbl">Total professors</div>
+        <div class="adm-sub">${[...new Set(students.map(s=>s.major1).filter(Boolean))].length} programs</div>
+      </div>
+      <div class="db-stat">
+        <div class="db-val">${meetings.length}</div>
+        <div class="db-lbl">Total meetings</div>
+        <div class="adm-sub">${meetings.filter(m=>m.status==='completed').length} completed · ${meetings.filter(m=>m.status==='scheduled').length} scheduled</div>
+      </div>
+      <div class="db-stat">
+        <div class="db-val">${sessions.length}</div>
+        <div class="db-lbl">Session logs</div>
+        <div class="adm-sub">this semester</div>
+      </div>
+      <div class="db-stat">
+        <div class="db-val ${coveragePct>=60?'ok':coveragePct>=30?'warn':'bad'}">${coveragePct}%</div>
+        <div class="db-lbl">Coverage rate</div>
+        <div class="adm-sub">${metCount} of ${students.length} students met</div>
+      </div>
+    </div>
+
+    <div class="db-card" style="margin-bottom:12px;">
+      <div class="db-card-hd">Program enrollment distribution <span>major1 · major2 · minor</span></div>
+      <table class="prog-enroll-tbl">
+        <thead><tr>
+          <th>Program</th>
+          <th class="num">1st major</th>
+          <th class="num">2nd major</th>
+          <th class="num">Minor</th>
+          <th class="num">Total</th>
+        </tr></thead>
+        <tbody>
+          ${(()=>{
+            const programs = ['Data Science and AI','Business Innovation','Humanities and Social Sciences','Natural Sciences','Self-designed'];
+            const rows = programs.map(p => {
+              const m1 = students.filter(s=>s.major1===p).length;
+              const m2 = students.filter(s=>s.major2===p).length;
+              const mn = students.filter(s=>s.minor===p).length;
+              const tot = m1+m2+mn;
+              if(!tot) return '';
+              const maxTot = 27;
+              const barW = Math.round(tot/maxTot*60);
+              return `<tr>
+                <td><div style="display:flex;align-items:center;"><div class="mini-bar" style="width:${barW}px;"></div><span style="font-weight:500;">${esc(p)}</span></div></td>
+                <td class="num">${m1||'—'}</td>
+                <td class="num">${m2||'—'}</td>
+                <td class="num">${mn||'—'}</td>
+                <td class="tot">${tot}</td>
+              </tr>`;
+            }).join('');
+            const nd = students.filter(s=>!s.major1||s.major1==='').length;
+            const ndRow = nd ? `<tr class="nd"><td><div style="display:flex;align-items:center;"><div class="mini-bar" style="width:${Math.round(nd/27*60)}px;background:var(--text3);"></div>Not Declared</div></td><td class="num">${nd}</td><td class="num">—</td><td class="num">—</td><td class="tot">${nd}</td></tr>` : '';
+            return rows + ndRow;
+          })()}
+        </tbody>
+      </table>
+      <div class="enroll-tbl-foot">
+        <div>Total enrollments (incl. double-count)</div>
+        <div style="text-align:right;"><span>${students.filter(s=>s.major1).length}</span>1st major</div>
+        <div style="text-align:right;"><span>${students.filter(s=>s.major2).length}</span>2nd major</div>
+        <div style="text-align:right;"><span>${students.filter(s=>s.minor).length}</span>minor</div>
+      </div>
+    </div>
+
+    <div class="db-card" style="margin-bottom:12px;">
+      <div class="db-card-hd">Faculty advising assignment <span>by program</span></div>
+      <table class="assign-tbl">
+        <thead><tr>
+          <th>Program</th>
+          <th>Advisor</th>
+          <th class="num">Total</th>
+          <th class="num">Primary</th>
+          <th class="num">Secondary</th>
+        </tr></thead>
+        <tbody>
+          ${(()=>{
+            const groups = [
+              {label:'Data Science and AI', cls:'prog-pill-dsa', names:SCHOOL_FACULTY_NAMES.filter(n=>students.some(s=>(s.advisor1===n||s.advisor2===n)&&s.major1==='Data Science and AI'))},
+              {label:'Humanities and Social Sciences', cls:'prog-pill-hss', names:SCHOOL_FACULTY_NAMES.filter(n=>students.some(s=>(s.advisor1===n||s.advisor2===n)&&s.major1==='Humanities and Social Sciences'))},
+              {label:'Natural Sciences', cls:'prog-pill-ns', names:SCHOOL_FACULTY_NAMES.filter(n=>students.some(s=>(s.advisor1===n||s.advisor2===n)&&s.major1==='Natural Sciences'))},
+              {label:'Business Innovation', cls:'prog-pill-bi', names:SCHOOL_FACULTY_NAMES.filter(n=>students.some(s=>(s.advisor1===n||s.advisor2===n)&&s.major1==='Business Innovation'))},
+            ].filter(g=>g.names.length);
+            return groups.map(g => {
+              return g.names.map((name, i) => {
+                const total   = students.filter(s=>s.advisor1===name||s.advisor2===name).length;
+                const primary = students.filter(s=>s.advisor1===name).length;
+                const second  = students.filter(s=>s.advisor2===name).length;
+                const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+                const progCell = i===0
+                  ? `<td rowspan="${g.names.length}" style="vertical-align:top;padding-top:10px;border-right:1px solid var(--border);"><span class="prog-pill ${g.cls}">${esc(g.label)}</span></td>`
+                  : '';
+                return `<tr>${progCell}
+                  <td><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--blue-l);color:var(--blue);font-size:9px;font-weight:600;margin-right:6px;">${initials}</span>${esc(name)}</td>
+                  <td class="tot">${total}</td>
+                  <td class="num">${primary}</td>
+                  <td class="num">${second}</td>
+                </tr>`;
+              }).join('');
+            }).join('');
+          })()}
+        </tbody>
+      </table>
     </div>
 
     <div class="db-grid">
       <div class="db-card">
-        <div class="db-card-hd">Faculty advising load <span>DSA-related students</span></div>
-        <table class="fac-table">
-          <thead><tr><th>Advisor</th><th style="text-align:center;">Students</th><th style="text-align:center;">Met</th><th>Coverage</th><th style="text-align:center;">Follow-up</th></tr></thead>
-          <tbody>${facRows}</tbody>
-        </table>
+        <div class="db-card-hd">Sessions per advisor <span>this semester</span></div>
+        <div style="padding:10px 16px;">
+          ${(()=>{
+            const maxSess = Math.max(...facultyStats.map(f=>sessions.filter(s=>s.faculty===f.name).length),1);
+            return facultyStats.map(f=>{
+              const cnt = sessions.filter(s=>s.faculty===f.name).length;
+              const w = Math.round(cnt/maxSess*100);
+              return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+                <div style="font-size:13px;color:var(--text2);min-width:110px;flex-shrink:0;">${esc(f.name.split(' ').slice(-1)[0])}, ${esc(f.name.split(' ')[0])}</div>
+                <div style="flex:1;height:6px;background:var(--surface2);border-radius:20px;overflow:hidden;"><div style="width:${w}%;height:100%;background:var(--blue);border-radius:20px;"></div></div>
+                <div style="font-size:13px;color:var(--text2);min-width:20px;text-align:right;">${cnt}</div>
+              </div>`;
+            }).join('');
+          })()}
+        </div>
       </div>
-      <div class="db-card">
-        <div class="db-card-hd">Students never met <span>${neverMet.length} total</span></div>
-        <div style="overflow-y:auto;max-height:220px;">${neverMetItems || '<div class="db-item"><span class="text-ok">All students have been met ✓</span></div>'}</div>
-      </div>
-    </div>
-
-    <div class="db-grid">
       <div class="db-card">
         <div class="db-card-hd">Cohort coverage</div>
         <div class="db-item">
@@ -2266,6 +2396,13 @@ function renderProgramSummary() {
           <span class="db-badge ${cohort2Pct>=60?'bdg-ok-sm':cohort2Pct>=30?'bdg-warn-sm':'bdg-bad-sm'}">${cohort2Pct}% met</span>
         </div>
       </div>
+    </div>
+
+    <div class="db-grid">
+      <div class="db-card">
+        <div class="db-card-hd">Students never met <span>${neverMet.length} total</span></div>
+        <div style="overflow-y:auto;max-height:220px;">${neverMetItems || '<div class="db-item"><span class="text-ok">All students have been met ✓</span></div>'}</div>
+      </div>
       <div class="db-card">
         <div class="db-card-hd">Follow-up debt <span>by advisor</span></div>
         ${facultyStats.filter(f=>f.followUps>0).map(f=>`
@@ -2277,11 +2414,6 @@ function renderProgramSummary() {
         </div>`).join('') ||
         '<div class="db-item"><span class="text-ok">No pending follow-ups ✓</span></div>'}
       </div>
-    </div>
-
-    <div class="watch-list">
-      <div class="watch-hd">Watch list — items requiring chair attention</div>
-      ${buildWatchList(watchData)}
     </div>`;
 }
 
