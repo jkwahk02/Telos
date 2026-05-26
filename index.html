@@ -4250,6 +4250,8 @@ function logSessionFromMeeting(studentId) {
   openStudId = studentId;
   showFormFor = studentId;
   selTopics = [];
+  const isMyStudent = myStudents().some(s => s.id === studentId);
+  if (!isMyStudent) studFilter = 'all';
   document.querySelectorAll('.nav-tab').forEach(t => {
     t.classList.toggle('active', t.dataset.page === 'students');
   });
