@@ -1877,6 +1877,23 @@ async function rescheduleMeetingRequest(meetingId) {
     delete pendingPropMode[meetingId];
     showToast('Student notified — asked to propose a different time');
     renderCurrent();
+
+    const st = students.find(s => s.id === m.studentId);
+    fetch(`${SUPABASE_URL}/functions/v1/notify-student-reschedule`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseUser.access_token}`,
+      },
+      body: JSON.stringify({
+        studentEmail: st?.email || '',
+        studentName:  st?.name  || m.studentId,
+        facultyName:  FACULTY,
+        format:       m.meetingFormat || 'Zoom',
+        agenda:       m.studentAgenda || '',
+      }),
+    }).catch(e => console.warn('Reschedule notification failed:', e));
+    
   } catch(e) {
     showToast(`Failed: ${e.message}`);
   }
