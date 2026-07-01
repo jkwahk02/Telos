@@ -3927,8 +3927,8 @@ function renderMeetings() {
   const upcoming = allMtg.filter(m => m.advisorConfirmed && m.status === 'scheduled');
   const pending  = allMtg.filter(m => !m.advisorConfirmed && m.status === 'scheduled');
   const rescheduling  = allMtg.filter(m => m.status === 'rescheduling');
-  const past     = allMtg.filter(m => m.status === 'completed' || m.status === 'cancelled');
-
+  const past     = allMtg.filter(m => m.status === 'completed' || m.status === 'cancelled')
+    .sort((a,b) => (b.meetingDate||'').localeCompare(a.meetingDate||''));
   const counts = {
     all: allMtg.length,
     upcoming: upcoming.length,
