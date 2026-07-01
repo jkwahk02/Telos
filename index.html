@@ -2599,8 +2599,9 @@ function buildNsForm(st){
   // ── 신규: 연결된 student_meeting 찾기
   const linkedMeeting = meetings.find(m =>
     m.studentId === st.id &&
-    m.status === 'scheduled' &&
-    m.advisorConfirmed === true
+    (m.status === 'scheduled' || m.status === 'completed') &&
+    m.advisorConfirmed === true &&
+    !m.logId
   );
   const hasLinked = !!linkedMeeting;
 
