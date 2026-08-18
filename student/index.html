@@ -24,7 +24,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 button,input,select,textarea{font-family:inherit;}
 
 /* NAV */
-.topnav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;height:52px;position:sticky;top:0;z-index:100;gap:0;}
+.topnav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 clamp(16px,3vw,44px);display:flex;align-items:center;height:52px;position:sticky;top:0;z-index:100;gap:0;}
 .nav-logo{font-size:17px;font-weight:600;color:var(--text);letter-spacing:-0.02em;margin-right:24px;white-space:nowrap;display:flex;align-items:center;gap:6px;}
 .nav-logo .role-badge{font-size:10px;font-weight:600;background:var(--accent-l);color:var(--accent);padding:2px 7px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;}
 .nav-tabs{display:flex;height:100%;}
@@ -52,7 +52,7 @@ button,input,select,textarea{font-family:inherit;}
 .nav-dropdown-divider{height:1px;background:var(--border);margin:3px 0;}
 
 /* MAIN */
-.main{padding:24px;max-width:1200px;margin:0 auto;width:100%;}
+.main{padding:24px clamp(16px,3vw,44px);max-width:1680px;margin:0 auto;width:100%;}
 .page{display:none;}
 .page.active{display:block;}
 
@@ -140,7 +140,7 @@ button,input,select,textarea{font-family:inherit;}
 .hist-fmt{font-size:12px;color:var(--text3);}
 
 /* PROFILE LAYOUT */
-.profile-layout{display:grid;grid-template-columns:210px 1fr;gap:14px;align-items:start;}
+.profile-layout{display:grid;grid-template-columns:minmax(210px,260px) minmax(0,1fr);gap:16px;align-items:start;}
 .info-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:10px;}
 .info-card:last-child{margin-bottom:0;}
 .ic-hd{padding:9px 13px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;justify-content:space-between;}
@@ -620,6 +620,22 @@ button,input,select,textarea{font-family:inherit;}
 .gs-col+.gs-col{border-left:1px solid var(--border);}
 .gs-col-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);padding:9px 14px 3px;}
 .gs-grid .gs-step{border-bottom:none;padding:6px 14px;}
+
+/* RESPONSIVE */
+@media(min-width:1500px){
+  .stat-row{grid-template-columns:repeat(3,1fr);gap:14px;}
+  .profile-layout{grid-template-columns:minmax(240px,300px) minmax(0,1fr);gap:20px;}
+}
+@media(max-width:900px){
+  .profile-layout{grid-template-columns:1fr;}
+  .main{padding:18px 14px;}
+}
+@media(max-width:640px){
+  .stat-row{grid-template-columns:1fr;}
+  .req-hero-top{gap:6px;}
+  .req-cred-num{font-size:26px;}
+  .picker{max-height:92vh;}
+}
 @media(max-width:760px){.gs-grid{grid-template-columns:1fr;}.gs-col+.gs-col{border-left:none;border-top:1px solid var(--border);}}
 
 /* GRADUATION REQUIREMENTS */
@@ -1953,6 +1969,24 @@ async function reqFetchPool(item){
   return sbGet(TBL_COURSES, q);
 }
 
+// A requirement names its courses by their current codes, but a student may
+// have taken an earlier version under a different code. Pull those in so the
+// record can be made; reqPickerVisible then keeps the pair mutually exclusive.
+async function reqWithPredecessors(pool){
+  if(!pool.length || !courseLineage.length) return pool;
+  const have = new Set(pool.map(c => c.course_id));
+  const want = courseLineage
+    .filter(l => have.has(l.successor_course_id) && !have.has(l.predecessor_course_id))
+    .map(l => l.predecessor_course_id);
+  if(!want.length) return pool;
+  try{
+    const extra = await sbGet(TBL_COURSES,
+      `course_id=in.(${want.map(c=>`"${c}"`).join(',')})`
+      + `&select=course_id,code,num,title,credits,classification,program,lead_program,discontinued`);
+    return pool.concat(extra).sort((a,b)=>a.course_id.localeCompare(b.course_id));
+  }catch(e){ console.warn('predecessor lookup failed:', e.message); return pool; }
+}
+
 async function reqOpenPicker(itemId){
   const item = reqItems.find(r => r.item_id === itemId);
   if(!item) return;
@@ -1961,7 +1995,7 @@ async function reqOpenPicker(itemId){
   pickerPool = [];
   renderRequirements();
   try{
-    pickerPool = await reqFetchPool(item);
+    pickerPool = await reqWithPredecessors(await reqFetchPool(item));
   }catch(e){
     showToast(`Could not load courses: ${e.message}`);
     pickerPool = [];
