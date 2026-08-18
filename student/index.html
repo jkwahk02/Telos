@@ -726,16 +726,21 @@ button,input,select,textarea{font-family:inherit;}
 /* course picker */
 .picker-back{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:300;
   display:flex;align-items:center;justify-content:center;padding:16px;}
-.picker{background:var(--surface);border-radius:var(--r-lg);width:100%;max-width:540px;
-  max-height:82vh;display:flex;flex-direction:column;overflow:hidden;}
+.picker{background:var(--surface);border-radius:var(--r-lg);width:100%;max-width:760px;
+  max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
 .picker-hd{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;
   align-items:flex-start;gap:10px;}
 .picker-x{border:none;background:none;font-size:20px;line-height:1;color:var(--text3);cursor:pointer;}
 .picker-search{padding:10px 16px;border-bottom:1px solid var(--border);
   display:flex;align-items:center;gap:8px;}
-.picker-search input{flex:1;height:32px;border:1px solid var(--border-em);border-radius:var(--r);
+.picker-search input{flex:1;min-width:170px;height:32px;border:1px solid var(--border-em);border-radius:var(--r);
   padding:0 10px;font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);}
 .picker-search input:focus{outline:none;border-color:var(--accent-m);}
+.picker-sel{height:32px;border:1px solid var(--border-em);border-radius:var(--r);
+  background:var(--surface);color:var(--text);font-size:12px;font-family:inherit;
+  padding:0 8px;max-width:250px;}
+.picker-sel:focus{outline:none;border-color:var(--accent-m);}
+.picker-row mark{background:var(--amber-l);color:var(--amber-d);padding:0 1px;border-radius:2px;}
 .picker-rows{overflow-y:auto;flex:1;}
 .picker-row{padding:9px 16px;display:flex;align-items:center;gap:10px;font-size:13px;
   border-bottom:1px solid var(--border);cursor:pointer;}
@@ -753,6 +758,7 @@ button,input,select,textarea{font-family:inherit;}
 .picker-cr{color:var(--text2);width:24px;text-align:right;}
 .picker-tag{font-size:10px;padding:1px 6px;border-radius:20px;background:var(--gray-l);color:var(--gray-m);}
 .picker-tag.warn{background:var(--amber-l);color:var(--amber-d);}
+.picker-tag.lin{background:#EEEDFE;color:#3C3489;}
 .picker-empty{padding:26px 16px;text-align:center;font-size:12px;color:var(--text3);}
 .picker-foot{background:var(--surface2);border-top:1px solid var(--border);padding:11px 16px;
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
@@ -966,7 +972,8 @@ let courseLineage = [];      // course_lineage — 코드가 바뀐 과목의 �
 let pickerItem    = null;    // 과목 계획 팝업이 열려 있는 항목
 let pickerPool    = [];      // 팝업에 뜨는 과목 후보
 let pickerChosen  = new Set();
-let pickerSearch  = '';
+let pickerSearch  = '';      // free text
+let pickerArea    = '';      // course-code filter, driven by the dropdown
 let sessionCount  = 0;
 let dataLoaded    = false;
 let currentPage   = 'overview';
@@ -1949,7 +1956,7 @@ async function reqFetchPool(item){
 async function reqOpenPicker(itemId){
   const item = reqItems.find(r => r.item_id === itemId);
   if(!item) return;
-  pickerItem = item; pickerSearch = '';
+  pickerItem = item; pickerSearch = ''; pickerArea = '';
   pickerChosen = new Set(reqPlan.filter(p=>p.item_id===itemId).map(p=>p.course_id));
   pickerPool = [];
   renderRequirements();
@@ -1963,7 +1970,36 @@ async function reqOpenPicker(itemId){
 }
 
 function reqClosePicker(){ pickerItem = null; pickerPool = []; pickerChosen = new Set(); renderRequirements(); }
-function reqPickerSearch(v){ pickerSearch = v; renderPickerRows(); }
+function reqPickerSearch(v){ pickerSearch = v; renderPickerRows(); reqPickerCount(); }
+function reqPickerSetArea(v){ pickerArea = v; renderPickerRows(); reqPickerCount(); }
+function reqPickerCount(){
+  const el = document.getElementById('picker-count');
+  if(el) el.textContent = `${reqPickerVisible().length} of ${pickerPool.length}`;
+}
+// Escape first, then wrap every occurrence of the search term. Doing it in
+// that order means a course title containing < or & can never break out.
+function reqHi(text, q){
+  const t = esc(text || '');
+  const needle = (q || '').trim();
+  if(!needle) return t;
+  const eq = esc(needle).toLowerCase();
+  if(!eq) return t;
+  let out = '', rest = t;
+  for(;;){
+    const i = rest.toLowerCase().indexOf(eq);
+    if(i < 0){ out += rest; break; }
+    out += rest.slice(0, i) + '<mark>' + rest.slice(i, i + eq.length) + '</mark>';
+    rest = rest.slice(i + eq.length);
+  }
+  return out;
+}
+
+function reqPickerVisible(){
+  const q = pickerSearch.trim().toLowerCase();
+  return pickerPool.filter(c =>
+    (!pickerArea || reqCourseProgrammes(c).includes(pickerArea)) &&
+    (!q || (c.course_id + ' ' + c.title).toLowerCase().includes(q)));
+}
 
 function reqPickerToggle(courseId){
   if(pickerChosen.has(courseId)) pickerChosen.delete(courseId);
@@ -2000,13 +2036,11 @@ function renderPickerRows(){
   const box = document.getElementById('picker-rows');
   if(!box) return;
   const used = reqUsedElsewhere();
-  const q = pickerSearch.trim().toLowerCase();
-  const list = pickerPool.filter(c =>
-    !q || (c.course_id+' '+c.title).toLowerCase().includes(q));
+  const list = reqPickerVisible();
 
   if(!list.length){
     box.innerHTML = `<div class="picker-empty">${pickerPool.length
-      ? 'No course matches that search.'
+      ? 'No course matches. Try another area or clear the search.'
       : 'No courses are listed for this requirement yet.'}</div>`;
     return;
   }
@@ -2034,16 +2068,36 @@ function renderPickerRows(){
     return `<div class="picker-row ${on?'on':''} ${blocked?'off':''}"
         ${blocked?'':`onclick="reqPickerToggle('${c.course_id}')"`}>
       <div class="picker-box ${on?'on':''}"></div>
-      <code>${esc((c.code||'')+(c.num||''))}</code>
-      <span class="t">${esc(c.title)} ${tags.join(' ')}</span>
+      <code>${reqHi((c.code||'')+(c.num||''), pickerSearch)}</code>
+      <span class="t">${reqHi(c.title, pickerSearch)} ${tags.join(' ')}</span>
       <span class="picker-cr">${c.credits ?? '—'}</span>
     </div>`;
   }).join('');
 }
 
+// courses.program is a comma-separated list, so a cross-listed course belongs
+// to every programme it names.
+function reqCourseProgrammes(c){
+  return String(c.program || c.lead_program || '')
+    .split(',').map(x=>x.trim()).filter(Boolean);
+}
+
+// The School / Programme each course sits under. Returns nothing when the pool
+// is already one programme — which is the case for every requirement except
+// free electives, so no dropdown appears and nothing is hidden.
+function reqPickerAreas(){
+  const by = {};
+  pickerPool.forEach(c => reqCourseProgrammes(c).forEach(p => { by[p] = (by[p]||0)+1; }));
+  const names = Object.keys(by);
+  if(names.length < 2) return [];
+  return names.sort((a,b)=>by[b]-by[a] || a.localeCompare(b))
+              .map(name => ({ value:name, label:name, n:by[name] }));
+}
+
 function reqPickerHtml(){
   if(!pickerItem) return '';
-  const hint = reqChooseHint(pickerItem, pickerPool.length);
+  const hint  = reqChooseHint(pickerItem, pickerPool);
+  const areas = reqPickerAreas();
   return `<div class="picker-back" onclick="if(event.target===this)reqClosePicker()">
     <div class="picker">
       <div class="picker-hd">
@@ -2054,9 +2108,13 @@ function reqPickerHtml(){
         <button class="picker-x" onclick="reqClosePicker()">×</button>
       </div>
       <div class="picker-search">
-        <input type="text" placeholder="Search by code or title" value="${esc(pickerSearch)}"
+        <input type="text" placeholder="Search by code or title — all courses shown until you type" value="${esc(pickerSearch)}"
           oninput="reqPickerSearch(this.value)">
-        <span class="bdg bdg-blue">${pickerPool.length} course${pickerPool.length===1?'':'s'}</span>
+        ${areas.length ? `<select class="picker-sel" onchange="reqPickerSetArea(this.value)">
+            <option value=""${pickerArea?'':' selected'}>All areas · ${pickerPool.length}</option>
+            ${areas.map(a=>`<option value="${esc(a.value)}"${pickerArea===a.value?' selected':''}>${esc(a.label)} · ${a.n}</option>`).join('')}
+          </select>` : ''}
+        <span class="bdg bdg-blue" id="picker-count">${reqPickerVisible().length} of ${pickerPool.length}</span>
       </div>
       <div id="picker-rows" class="picker-rows"></div>
       <div id="picker-foot" class="picker-foot">${reqPickerFootHtml()}</div>
