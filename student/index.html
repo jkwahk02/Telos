@@ -962,6 +962,7 @@ let reqCats       = [];      // student_requirement_category (본인)
 let reqSummary    = null;    // student_requirement_summary (본인, 1행)
 let reqPlan       = [];      // student_requirement_courses (본인) + 과목 정보
 let reqNoteOpen   = {};      // { item_id: true } — 메모 입력창 펼침 상태
+let courseLineage = [];      // course_lineage — 코드가 바뀐 과목의 구/신 대응
 let pickerItem    = null;    // 과목 계획 팝업이 열려 있는 항목
 let pickerPool    = [];      // 팝업에 뜨는 과목 후보
 let pickerChosen  = new Set();
@@ -1195,7 +1196,7 @@ async function loadData(){
 
     // 2. 병렬 로드
     const [meetingRows,histRows,facultyRows,studentLogRows,
-           reqRows,reqSumRows,reqCatRows,reqPlanRows] = await Promise.all([
+           reqRows,reqSumRows,reqCatRows,reqPlanRows,lineageRows] = await Promise.all([
       sbGet(TBL_MEETING,`student_id=eq.${sid}&status=in.(scheduled,rescheduling)&order=meeting_date.asc`),
       sbGet(
         TBL_MEETING,
@@ -1210,7 +1211,11 @@ async function loadData(){
       // the student's plan, with the course details needed to render it
       sbGet(TBL_REQ_COURSE,
         `student_id=eq.${sid}&select=id,item_id,course_id,is_completed,term,credits_awarded,`
-        + `courses(course_id,code,num,title,credits,discontinued)`).catch(()=>[])
+        + `courses(course_id,code,num,title,credits,discontinued)`).catch(()=>[]),
+      // a renumbered course appears under both codes; the picker must not let
+      // a student count the same course twice
+      sbGet('course_lineage',
+        `select=predecessor_course_id,successor_course_id,satisfies_successor`).catch(()=>[])
     ]);
 
     const studentLogMap = {};
@@ -1222,8 +1227,9 @@ async function loadData(){
       m.student_log = studentLogMap[m.id] || null;
     });
         
-    reqItems   = reqRows || [];
-    reqCats    = reqCatRows || [];
+    reqItems      = reqRows || [];
+    reqCats       = reqCatRows || [];
+    courseLineage = lineageRows || [];
     reqSummary = (reqSumRows && reqSumRows[0]) || null;
     reqPlan    = (reqPlanRows || []).map(r => ({
       id: r.id, item_id: r.item_id, course_id: r.course_id,
@@ -1591,33 +1597,77 @@ function reqTop(){ return reqItems.filter(r => r.parent_id == null); }
 function reqChildrenOf(id){ return reqItems.filter(r => r.parent_id === id); }
 function reqCourseCode(p){ return (p.code || '') + (p.num || ''); }
 
+// Earned and planned are derived from the plan the screen is showing, so the
+// numbers in the columns can never disagree with the course list under them.
+// required_credits still comes from the view — it is the one figure the app
+// cannot work out on its own (the Free-electives remainder depends on what the
+// student has declared).
+function reqCredits(r){
+  const need = Number(r.required_credits) || 0;
+  const rows = reqPlan.filter(p => p.item_id === r.item_id);
+  const sum  = f => rows.filter(f).reduce((a,p)=>a + (Number(p.credits)||0), 0);
+
+  if (r.parent_id != null) return { earned:0, planned:0, need, done:!!r.is_completed };
+
+  if (r.course_filter){
+    const done = sum(p=>p.is_completed), todo = sum(p=>!p.is_completed);
+    return { earned: need ? Math.min(done, need) : done, planned: todo, need,
+             done: need ? done >= need : done > 0 };
+  }
+  if (r.allows_partial){                       // partner university, MOOC
+    const v = Number(r.credits_entered) || 0;
+    return { earned: need ? Math.min(v, need) : v, planned:0, need, done: need ? v >= need : v > 0 };
+  }
+  return { earned: r.is_completed ? need : 0, planned:0, need, done: !!r.is_completed };
+}
+
+function reqTotals(){
+  const t = { earned:0, planned:0, required:0 };
+  reqTop().forEach(r => { const c = reqCredits(r);
+    t.earned += c.earned; t.planned += c.planned; t.required += c.need; });
+  t.unplanned = Math.max(0, t.required - t.earned - t.planned);
+  t.eligible = reqTop().every(r => reqCredits(r).done || !r.is_required);
+  return t;
+}
+
 // Cohort year of the signed-in student, used to size the plan hints.
 function reqCatalogYear(){
   const r = reqItems[0];
   return r ? Number(r.catalog_year) : null;
 }
 
+// A renumbered course is listed under both its old and its new code. They are
+// the same course, so one of the pair must be counted, never both.
+function reqSuccessorOf(id){ return courseLineage.find(l => l.predecessor_course_id === id)?.successor_course_id || null; }
+function reqPredecessorOf(id){ return courseLineage.find(l => l.successor_course_id === id)?.predecessor_course_id || null; }
+function reqTwinOf(id){ return reqSuccessorOf(id) || reqPredecessorOf(id); }
+
+// How many distinct courses a pool really offers — a predecessor whose
+// successor is also listed is not a separate choice.
+function reqDistinctPool(pool){
+  const ids = new Set(pool.map(c => c.course_id));
+  return pool.filter(c => { const s = reqSuccessorOf(c.course_id); return !(s && ids.has(s)); });
+}
+
 // "Choose 2 of 4" — derived from the requirement, never stored.
-function reqChooseHint(item, poolSize){
+function reqChooseHint(item, pool){
   const req = Number(item.required_credits) || 0;
-  if (!poolSize || !req) return '';
-  const per = req / poolSize;
+  const n = reqDistinctPool(pool || []).length;
+  if (!n || !req) return '';
+  const per = req / n;
   if (Number.isInteger(per)) return '';           // every course is needed
-  const n = Math.round(req / 4);                  // courses are 4 credits here
-  return n > 0 && n < poolSize ? `Choose ${n} of ${poolSize}` : '';
+  const k = Math.round(req / 4);                  // courses are 4 credits here
+  return k > 0 && k < n ? `Choose ${k} of ${n}` : '';
 }
 
 function reqSummaryOrCompute(){
-  if (reqSummary) return reqSummary;
-  const tops = reqTop();
-  const sum = k => tops.reduce((a,r)=>a + (Number(r[k])||0), 0);
+  const t = reqTotals();
   return {
-    credits_earned: sum('earned_credits'),
-    credits_planned: sum('planned_credits'),
-    credits_required: sum('required_credits'),
-    credits_unplanned: Math.max(0, sum('required_credits') - sum('earned_credits') - sum('planned_credits')),
-    outstanding_noncredit_items: tops.filter(r => Number(r.required_credits)===0 && r.is_required && !r.is_completed).length,
-    is_eligible: false,
+    credits_earned: t.earned,
+    credits_planned: t.planned,
+    credits_required: t.required,
+    credits_unplanned: t.unplanned,
+    is_eligible: t.eligible,
   };
 }
 
@@ -1726,23 +1776,12 @@ function renderRequirements(){
     c.items.push(r);
   });
 
-  const catTotals = name => {
-    const row = reqCats.find(c => c.category === name);
-    if (row) return {
-      earned:Number(row.earned_credits)||0,
-      planned:Number(row.planned_credits)||0,
-      required:Number(row.required_credits)||0,
-      onTrack: row.is_on_track !== false };
-    const its = cats.find(c=>c.name===name).items;
-    const e = its.reduce((a,r)=>a+(Number(r.earned_credits)||0),0);
-    const p = its.reduce((a,r)=>a+(Number(r.planned_credits)||0),0);
-    const q = its.reduce((a,r)=>a+(Number(r.required_credits)||0),0);
-    return {earned:e, planned:p, required:q, onTrack: e+p >= q};
-  };
-
   const body = cats.map(c => {
-    const t = catTotals(c.name);
-    const head = `<tr class="req-cat ${t.onTrack?'':'miss'}">
+    const t = c.items.reduce((a,r) => { const x = reqCredits(r);
+      a.earned += x.earned; a.planned += x.planned; a.required += x.need; return a; },
+      {earned:0, planned:0, required:0});
+    const onTrack = t.earned + t.planned >= t.required;
+    const head = `<tr class="req-cat ${onTrack?'':'miss'}">
       <td colspan="2">${esc(c.name)}</td>
       <td class="req-num">${t.earned}</td>
       <td class="req-num plan">${t.planned||''}</td>
@@ -1757,21 +1796,26 @@ function renderRequirements(){
     <td class="req-num last">${s.credits_required}</td></tr>`;
 
   el.innerHTML = hero + `<div class="req-wrap"><table class="req-tbl">
+      <colgroup>
+        <col style="width:38px;"><col>
+        <col style="width:70px;"><col style="width:74px;"><col style="width:82px;">
+      </colgroup>
       <thead><tr>
-        <th class="l" colspan="2">Requirement</th>
+        <th class="l"></th><th class="l">Requirement</th>
         <th>Earned</th><th class="plan">Planned</th><th class="last">Required</th>
       </tr></thead>
       <tbody>${body}${total}
       <tr><td colspan="5" class="req-foot">Graduation is based on total credits earned, not the number of courses completed. Changes save automatically.</td></tr>
       </tbody></table></div>`
     + reqPickerHtml();
+
+  // the picker markup ships an empty list container; fill it now that it exists
+  if(pickerItem) renderPickerRows();
 }
 
 function reqRowHtml(r){
-  const done  = !!r.is_completed;
-  const need  = Number(r.required_credits) || 0;
-  const earn  = Number(r.earned_credits) || 0;
-  const plan  = Number(r.planned_credits) || 0;
+  const c = reqCredits(r);
+  const done = c.done, need = c.need, earn = c.earned, plan = c.planned;
   const isCourseBased = !!r.course_filter;
   const isManual = !isCourseBased && r.allows_partial;
   const rows = reqPlan.filter(p => p.item_id === r.item_id);
@@ -1843,7 +1887,7 @@ function reqRowHtml(r){
       <td class="req-chk">${box}</td>
       <td><span class="req-lbl">${esc(r.label)}</span> ${confirmed}
         ${detail}${plan_html}${action}${note}</td>
-      <td class="req-num ${earnCls}">${need===0 && isManual ? (r.credits_entered ?? 0) : earn}</td>
+      <td class="req-num ${earnCls}">${earn}</td>
       <td class="req-num plan">${plan||''}</td>
       <td class="req-num last">${need===0 ? '—' : need}</td>
     </tr>` + kids;
@@ -1966,15 +2010,29 @@ function renderPickerRows(){
       : 'No courses are listed for this requirement yet.'}</div>`;
     return;
   }
+  const inPool = new Set(pickerPool.map(c=>c.course_id));
+  const byId   = id => pickerPool.find(c=>c.course_id===id);
+
   box.innerHTML = list.map(c => {
     const on = pickerChosen.has(c.course_id);
     const usedBy = used[c.course_id];
     const usedLbl = usedBy ? (reqItems.find(r=>r.item_id===usedBy)?.label || 'another requirement') : '';
+
+    // the same course under its other code
+    const succ = reqSuccessorOf(c.course_id);
+    const pred = reqPredecessorOf(c.course_id);
+    const twin = (succ && inPool.has(succ)) ? succ : (pred && inPool.has(pred)) ? pred : null;
+    const twinOn = twin && pickerChosen.has(twin);
+
     const tags = [];
+    if(succ) tags.push(`<span class="picker-tag lin">earlier version of ${esc(succ)}</span>`);
     if(usedBy) tags.push(`<span class="picker-tag warn">already in ${esc(usedLbl.replace(/^Complete (your )?/,''))}</span>`);
-    if(c.discontinued) tags.push(`<span class="picker-tag">discontinued</span>`);
-    return `<div class="picker-row ${on?'on':''} ${usedBy?'off':''}"
-        ${usedBy?'':`onclick="reqPickerToggle('${c.course_id}')"`}>
+    if(c.discontinued && !succ) tags.push(`<span class="picker-tag">discontinued</span>`);
+    if(twinOn) tags.push(`<span class="picker-tag">same course as ${esc(byId(twin) ? (byId(twin).code+byId(twin).num) : twin)}</span>`);
+
+    const blocked = !!usedBy || !!twinOn;
+    return `<div class="picker-row ${on?'on':''} ${blocked?'off':''}"
+        ${blocked?'':`onclick="reqPickerToggle('${c.course_id}')"`}>
       <div class="picker-box ${on?'on':''}"></div>
       <code>${esc((c.code||'')+(c.num||''))}</code>
       <span class="t">${esc(c.title)} ${tags.join(' ')}</span>
