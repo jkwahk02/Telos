@@ -1645,9 +1645,14 @@ function reqCredits(r){
   }
   if (r.course_filter){
     const done = sum(p=>p.is_completed), todo = sum(p=>!p.is_completed);
-    return { earned: need ? Math.min(done, need) : done,
-             planned: need ? Math.min(todo, Math.max(0, need - done)) : todo, need,
-             done: need ? done >= need : done > 0 };
+    // An optional item carries no requirement of its own but still earns what
+    // its course is worth: CL601 is one general-elective credit, and because a
+    // course belongs to exactly one requirement, this is the only place that
+    // credit can be counted.
+    if (!need) return { earned: done, planned: todo, need:0, done: done > 0, isOptional:true };
+    return { earned: Math.min(done, need),
+             planned: Math.min(todo, Math.max(0, need - done)), need,
+             done: done >= need };
   }
   if (r.allows_partial){                       // partner university, MOOC
     const v = Number(r.credits_entered) || 0;
@@ -1730,9 +1735,14 @@ function buildOverviewReqCard(){
     </div>`;
   }
 
-  const outstanding = reqTop().find(r => Number(r.required_credits)===0 && r.is_required && !r.is_completed);
+  // The plan is the useful thing to surface here. A zero-credit requirement
+  // only becomes the headline once the credits are finished.
+  const creditsMet  = s.credits_earned >= s.credits_required && s.credits_required > 0;
+  const outstanding = creditsMet
+    ? reqTop().find(r => reqCredits(r).need === 0 && r.is_required && !reqCredits(r).done)
+    : null;
   const flag = outstanding
-    ? `<span style="font-size:13px;color:var(--amber);">${esc(outstanding.label)} outstanding</span>`
+    ? `<span style="font-size:13px;color:var(--amber);">${esc(outstanding.label.replace(/^Complete (your |the )?/,''))} still outstanding</span>`
     : `<span style="font-size:13px;color:var(--blue);">${s.credits_planned} planned · ${s.credits_unplanned} not yet planned</span>`;
 
   return `<div class="ovreq">
@@ -1779,13 +1789,17 @@ function renderRequirements(){
   const planPct = req ? Math.min(100-pct, Math.round(Number(s.credits_planned)/req*100)) : 0;
   const first = reqItems[0];
 
-  const outstanding = reqTop().filter(r => Number(r.required_credits)===0 && r.is_required && !r.is_completed);
+  // A zero-credit requirement is the one thing the credit total cannot show,
+  // so it is worth calling out — but only once the credits are actually done.
+  // Raising it while half the checklist is still open just buries the point.
+  const outstanding = reqTop().filter(r => reqCredits(r).need === 0 && r.is_required && !reqCredits(r).done);
+  const creditsMet  = s.credits_earned >= s.credits_required && s.credits_required > 0;
   const banner = s.is_eligible
     ? `<div class="req-note ok"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><polyline points="2,8 6,12 14,4"/></svg>
-        <span>You have met every graduation requirement. Your advisor can confirm the remaining items.</span></div>`
-    : outstanding.length
+        <span>You have met every graduation requirement.</span></div>`
+    : (creditsMet && outstanding.length)
       ? `<div class="req-note warn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2.5 15 14H1z"/><path d="M8 6.5v3.5M8 11.8v.2" stroke-linecap="round"/></svg>
-          <span>Your ${esc(outstanding[0].label.replace(/^Complete (your )?/,''))} is still outstanding. It carries no course credit, but it is required to graduate.</span></div>`
+          <span>You have earned all ${s.credits_required} credits, but your ${esc(outstanding.map(o=>o.label.replace(/^Complete (your |the )?/,'')).join(' and '))} ${outstanding.length>1?'are':'is'} still outstanding — required to graduate without carrying course credit.</span></div>`
       : '';
 
   const hero = `<div class="req-hero">
@@ -1858,10 +1872,14 @@ function reqRowHtml(r){
   const isManual = !isCourseBased && r.allows_partial;
   const rows = reqPlan.filter(p => p.item_id === r.item_id);
 
-  // A credit source has nothing to complete, so it gets no box at all.
+  // Three items bring credits in without asking for any: partner-university
+  // transfer, MOOC, and the Computer Language certificate. None of them is a
+  // requirement, so none of them gets a checkbox.
   // Everything that accumulates shows a derived box; only an all-or-nothing
   // item is clickable.
-  const box = c.isSource ? ''
+  const single = c.isOptional && r.course_filter?.course_ids?.length === 1
+    ? r.course_filter.course_ids[0] : null;
+  const box = (c.isSource || c.isOptional) ? ''
     : (r.allows_partial || isCourseBased)
       ? `<div class="req-box ro ${done?'on':''}"></div>`
       : `<div class="req-box ${done?'on':''}" onclick="reqToggleItem(${r.item_id})"></div>`;
@@ -1898,6 +1916,16 @@ function reqRowHtml(r){
           <button class="req-edit" onclick="reqOpenPicker(${r.item_id})">Adjust</button></div>`
       : `<div class="req-empty slim"><p>This set is fixed for your cohort but has not loaded yet.</p>
           <button class="req-btn" onclick="reqOpenPicker(${r.item_id})">Open</button></div>`;
+  } else if(isCourseBased && c.isOptional){
+    action = rows.length ? ''
+      : single
+        ? `<div class="req-plan"><div class="req-prow">
+            <div class="req-mini" onclick="reqToggleSingle(${r.item_id},'${single}')"></div>
+            <code>${esc(single)}</code>
+            <span class="t">${esc(reqOptionalTitle(r))}</span>
+            <span class="req-cr">1</span></div></div>`
+        : `<div class="req-done-line"><span>Not submitted.</span>
+            <button class="req-edit" onclick="reqOpenPicker(${r.item_id})">Add</button></div>`;
   } else if(isCourseBased){
     const short = need - earn - plan;
     if(!rows.length){
@@ -1939,7 +1967,7 @@ function reqRowHtml(r){
       <td class="req-chk">${box}</td>
       <td><span class="req-lbl">${esc(r.label)}</span> ${confirmed}
         ${detail}${plan_html}${action}${note}</td>
-      <td class="req-num ${earnCls}">${earn}</td>
+      <td class="req-num ${earnCls}">${earn||(c.isOptional?'—':earn)}</td>
       <td class="req-num plan">${plan||''}</td>
       <td class="req-num last">${need===0 ? '—' : need}</td>
     </tr>` + kids;
@@ -2251,6 +2279,38 @@ async function reqRemoveCourse(rowId){
     await sbDelete(TBL_REQ_COURSE, 'id', rowId);
     await reqReload();
   }catch(e){ showToast(`Could not remove: ${e.message}`); }
+}
+
+// The title to show before the course has been added to the plan. The detail
+// line carries it as "CL601 · recognized as …", so take the part after the
+// separator; fall back to the code if the wording ever changes.
+function reqOptionalTitle(r){
+  const d = String(r.detail || '');
+  const i = d.indexOf('·');
+  return i >= 0 ? d.slice(i + 1).trim() : (d || 'Certificate');
+}
+
+// An optional item whose filter names a single course — the Computer Language
+// certificate — behaves as one tick: checking it puts the course in the plan
+// and marks it done in the same action, so its credit lands where it belongs.
+async function reqToggleSingle(itemId, courseId){
+  const row = reqPlan.find(p => p.item_id === itemId && p.course_id === courseId);
+  try{
+    if(row && row.is_completed){
+      await sbDelete(TBL_REQ_COURSE, 'id', row.id);
+    }else if(row){
+      await sbPatch(TBL_REQ_COURSE, 'id', row.id,
+        { is_completed: true, updated_at: new Date().toISOString() });
+    }else{
+      await sbInsert(TBL_REQ_COURSE,
+        { student_id: studentData.id, item_id: itemId, course_id: courseId, is_completed: true });
+    }
+    await reqReload();
+  }catch(e){
+    showToast(e.message.includes('duplicate') || e.message.includes('unique')
+      ? 'That course is already counted under another requirement.'
+      : `Could not save: ${e.message}`);
+  }
 }
 
 // checkbox items — Capstone, and anything else that is all-or-nothing
