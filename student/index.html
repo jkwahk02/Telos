@@ -615,6 +615,153 @@ button,input,select,textarea{font-family:inherit;}
 .gs-step-title.todo{color:var(--text3);}
 .gs-step-desc{font-size:11px;color:var(--text2);line-height:1.5;}
 .gs-step-desc.todo{color:var(--text3);}
+.gs-grid{display:grid;grid-template-columns:1fr 1fr;}
+.gs-col{padding-bottom:8px;}
+.gs-col+.gs-col{border-left:1px solid var(--border);}
+.gs-col-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);padding:9px 14px 3px;}
+.gs-grid .gs-step{border-bottom:none;padding:6px 14px;}
+@media(max-width:760px){.gs-grid{grid-template-columns:1fr;}.gs-col+.gs-col{border-left:none;border-top:1px solid var(--border);}}
+
+/* GRADUATION REQUIREMENTS */
+.req-hero{background:var(--surface);border:1px solid var(--border-em);border-radius:var(--r-lg);overflow:hidden;margin-bottom:12px;}
+.req-hero-body{padding:14px 16px;}
+.req-hero-top{display:flex;align-items:center;gap:9px;margin-bottom:10px;flex-wrap:wrap;}
+.req-hero-ttl{font-size:15px;font-weight:600;}
+.req-cred{display:flex;align-items:baseline;gap:6px;margin-bottom:9px;}
+.req-cred-num{font-size:32px;font-weight:600;line-height:1;}
+.req-cred-den{font-size:15px;color:var(--text3);}
+.req-cred-rest{margin-left:auto;font-size:12px;color:var(--text2);}
+.req-bar{height:9px;border-radius:20px;background:var(--surface2);overflow:hidden;}
+.req-bar>span{display:block;height:100%;background:var(--accent-m);border-radius:20px;transition:width .3s;}
+.req-note{padding:9px 16px;display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.5;}
+.req-note.warn{background:var(--amber-l);border-top:1px solid var(--amber-b);color:var(--amber-d);}
+.req-note.info{background:var(--blue-l);border-top:1px solid var(--blue-b);color:#0C447C;}
+.req-note.ok{background:var(--accent-l);border-top:1px solid var(--accent-b);color:#085041;}
+.req-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:12px;}
+.req-tbl{width:100%;border-collapse:collapse;table-layout:fixed;}
+.req-tbl th{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);background:var(--surface2);padding:7px 6px;text-align:right;}
+.req-tbl th.l{text-align:left;padding-left:16px;}
+.req-tbl td{padding:9px 6px;vertical-align:top;font-size:13px;border-top:1px solid var(--border);}
+.req-cat td{background:var(--surface2);font-weight:600;font-size:12px;padding:6px 6px;border-top:1px solid var(--border-em);}
+.req-cat.miss td{background:var(--amber-l);color:var(--amber-d);border-top-color:var(--amber-b);}
+.req-chk{width:36px;padding-left:16px !important;}
+.req-num{width:54px;text-align:right;}
+.req-num.last{padding-right:16px !important;width:62px;}
+.req-box{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--border-em);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+.req-box.on{background:var(--accent);border-color:var(--accent);}
+.req-box.on:after{content:'✓';color:#fff;font-size:11px;font-weight:700;line-height:1;}
+.req-box.part{border-color:var(--accent-m);}
+.req-box.part:after{content:'';width:8px;height:2px;background:var(--accent-m);border-radius:1px;}
+.req-box.ro{cursor:default;}
+.req-box.off{background:var(--surface2);border-color:var(--border);cursor:default;}
+.req-lbl{font-weight:500;}
+.req-lbl.dim{color:var(--text2);font-weight:400;}
+.req-hint{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.45;}
+.req-sub td{padding-top:5px;padding-bottom:5px;font-size:12px;color:var(--text2);border-top:none;}
+.req-sub .req-chk{padding-left:38px !important;}
+.req-sub .req-box{width:13px;height:13px;border-radius:4px;}
+.req-sub .req-box.on:after{font-size:9px;}
+.req-ci{display:flex;align-items:center;gap:7px;margin-top:6px;flex-wrap:wrap;}
+.req-ci label{font-size:11px;color:var(--text2);}
+.req-ci input{width:64px;height:27px;border:1px solid var(--border-em);border-radius:var(--r);background:var(--surface);padding:0 8px;font-size:13px;font-weight:600;text-align:center;color:var(--text);}
+.req-ci input:focus{outline:none;border-color:var(--accent-m);}
+.req-ci .of{font-size:11px;color:var(--text3);}
+.req-tot td{background:var(--surface2);border-top:1px solid var(--border-em);font-weight:600;font-size:14px;padding:10px 6px;}
+.req-conf{font-size:11px;color:var(--accent);white-space:nowrap;}
+.req-nt{margin-top:6px;}
+.req-nt textarea{width:100%;border:1px solid var(--border-em);border-radius:var(--r);padding:6px 8px;font-size:12px;color:var(--text);background:var(--surface);resize:vertical;font-family:inherit;}
+.req-nt textarea:focus{outline:none;border-color:var(--accent-m);}
+.req-addnote{font-size:11px;color:var(--text3);cursor:pointer;background:none;border:none;padding:0;margin-top:5px;}
+.req-addnote:hover{color:var(--accent);}
+.req-nc{background:var(--surface);border:1px solid var(--amber-b);border-radius:var(--r-lg);overflow:hidden;margin-bottom:12px;}
+.req-nc.done{border-color:var(--accent-b);}
+.req-nc-hd{background:var(--amber-l);padding:7px 16px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--amber-d);}
+.req-nc.done .req-nc-hd{background:var(--accent-l);color:#085041;}
+.req-nc-row{padding:10px 16px;display:flex;align-items:flex-start;gap:11px;border-top:1px solid var(--border);}
+.req-nc-row:first-of-type{border-top:none;}
+/* planned credits — the hatched half of every bar and column */
+.req-bar>em{display:block;height:100%;
+  background:repeating-linear-gradient(115deg,var(--blue-b),var(--blue-b) 4px,var(--blue-l) 4px,var(--blue-l) 8px);}
+.req-tbl th.plan,.req-num.plan{color:var(--blue);}
+.req-num.ok{color:var(--accent);font-weight:600;}
+.req-num.part{color:var(--amber);font-weight:600;}
+.req-num.none{color:var(--text3);}
+.req-intro{font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:11px;}
+.req-foot{font-size:11px;color:var(--text3);background:var(--surface2);padding:9px 16px;}
+.req-cap{font-size:11px;color:var(--text3);}
+.req-term{font-size:10px;color:var(--blue);background:var(--blue-l);padding:1px 6px;border-radius:20px;white-space:nowrap;}
+.req-cr{font-size:11px;color:var(--text2);width:22px;text-align:right;}
+
+/* the plan under a requirement */
+.req-plan{margin-top:9px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.req-prow{padding:6px 11px;display:flex;align-items:center;gap:9px;font-size:12px;
+  border-bottom:1px solid var(--border);}
+.req-prow:last-child{border-bottom:none;}
+.req-prow.done{background:var(--accent-l);}
+.req-prow code{font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);width:56px;flex-shrink:0;}
+.req-prow .t{flex:1;min-width:0;}
+.req-mini{width:14px;height:14px;border-radius:4px;flex-shrink:0;cursor:pointer;
+  border:1.5px solid var(--blue-b);background:var(--surface);}
+.req-mini.on{background:var(--accent);border-color:var(--accent);position:relative;}
+.req-mini.on:after{content:'✓';position:absolute;inset:0;color:#fff;font-size:9px;
+  font-weight:700;display:flex;align-items:center;justify-content:center;}
+.req-x{border:none;background:none;color:var(--text3);cursor:pointer;font-size:14px;
+  line-height:1;padding:0 2px;}
+.req-x:hover{color:var(--red);}
+
+/* prompts */
+.req-empty{margin-top:9px;border:1px dashed var(--blue-b);background:#F5F9FE;
+  border-radius:var(--r);padding:11px 13px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.req-empty.slim{padding:9px 12px;}
+.req-empty p{flex:1;min-width:180px;margin:0;font-size:12px;color:#0C447C;line-height:1.5;}
+.req-btn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--blue-b);
+  background:var(--surface);color:var(--blue);border-radius:var(--r);padding:5px 12px;
+  font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.req-btn.solid{background:var(--blue);color:#fff;border-color:var(--blue);}
+.req-done-line{margin-top:8px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--accent);}
+.req-edit{margin-left:auto;border:none;background:none;color:var(--text3);
+  cursor:pointer;font-size:11px;font-family:inherit;}
+.req-edit:hover{color:var(--accent);}
+
+/* course picker */
+.picker-back{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:300;
+  display:flex;align-items:center;justify-content:center;padding:16px;}
+.picker{background:var(--surface);border-radius:var(--r-lg);width:100%;max-width:540px;
+  max-height:82vh;display:flex;flex-direction:column;overflow:hidden;}
+.picker-hd{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;
+  align-items:flex-start;gap:10px;}
+.picker-x{border:none;background:none;font-size:20px;line-height:1;color:var(--text3);cursor:pointer;}
+.picker-search{padding:10px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;}
+.picker-search input{flex:1;height:32px;border:1px solid var(--border-em);border-radius:var(--r);
+  padding:0 10px;font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);}
+.picker-search input:focus{outline:none;border-color:var(--accent-m);}
+.picker-rows{overflow-y:auto;flex:1;}
+.picker-row{padding:9px 16px;display:flex;align-items:center;gap:10px;font-size:13px;
+  border-bottom:1px solid var(--border);cursor:pointer;}
+.picker-row:hover{background:var(--surface2);}
+.picker-row.on{background:#F7FCFA;}
+.picker-row.off{background:var(--surface2);cursor:default;opacity:.6;}
+.picker-row code{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);
+  width:60px;flex-shrink:0;}
+.picker-row .t{flex:1;min-width:0;}
+.picker-box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border-em);
+  background:var(--surface);flex-shrink:0;}
+.picker-box.on{background:var(--blue);border-color:var(--blue);position:relative;}
+.picker-box.on:after{content:'✓';position:absolute;inset:0;color:#fff;font-size:11px;
+  font-weight:700;display:flex;align-items:center;justify-content:center;}
+.picker-cr{color:var(--text2);width:24px;text-align:right;}
+.picker-tag{font-size:10px;padding:1px 6px;border-radius:20px;background:var(--gray-l);color:var(--gray-m);}
+.picker-tag.warn{background:var(--amber-l);color:var(--amber-d);}
+.picker-empty{padding:26px 16px;text-align:center;font-size:12px;color:var(--text3);}
+.picker-foot{background:var(--surface2);border-top:1px solid var(--border);padding:11px 16px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
+.ovreq{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:13px 16px;margin-bottom:10px;}
+.ovreq.ok{border-color:var(--accent-b);background:var(--accent-l);}
+.ovreq-top{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.ovreq-ttl{font-size:13px;font-weight:600;flex:1;}
+.req-save{font-size:11px;color:var(--text3);margin-left:auto;}
 .ov-adv-card{background:var(--surface);border:1.5px solid var(--teal-b);border-radius:var(--r-lg);overflow:hidden;margin-bottom:8px;}
 .ov-adv-hd{padding:6px 12px;background:var(--teal-l);border-bottom:1px solid var(--teal-b);display:flex;align-items:center;justify-content:space-between;}
 .ov-adv-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--teal);}
@@ -648,6 +795,7 @@ button,input,select,textarea{font-family:inherit;}
   <div class="nav-tabs">
     <button class="nav-tab active" data-page="overview">Overview</button>
     <button class="nav-tab" data-page="profile">My Profile</button>
+    <button class="nav-tab" data-page="requirements">Requirements</button>
     <button class="nav-tab" data-page="meetings">Meetings</button>
     <button class="nav-tab" data-page="help">Help & Guide</button>
     <button class="nav-tab" data-page="settings">Settings</button>
@@ -742,6 +890,7 @@ button,input,select,textarea{font-family:inherit;}
 <div class="main">
   <div class="page active" id="page-overview"></div>
   <div class="page" id="page-profile"></div>
+  <div class="page" id="page-requirements"></div>
   <div class="page" id="page-meetings"></div>
   <div class="page" id="page-help"></div>
   <div class="page" id="page-settings"></div>
@@ -760,6 +909,17 @@ const TBL_MEETING   = 'student_meeting';
 const TBL_AVAIL     = 'faculty_availability';
 const TBL_FACULTY   = 'faculty_profiles';
 const TBL_STUDENT_LOG = 'student_log';
+const TBL_REQ_CHECK   = 'student_requirement_checks';
+const TBL_REQ_COURSE  = 'student_requirement_courses';
+const TBL_COURSES     = 'courses';
+const VW_COURSE_PROG  = 'course_programs';
+const VW_REQ_STATUS   = 'student_requirement_status';
+const VW_REQ_CATEGORY = 'student_requirement_category';
+const VW_REQ_SUMMARY  = 'student_requirement_summary';
+
+// The Civic Project rose from 1 credit to 2 effective Fall 2026, so what a
+// CV course is worth depends on the term it was taken.
+const CIVIC_RAISE_TERM = { year: 2026, season: 'Fall' };
 
 const PROFILE_FIELDS = [
   { key:'vision',   tags:'vision_tags',                text:'vision_text',               label:'My Mission',               theory:'Global Mission Alignment',     hint:'What kind of life, impact, or contribution do you imagine for yourself? What is your purpose?',
@@ -797,6 +957,15 @@ let scheduledMeetings = [];  // status='scheduled' 전체
 let allMeetings   = [];      // 히스토리용
 let allFaculty    = [];      // faculty_profiles 전체
 let availMap      = {};      // { faculty_email: [slots] }
+let reqItems      = [];      // student_requirement_status (본인)
+let reqCats       = [];      // student_requirement_category (본인)
+let reqSummary    = null;    // student_requirement_summary (본인, 1행)
+let reqPlan       = [];      // student_requirement_courses (본인) + 과목 정보
+let reqNoteOpen   = {};      // { item_id: true } — 메모 입력창 펼침 상태
+let pickerItem    = null;    // 과목 계획 팝업이 열려 있는 항목
+let pickerPool    = [];      // 팝업에 뜨는 과목 후보
+let pickerChosen  = new Set();
+let pickerSearch  = '';
 let sessionCount  = 0;
 let dataLoaded    = false;
 let currentPage   = 'overview';
@@ -818,7 +987,8 @@ let helpHeroOpen = false;
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function initials(n){return (n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 function shortMajor(m){
-  const map={'Data Science and AI':'DSAI','Humanities and Social Sciences':'HSS',
+  const map={'Data Science and Artificial Intelligence':'DSAI',
+    'Data Science and AI':'DSAI','Humanities and Social Sciences':'HSS',
     'Natural Sciences':'NS','Business Innovation':'BI','Self-designed':'Self'};
   return map[m]||m||'—';
 }
@@ -874,6 +1044,15 @@ async function sbPatch(table,col,val,row){
 async function sbInsert(table,row){
   const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{method:'POST',headers:sbHeaders(),body:JSON.stringify(row)});
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||`POST failed: ${r.status}`);}
+  return r.json();
+}
+// PostgREST upsert: 중복 키면 UPDATE, 없으면 INSERT
+async function sbUpsert(table,row,onConflict){
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=${onConflict}`,{
+    method:'POST',
+    headers:sbHeaders({'Prefer':'resolution=merge-duplicates,return=representation'}),
+    body:JSON.stringify(row)});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||e.hint||`UPSERT failed: ${r.status}`);}
   return r.json();
 }
 async function sbDelete(table,col,val){
@@ -1015,14 +1194,23 @@ async function loadData(){
     const sid=studentData.id;
 
     // 2. 병렬 로드
-    const [meetingRows,histRows,facultyRows,studentLogRows] = await Promise.all([
+    const [meetingRows,histRows,facultyRows,studentLogRows,
+           reqRows,reqSumRows,reqCatRows,reqPlanRows] = await Promise.all([
       sbGet(TBL_MEETING,`student_id=eq.${sid}&status=in.(scheduled,rescheduling)&order=meeting_date.asc`),
       sbGet(
         TBL_MEETING,
         `student_id=eq.${sid}&order=meeting_date.desc&select=id,meeting_date,faculty_email,meeting_format,meeting_type,status,student_agenda,student_log_id`
       ),
       sbGet(TBL_FACULTY, `select=id,name_en,email,school,is_chair,timezone`),
-      sbGet(TBL_STUDENT_LOG, `student_id=eq.${sid}&select=student_log_id,meeting_id,reflection,key_takeaway,next_step`)
+      sbGet(TBL_STUDENT_LOG, `student_id=eq.${sid}&select=student_log_id,meeting_id,reflection,key_takeaway,next_step`),
+      // 졸업요건 — 마이그레이션 전이면 뷰가 없으므로 개별 fallback
+      sbGet(VW_REQ_STATUS,   `student_id=eq.${sid}&order=sort_order.asc`).catch(e=>{console.warn('requirements unavailable:',e.message);return[];}),
+      sbGet(VW_REQ_SUMMARY,  `student_id=eq.${sid}`).catch(()=>[]),
+      sbGet(VW_REQ_CATEGORY, `student_id=eq.${sid}&order=sort_order.asc`).catch(()=>[]),
+      // the student's plan, with the course details needed to render it
+      sbGet(TBL_REQ_COURSE,
+        `student_id=eq.${sid}&select=id,item_id,course_id,is_completed,term,credits_awarded,`
+        + `courses(course_id,code,num,title,credits,discontinued)`).catch(()=>[])
     ]);
 
     const studentLogMap = {};
@@ -1034,6 +1222,19 @@ async function loadData(){
       m.student_log = studentLogMap[m.id] || null;
     });
         
+    reqItems   = reqRows || [];
+    reqCats    = reqCatRows || [];
+    reqSummary = (reqSumRows && reqSumRows[0]) || null;
+    reqPlan    = (reqPlanRows || []).map(r => ({
+      id: r.id, item_id: r.item_id, course_id: r.course_id,
+      is_completed: r.is_completed, term: r.term,
+      credits_awarded: r.credits_awarded,
+      code:  r.courses?.code || '', num: r.courses?.num || '',
+      title: r.courses?.title || r.course_id,
+      credits: r.credits_awarded != null ? r.credits_awarded : (r.courses?.credits || 0),
+      discontinued: !!r.courses?.discontinued,
+    }));
+    await seedAutoPlan(sid);
     scheduledMeetings = meetingRows;
     allMeetings       = histRows;
     sessionCount      = histRows.filter(m => m.status === 'completed').length;
@@ -1081,6 +1282,7 @@ function loadFallback(){
   sessionCount = 0;
   allFaculty = FALLBACK_FACULTY;            // []
   availMap = FALLBACK_AVAIL;               // {}
+  reqItems = []; reqCats = []; reqPlan = []; reqSummary = null;
   dataLoaded = true;
   document.getElementById('nav-avatar').textContent = '—';
   document.getElementById('nav-name').textContent = '';
@@ -1109,6 +1311,7 @@ function renderCurrent(){
   if(!dataLoaded) return;
   if(currentPage==='overview') renderOverview();
   if(currentPage==='profile')  renderProfile();
+  if(currentPage==='requirements') renderRequirements();
   if(currentPage==='meetings') renderMeetings();
   if(currentPage==='settings') renderSettings();
   if(currentPage==='help')     renderHelp();
@@ -1149,11 +1352,13 @@ function renderOverview(){
   const meetingDone = scheduledMeetings.some(m => m.created_by === 'student')
                  || allMeetings.some(m => m.created_by === 'student');
   const reflDone     = allMeetings.filter(m=>m.status==='completed'&&m.student_log?.reflection).length > 0;
-  const allStepsDone = profileDone && meetingDone && reflDone;
-  const doneCount    = [profileDone, meetingDone, reflDone].filter(Boolean).length;
+  // 졸업요건은 4년에 걸쳐 채워지므로 "전부 이수"가 아니라 "한 번이라도 기록함"이 완료 기준.
+  // 그렇지 않으면 Getting started 카드가 졸업 직전까지 사라지지 않는다.
+  const reqTouched   = reqItems.some(r => r.is_completed || (r.credits_earned||0) > 0 || r.student_note);
 
   const gsSteps = [
     {
+      group: 'Set up your record',
       title: 'Complete your profile',
       desc:  'Add your career goals, research interests, and strengths so your advisor can prepare.',
       done:  profileDone,
@@ -1161,13 +1366,23 @@ function renderOverview(){
       btn:   !profileDone ? `<button class="btn-sm-teal" onclick="goToProfile()" style="margin-top:6px;">Go to My Profile →</button>` : '',
     },
     {
+      group: 'Set up your record',
+      title: 'Check your graduation requirements',
+      desc:  'Tick off what you have already finished, so your advisor can review it with you.',
+      done:  reqTouched,
+      active: profileDone && !reqTouched,
+      btn:   !reqTouched ? `<button class="btn-sm-teal" onclick="goToRequirements()" style="margin-top:6px;">Go to Requirements →</button>` : '',
+    },
+    {
+      group: 'Start advising',
       title: 'Request your first meeting',
       desc:  'Propose a time with your advisor from the Meetings tab.',
       done:  meetingDone,
-      active: profileDone && !meetingDone,
-      btn:   profileDone && !meetingDone ? `<button class="btn-sm-teal" onclick="goToMeetings()" style="margin-top:6px;">Go to Meetings →</button>` : '',
+      active: reqTouched && !meetingDone,
+      btn:   reqTouched && !meetingDone ? `<button class="btn-sm-teal" onclick="goToMeetings()" style="margin-top:6px;">Go to Meetings →</button>` : '',
     },
     {
+      group: 'Start advising',
       title: 'Write a reflection',
       desc:  'After your first meeting, record what you took away and your next steps.',
       done:  reflDone,
@@ -1176,40 +1391,48 @@ function renderOverview(){
     },
   ];
 
-  const gsStepsHtml = gsSteps.map((st,i) => {
-    const numCls = st.done ? 'done' : st.active ? 'active' : '';
+  const allStepsDone = gsSteps.every(s=>s.done);
+  const doneCount    = gsSteps.filter(s=>s.done).length;
+
+  const stepHtml = st => {
+    const numCls   = st.done ? 'done' : st.active ? 'active' : '';
     const titleCls = st.done ? 'done' : st.active ? 'active' : 'todo';
     const descCls  = st.done || st.active ? '' : 'todo';
     return `<div class="gs-step">
-      <div class="gs-num ${numCls}">${st.done ? '✓' : i+1}</div>
-      <div style="flex:1;">
+      <div class="gs-num ${numCls}">${st.done ? '✓' : ''}</div>
+      <div style="flex:1;min-width:0;">
         <div class="gs-step-title ${titleCls}">${st.title}</div>
         ${!st.done ? `<div class="gs-step-desc ${descCls}">${st.desc}</div>` : ''}
         ${st.btn||''}
       </div>
     </div>`;
-  }).join('');
+  };
 
-  const gsSummary = allStepsDone
-    ? `<div style="padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--teal);">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,8 6,12 14,4"/></svg>
-        All steps complete — keep up the momentum!
-       </div>`
-    : `<div class="gs-body open" id="gs-body">${gsStepsHtml}</div>`;
+  const gsGroups = ['Set up your record','Start advising'];
+  const gsGridHtml = `<div class="gs-grid">${gsGroups.map(g=>`
+    <div class="gs-col">
+      <div class="gs-col-lbl">${g}</div>
+      ${gsSteps.filter(s=>s.group===g).map(stepHtml).join('')}
+    </div>`).join('')}</div>`;
 
   const gsHtml = `
     <div class="gs-card">
       <div class="gs-hd" onclick="toggleGs()">
         <div style="display:flex;align-items:center;gap:8px;">
           <span class="gs-title">Getting started</span>
-          <span class="gs-pct">${doneCount} of 3 done</span>
+          <span class="gs-pct">${doneCount} of ${gsSteps.length} done</span>
         </div>
         <span id="gs-chev" style="font-size:11px;color:var(--text3);transition:transform .2s;">▾</span>
       </div>
       ${allStepsDone
-        ? gsSummary
-        : `<div class="gs-body open" id="gs-body">${gsStepsHtml}</div>`}
+        ? `<div style="padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--teal);">
+             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,8 6,12 14,4"/></svg>
+             All steps complete — keep up the momentum!
+           </div>`
+        : `<div class="gs-body open" id="gs-body">${gsGridHtml}</div>`}
     </div>`;
+
+  const ovReqHtml = buildOverviewReqCard();
 
   // ── Upcoming meetings ──
   const nextHtml = confirmed.length ? confirmed.map(m=>{
@@ -1355,8 +1578,598 @@ function renderOverview(){
     </div>` : '';
 
   document.getElementById('page-overview').innerHTML =
-    statHtml + welcomeHtml + gsHtml + nextHtml + reschedulingHtml + pendingHtml + advHtml + histHtml;
+    statHtml + welcomeHtml + gsHtml + ovReqHtml + nextHtml + reschedulingHtml + pendingHtml + advHtml + histHtml;
 }
+
+// ── GRADUATION REQUIREMENTS ──
+//
+// The views do the arithmetic. student_requirement_status carries one row per
+// applicable item with earned / planned / required already resolved, so the
+// app never adds up credits itself and never hard-codes 120.
+
+function reqTop(){ return reqItems.filter(r => r.parent_id == null); }
+function reqChildrenOf(id){ return reqItems.filter(r => r.parent_id === id); }
+function reqCourseCode(p){ return (p.code || '') + (p.num || ''); }
+
+// Cohort year of the signed-in student, used to size the plan hints.
+function reqCatalogYear(){
+  const r = reqItems[0];
+  return r ? Number(r.catalog_year) : null;
+}
+
+// "Choose 2 of 4" — derived from the requirement, never stored.
+function reqChooseHint(item, poolSize){
+  const req = Number(item.required_credits) || 0;
+  if (!poolSize || !req) return '';
+  const per = req / poolSize;
+  if (Number.isInteger(per)) return '';           // every course is needed
+  const n = Math.round(req / 4);                  // courses are 4 credits here
+  return n > 0 && n < poolSize ? `Choose ${n} of ${poolSize}` : '';
+}
+
+function reqSummaryOrCompute(){
+  if (reqSummary) return reqSummary;
+  const tops = reqTop();
+  const sum = k => tops.reduce((a,r)=>a + (Number(r[k])||0), 0);
+  return {
+    credits_earned: sum('earned_credits'),
+    credits_planned: sum('planned_credits'),
+    credits_required: sum('required_credits'),
+    credits_unplanned: Math.max(0, sum('required_credits') - sum('earned_credits') - sum('planned_credits')),
+    outstanding_noncredit_items: tops.filter(r => Number(r.required_credits)===0 && r.is_required && !r.is_completed).length,
+    is_eligible: false,
+  };
+}
+
+function buildOverviewReqCard(){
+  if(!reqItems.length) return '';
+  const s = reqSummaryOrCompute();
+  const req = Number(s.credits_required) || 0;
+  const pct = req ? Math.min(100, Math.round(Number(s.credits_earned)/req*100)) : 0;
+  const planPct = req ? Math.min(100-pct, Math.round(Number(s.credits_planned)/req*100)) : 0;
+
+  if(s.is_eligible){
+    return `<div class="ovreq ok">
+      <div class="ovreq-top">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#0F6E56" stroke-width="1.6"><circle cx="9" cy="9" r="7.2"/><polyline points="5.5,9 8,11.5 12.5,6.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;color:#085041;">All graduation requirements met</div>
+          <div style="font-size:11px;color:var(--teal);margin-top:1px;">${s.credits_earned} / ${s.credits_required} credits</div>
+        </div>
+        <span class="bdg bdg-teal">Eligible</span>
+      </div>
+      <button class="btn-sm-teal" onclick="goToRequirements()">Open checklist →</button>
+    </div>`;
+  }
+
+  const outstanding = reqTop().find(r => Number(r.required_credits)===0 && r.is_required && !r.is_completed);
+  const flag = outstanding
+    ? `<span style="font-size:11px;color:var(--amber);">${esc(outstanding.label)} outstanding</span>`
+    : `<span style="font-size:11px;color:var(--blue);">${s.credits_planned} planned · ${s.credits_unplanned} not yet planned</span>`;
+
+  return `<div class="ovreq">
+    <div class="ovreq-top">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0F6E56" stroke-width="1.5" stroke-linecap="round"><path d="M5.5 3.5h7M5.5 8h7M5.5 12.5h7"/><path d="M2.5 3.5l1 1 1.5-1.8M2.5 8l1 1 1.5-1.8"/></svg>
+      <span class="ovreq-ttl">Graduation requirements</span>
+      <span class="bdg bdg-amber">Not yet eligible</span>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:5px;margin-bottom:7px;">
+      <span style="font-size:24px;font-weight:600;line-height:1;">${s.credits_earned}</span>
+      <span style="font-size:12px;color:var(--text3);">/ ${s.credits_required} credits</span>
+      <span style="margin-left:auto;">${flag}</span>
+    </div>
+    <div class="req-bar" style="height:7px;margin-bottom:10px;">
+      <span style="width:${pct}%;"></span><em style="width:${planPct}%;"></em></div>
+    <button class="btn-sm-teal" onclick="goToRequirements()">Open checklist →</button>
+  </div>`;
+}
+
+function goToRequirements(){
+  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+  document.querySelector('.nav-tab[data-page="requirements"]')?.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-requirements').classList.add('active');
+  currentPage='requirements'; renderRequirements();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── the checklist ──
+
+function renderRequirements(){
+  const el = document.getElementById('page-requirements');
+  if(!reqItems.length){
+    el.innerHTML = `<div class="card"><div class="card-body">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Requirements are not available yet</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.55;">Your checklist could not be loaded. This usually means your cohort or catalog year is missing from your student record. Please contact the program office.</div>
+    </div></div>`;
+    return;
+  }
+
+  const s   = reqSummaryOrCompute();
+  const req = Number(s.credits_required) || 0;
+  const pct     = req ? Math.min(100, Math.round(Number(s.credits_earned)/req*100)) : 0;
+  const planPct = req ? Math.min(100-pct, Math.round(Number(s.credits_planned)/req*100)) : 0;
+  const first = reqItems[0];
+
+  const outstanding = reqTop().filter(r => Number(r.required_credits)===0 && r.is_required && !r.is_completed);
+  const banner = s.is_eligible
+    ? `<div class="req-note ok"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><polyline points="2,8 6,12 14,4"/></svg>
+        <span>You have met every graduation requirement. Your advisor can confirm the remaining items.</span></div>`
+    : outstanding.length
+      ? `<div class="req-note warn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2.5 15 14H1z"/><path d="M8 6.5v3.5M8 11.8v.2" stroke-linecap="round"/></svg>
+          <span>Your ${esc(outstanding[0].label.replace(/^Complete (your )?/,''))} is still outstanding. It carries no course credit, but it is required to graduate.</span></div>`
+      : '';
+
+  const hero = `<div class="req-hero">
+    <div class="req-hero-body">
+      <div class="req-hero-top">
+        <span class="req-hero-ttl">Progress toward graduation</span>
+        <span class="bdg bdg-blue">${esc(first.cohort||'')}${first.major1?' · '+esc(shortMajor(first.major1)):''}</span>
+        <span class="bdg ${s.is_eligible?'bdg-teal':'bdg-amber'}" style="margin-left:auto;">${s.is_eligible?'Eligible':'Not yet eligible'}</span>
+      </div>
+      <div class="req-intro">Requirements come from the OAA Academic Catalog for your entering cohort. Add the courses you have taken and the ones you plan to take, then tick each one off as you complete it.</div>
+      <div class="req-cred">
+        <span class="req-cred-num">${s.credits_earned}</span>
+        <span class="req-cred-den">/ ${s.credits_required} credits</span>
+        <span class="req-cred-rest">${s.credits_planned} planned · ${s.credits_unplanned} not yet planned</span>
+      </div>
+      <div class="req-bar"><span style="width:${pct}%;"></span><em style="width:${planPct}%;"></em></div>
+    </div>
+    ${banner}
+  </div>`;
+
+  // group top-level items by category, in view order
+  const cats = [];
+  reqTop().forEach(r => {
+    let c = cats.find(x => x.name === r.category);
+    if(!c){ c = {name:r.category, items:[]}; cats.push(c); }
+    c.items.push(r);
+  });
+
+  const catTotals = name => {
+    const row = reqCats.find(c => c.category === name);
+    if (row) return {
+      earned:Number(row.earned_credits)||0,
+      planned:Number(row.planned_credits)||0,
+      required:Number(row.required_credits)||0,
+      onTrack: row.is_on_track !== false };
+    const its = cats.find(c=>c.name===name).items;
+    const e = its.reduce((a,r)=>a+(Number(r.earned_credits)||0),0);
+    const p = its.reduce((a,r)=>a+(Number(r.planned_credits)||0),0);
+    const q = its.reduce((a,r)=>a+(Number(r.required_credits)||0),0);
+    return {earned:e, planned:p, required:q, onTrack: e+p >= q};
+  };
+
+  const body = cats.map(c => {
+    const t = catTotals(c.name);
+    const head = `<tr class="req-cat ${t.onTrack?'':'miss'}">
+      <td colspan="2">${esc(c.name)}</td>
+      <td class="req-num">${t.earned}</td>
+      <td class="req-num plan">${t.planned||''}</td>
+      <td class="req-num last">${t.required}</td></tr>`;
+    return head + c.items.map(reqRowHtml).join('');
+  }).join('');
+
+  const total = `<tr class="req-tot">
+    <td colspan="2">Total</td>
+    <td class="req-num">${s.credits_earned}</td>
+    <td class="req-num plan">${s.credits_planned}</td>
+    <td class="req-num last">${s.credits_required}</td></tr>`;
+
+  el.innerHTML = hero + `<div class="req-wrap"><table class="req-tbl">
+      <thead><tr>
+        <th class="l" colspan="2">Requirement</th>
+        <th>Earned</th><th class="plan">Planned</th><th class="last">Required</th>
+      </tr></thead>
+      <tbody>${body}${total}
+      <tr><td colspan="5" class="req-foot">Graduation is based on total credits earned, not the number of courses completed. Changes save automatically.</td></tr>
+      </tbody></table></div>`
+    + reqPickerHtml();
+}
+
+function reqRowHtml(r){
+  const done  = !!r.is_completed;
+  const need  = Number(r.required_credits) || 0;
+  const earn  = Number(r.earned_credits) || 0;
+  const plan  = Number(r.planned_credits) || 0;
+  const isCourseBased = !!r.course_filter;
+  const isManual = !isCourseBased && r.allows_partial;
+  const rows = reqPlan.filter(p => p.item_id === r.item_id);
+
+  // checkbox: derived for anything that accumulates, clickable otherwise
+  const box = r.allows_partial || isCourseBased
+    ? `<div class="req-box ro ${done?'on':''}"></div>`
+    : `<div class="req-box ${done?'on':''}" onclick="reqToggleItem(${r.item_id})"></div>`;
+
+  const confirmed = r.advisor_confirmed
+    ? `<span class="req-conf" title="Confirmed by your advisor">✓ Confirmed</span>` : '';
+
+  let detail = r.detail ? `<div class="req-hint">${esc(r.detail)}</div>` : '';
+
+  let plan_html = '';
+  if(rows.length){
+    plan_html = `<div class="req-plan">` + rows
+      .slice().sort((a,b)=>Number(b.is_completed)-Number(a.is_completed)
+                          || reqCourseCode(a).localeCompare(reqCourseCode(b)))
+      .map(p => `<div class="req-prow ${p.is_completed?'done':''}">
+        <div class="req-mini ${p.is_completed?'on':''}" onclick="reqToggleCourse(${p.id})"></div>
+        <code>${esc(reqCourseCode(p))}</code>
+        <span class="t">${esc(p.title)}</span>
+        ${p.term?`<span class="req-term">${esc(p.term)}</span>`:''}
+        <span class="req-cr">${p.credits}</span>
+        <button class="req-x" title="Remove from plan" onclick="reqRemoveCourse(${p.id})">×</button>
+      </div>`).join('') + `</div>`;
+  }
+
+  let action = '';
+  if(isCourseBased){
+    const short = need - earn - plan;
+    if(!rows.length){
+      action = `<div class="req-empty">
+        <p>No courses planned yet. Add the courses you have already taken and the ones you plan to take${need?` — you need ${need} credits here`:''}.</p>
+        <button class="req-btn solid" onclick="reqOpenPicker(${r.item_id})">＋ Plan my courses</button></div>`;
+    } else if(short > 0){
+      action = `<div class="req-empty slim">
+        <p>${short} credit${short>1?'s are':' is'} not in your plan yet.</p>
+        <button class="req-btn" onclick="reqOpenPicker(${r.item_id})">＋ Add more courses</button></div>`;
+    } else {
+      action = `<div class="req-done-line">
+        <span>${done?'Requirement met.':'Your plan covers this requirement.'}</span>
+        <button class="req-edit" onclick="reqOpenPicker(${r.item_id})">Edit plan</button></div>`;
+    }
+  } else if(isManual){
+    const cap = r.max_credits ? ` <span class="req-cap">max ${r.max_credits}</span>` : '';
+    action = `<div class="req-ci">
+      <label for="req-ci-${r.item_id}">Credits</label>
+      <input id="req-ci-${r.item_id}" type="number" min="0" ${r.max_credits?`max="${r.max_credits}"`:''}
+        value="${r.credits_entered ?? ''}" placeholder="0"
+        onchange="reqSaveCredits(${r.item_id}, this)">${cap}</div>`;
+  }
+
+  // note: shown when present, otherwise behind a link
+  const noteOpen = reqNoteOpen[r.item_id] || (r.student_note||'').length > 0;
+  const note = noteOpen
+    ? `<div class="req-nt"><textarea rows="2" placeholder="Add a note for your advisor"
+         onchange="reqSaveNote(${r.item_id}, this)">${esc(r.student_note||'')}</textarea></div>`
+    : `<button class="req-addnote" onclick="reqOpenNote(${r.item_id})">＋ Note</button>`;
+
+  const kids = reqChildrenOf(r.item_id).map(k => `<tr class="req-sub">
+      <td class="req-chk"><div class="req-box ${k.is_completed?'on':''}" onclick="reqToggleItem(${k.item_id})"></div></td>
+      <td>${esc(k.label)}${k.detail?`<div class="req-hint">${esc(k.detail)}</div>`:''}</td>
+      <td class="req-num">—</td><td class="req-num plan"></td><td class="req-num last">—</td></tr>`).join('');
+
+  const earnCls = done ? 'ok' : earn ? 'part' : 'none';
+  return `<tr>
+      <td class="req-chk">${box}</td>
+      <td><span class="req-lbl">${esc(r.label)}</span> ${confirmed}
+        ${detail}${plan_html}${action}${note}</td>
+      <td class="req-num ${earnCls}">${need===0 && isManual ? (r.credits_entered ?? 0) : earn}</td>
+      <td class="req-num plan">${plan||''}</td>
+      <td class="req-num last">${need===0 ? '—' : need}</td>
+    </tr>` + kids;
+}
+
+
+// ── COURSE PLANNING POPUP ──
+//
+// course_filter on the requirement decides what the picker offers.
+//   {"course_ids":[...]}   an exact list
+//   {"program":"$major1"}  courses listed under the student's programme
+//   {"code":"SL"}          courses whose code prefix matches
+//   {}                     every course
+// $major1 / $major2 / $minor are substituted from the student record.
+
+function reqResolveFilter(f){
+  const out = {};
+  if(!f) return null;
+  if(Array.isArray(f.course_ids)) out.course_ids = f.course_ids;
+  if(f.code) out.code = f.code;
+  if(f.classification) out.classification = f.classification;
+  if(f.program){
+    const map = { '$major1': studentData?.major1, '$major2': studentData?.major2,
+                  '$minor': studentData?.minor };
+    const v = f.program.startsWith('$') ? map[f.program] : f.program;
+    // A self-designed major has no matching programme; fall back to no filter
+    // rather than showing an empty list.
+    if(v && v !== 'Self-designed') out.program = v;
+  }
+  return out;
+}
+
+async function reqFetchPool(item){
+  const f = reqResolveFilter(item.course_filter);
+  if(!f) return [];
+  const sel = 'course_id,code,num,title,credits,classification,program,lead_program,discontinued';
+
+  if(f.course_ids?.length){
+    const list = f.course_ids.map(c=>`"${c}"`).join(',');
+    return sbGet(TBL_COURSES, `course_id=in.(${list})&select=${sel}&order=course_id.asc`);
+  }
+  if(f.program){
+    // course_programs explodes the comma-separated programme list, so
+    // cross-listed courses appear under every programme they belong to.
+    const rows = await sbGet(VW_COURSE_PROG,
+      `course_value=eq.${encodeURIComponent(f.program)}&select=course_id`);
+    if(!rows.length) return [];
+    const list = rows.map(r=>`"${r.course_id}"`).join(',');
+    let q = `course_id=in.(${list})&select=${sel}&order=course_id.asc`;
+    if(f.classification) q += `&classification=eq.${encodeURIComponent(f.classification)}`;
+    return sbGet(TBL_COURSES, q);
+  }
+  let q = `select=${sel}&order=course_id.asc`;
+  if(f.code) q += `&code=eq.${encodeURIComponent(f.code)}`;
+  if(f.classification) q += `&classification=eq.${encodeURIComponent(f.classification)}`;
+  return sbGet(TBL_COURSES, q);
+}
+
+async function reqOpenPicker(itemId){
+  const item = reqItems.find(r => r.item_id === itemId);
+  if(!item) return;
+  pickerItem = item; pickerSearch = '';
+  pickerChosen = new Set(reqPlan.filter(p=>p.item_id===itemId).map(p=>p.course_id));
+  pickerPool = [];
+  renderRequirements();
+  try{
+    pickerPool = await reqFetchPool(item);
+  }catch(e){
+    showToast(`Could not load courses: ${e.message}`);
+    pickerPool = [];
+  }
+  renderRequirements();
+}
+
+function reqClosePicker(){ pickerItem = null; pickerPool = []; pickerChosen = new Set(); renderRequirements(); }
+function reqPickerSearch(v){ pickerSearch = v; renderPickerRows(); }
+
+function reqPickerToggle(courseId){
+  if(pickerChosen.has(courseId)) pickerChosen.delete(courseId);
+  else pickerChosen.add(courseId);
+  renderPickerRows();
+  const f = document.getElementById('picker-foot');
+  if(f) f.innerHTML = reqPickerFootHtml();
+}
+
+// courses already assigned to a different requirement — a course counts once
+function reqUsedElsewhere(){
+  const m = {};
+  reqPlan.forEach(p => { if(p.item_id !== pickerItem?.item_id) m[p.course_id] = p.item_id; });
+  return m;
+}
+
+function reqPickerFootHtml(){
+  const chosen = pickerPool.filter(c => pickerChosen.has(c.course_id));
+  const cr = chosen.reduce((a,c)=>a+(Number(c.credits)||0),0);
+  const need = Number(pickerItem?.required_credits)||0;
+  const rest = need ? need - cr : 0;
+  const msg = !need ? '' : rest > 0
+    ? `${rest} more credit${rest>1?'s':''} needed`
+    : `Plan covers all ${need} credits`;
+  return `<div style="flex:1;min-width:150px;">
+      <span style="font-weight:600;">${chosen.length} selected · ${cr} credits</span>
+      ${msg?`<div style="font-size:11px;color:${rest>0?'var(--text3)':'var(--accent)'};margin-top:2px;">${msg}</div>`:''}
+    </div>
+    <button class="req-btn" onclick="reqClosePicker()">Cancel</button>
+    <button class="btn-sm-teal" onclick="reqSavePicker()">Done</button>`;
+}
+
+function renderPickerRows(){
+  const box = document.getElementById('picker-rows');
+  if(!box) return;
+  const used = reqUsedElsewhere();
+  const q = pickerSearch.trim().toLowerCase();
+  const list = pickerPool.filter(c =>
+    !q || (c.course_id+' '+c.title).toLowerCase().includes(q));
+
+  if(!list.length){
+    box.innerHTML = `<div class="picker-empty">${pickerPool.length
+      ? 'No course matches that search.'
+      : 'No courses are listed for this requirement yet.'}</div>`;
+    return;
+  }
+  box.innerHTML = list.map(c => {
+    const on = pickerChosen.has(c.course_id);
+    const usedBy = used[c.course_id];
+    const usedLbl = usedBy ? (reqItems.find(r=>r.item_id===usedBy)?.label || 'another requirement') : '';
+    const tags = [];
+    if(usedBy) tags.push(`<span class="picker-tag warn">already in ${esc(usedLbl.replace(/^Complete (your )?/,''))}</span>`);
+    if(c.discontinued) tags.push(`<span class="picker-tag">discontinued</span>`);
+    return `<div class="picker-row ${on?'on':''} ${usedBy?'off':''}"
+        ${usedBy?'':`onclick="reqPickerToggle('${c.course_id}')"`}>
+      <div class="picker-box ${on?'on':''}"></div>
+      <code>${esc((c.code||'')+(c.num||''))}</code>
+      <span class="t">${esc(c.title)} ${tags.join(' ')}</span>
+      <span class="picker-cr">${c.credits ?? '—'}</span>
+    </div>`;
+  }).join('');
+}
+
+function reqPickerHtml(){
+  if(!pickerItem) return '';
+  const hint = reqChooseHint(pickerItem, pickerPool.length);
+  return `<div class="picker-back" onclick="if(event.target===this)reqClosePicker()">
+    <div class="picker">
+      <div class="picker-hd">
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:600;">Plan my courses</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${esc(pickerItem.label)}${hint?' · '+hint:''}</div>
+        </div>
+        <button class="picker-x" onclick="reqClosePicker()">×</button>
+      </div>
+      <div class="picker-search">
+        <input type="text" placeholder="Search by code or title" value="${esc(pickerSearch)}"
+          oninput="reqPickerSearch(this.value)">
+        <span class="bdg bdg-blue">${pickerPool.length} course${pickerPool.length===1?'':'s'}</span>
+      </div>
+      <div id="picker-rows" class="picker-rows"></div>
+      <div id="picker-foot" class="picker-foot">${reqPickerFootHtml()}</div>
+    </div></div>`;
+}
+
+// ── SAVING ──
+
+// The Civic Project was worth 1 credit before Fall 2026 and 2 from Fall 2026,
+// so what a CV course is worth depends on the term. Everything else inherits
+// courses.credits, which we leave null to say so.
+function reqCivicCredits(courseId, term){
+  if(!/^CV\d/.test(courseId)) return null;
+  if(!term) return 1;                      // unknown term: assume the older rule
+  const m = String(term).match(/(Spring|Summer|Fall|Winter)\s*(\d{4})/i);
+  if(!m) return 1;
+  const season = m[1].toLowerCase(), year = Number(m[2]);
+  const after = year > CIVIC_RAISE_TERM.year
+    || (year === CIVIC_RAISE_TERM.year && (season === 'fall' || season === 'winter'));
+  return after ? 2 : 1;
+}
+
+async function reqSavePicker(){
+  const item = pickerItem; if(!item) return;
+  const sid = studentData.id;
+  const before = new Set(reqPlan.filter(p=>p.item_id===item.item_id).map(p=>p.course_id));
+  const added   = [...pickerChosen].filter(c => !before.has(c));
+  const removed = [...before].filter(c => !pickerChosen.has(c));
+  reqClosePicker();
+  if(!added.length && !removed.length) return;
+
+  try{
+    if(added.length){
+      await sbInsert(TBL_REQ_COURSE, added.map(cid => ({
+        student_id: sid, item_id: item.item_id, course_id: cid,
+        is_completed: false,
+        credits_awarded: reqCivicCredits(cid, null),
+      })));
+    }
+    for(const cid of removed){
+      const row = reqPlan.find(p => p.item_id===item.item_id && p.course_id===cid);
+      if(row) await sbDelete(TBL_REQ_COURSE, 'id', row.id);
+    }
+    showToast(`Plan updated — ${added.length} added${removed.length?`, ${removed.length} removed`:''}`);
+    await reqReload();
+  }catch(e){
+    showToast(e.message.includes('duplicate') || e.message.includes('unique')
+      ? 'That course is already counted under another requirement.'
+      : `Could not save: ${e.message}`);
+  }
+}
+
+async function reqToggleCourse(rowId){
+  const row = reqPlan.find(p => p.id === rowId); if(!row) return;
+  const next = !row.is_completed;
+  row.is_completed = next;                       // optimistic
+  renderRequirements();
+  try{
+    await sbPatch(TBL_REQ_COURSE, 'id', rowId, { is_completed: next, updated_at: new Date().toISOString() });
+    await reqReload();
+  }catch(e){
+    row.is_completed = !next; renderRequirements();
+    showToast(`Could not save: ${e.message}`);
+  }
+}
+
+async function reqRemoveCourse(rowId){
+  const row = reqPlan.find(p => p.id === rowId); if(!row) return;
+  if(!confirm(`Remove ${reqCourseCode(row)} from your plan?`)) return;
+  try{
+    await sbDelete(TBL_REQ_COURSE, 'id', rowId);
+    await reqReload();
+  }catch(e){ showToast(`Could not remove: ${e.message}`); }
+}
+
+// checkbox items — Capstone, and anything else that is all-or-nothing
+async function reqToggleItem(itemId){
+  const r = reqItems.find(x => x.item_id === itemId); if(!r) return;
+  const next = !r.is_completed;
+  try{
+    await sbUpsert(TBL_REQ_CHECK,
+      { student_id: studentData.id, item_id: itemId, is_completed: next },
+      'student_id,item_id');
+    await reqReload();
+  }catch(e){ showToast(`Could not save: ${e.message}`); }
+}
+
+// hand-entered credits — partner university, MOOC
+async function reqSaveCredits(itemId, input){
+  const r = reqItems.find(x => x.item_id === itemId); if(!r) return;
+  let v = input.value === '' ? null : Math.max(0, Math.round(Number(input.value)||0));
+  if(v != null && r.max_credits && v > r.max_credits){
+    v = r.max_credits; input.value = v;
+    showToast(`Capped at ${r.max_credits} credits`);
+  }
+  try{
+    await sbUpsert(TBL_REQ_CHECK,
+      { student_id: studentData.id, item_id: itemId, credits_entered: v },
+      'student_id,item_id');
+    await reqReload();
+  }catch(e){ showToast(`Could not save: ${e.message}`); }
+}
+
+function reqOpenNote(itemId){ reqNoteOpen[itemId] = true; renderRequirements();
+  setTimeout(()=>document.querySelector(`#page-requirements textarea`)?.focus(), 30); }
+
+async function reqSaveNote(itemId, ta){
+  try{
+    await sbUpsert(TBL_REQ_CHECK,
+      { student_id: studentData.id, item_id: itemId, student_note: ta.value.trim() || null },
+      'student_id,item_id');
+    showToast('Note saved');
+    await reqReload();
+  }catch(e){ showToast(`Could not save: ${e.message}`); }
+}
+
+// Re-read the three views and the plan. The views do the arithmetic, so this
+// is the only way to be sure the totals on screen match the database.
+async function reqReload(){
+  const sid = studentData.id;
+  const [st, sum, cat, plan] = await Promise.all([
+    sbGet(VW_REQ_STATUS,   `student_id=eq.${sid}&order=sort_order.asc`).catch(()=>reqItems),
+    sbGet(VW_REQ_SUMMARY,  `student_id=eq.${sid}`).catch(()=>[]),
+    sbGet(VW_REQ_CATEGORY, `student_id=eq.${sid}&order=sort_order.asc`).catch(()=>reqCats),
+    sbGet(TBL_REQ_COURSE,
+      `student_id=eq.${sid}&select=id,item_id,course_id,is_completed,term,credits_awarded,`
+      + `courses(course_id,code,num,title,credits,discontinued)`).catch(()=>[]),
+  ]);
+  reqItems   = st || [];
+  reqCats    = cat || [];
+  reqSummary = (sum && sum[0]) || null;
+  reqPlan    = (plan || []).map(r => ({
+    id: r.id, item_id: r.item_id, course_id: r.course_id,
+    is_completed: r.is_completed, term: r.term, credits_awarded: r.credits_awarded,
+    code: r.courses?.code || '', num: r.courses?.num || '',
+    title: r.courses?.title || r.course_id,
+    credits: r.credits_awarded != null ? r.credits_awarded : (r.courses?.credits || 0),
+    discontinued: !!r.courses?.discontinued,
+  }));
+  renderRequirements();
+  if(currentPage === 'overview') renderOverview();
+}
+
+// Items flagged autoplan have a fixed course list the student cannot choose
+// from — the six required Innovation Foundation courses. Seed them once so a
+// first-time student sees a meaningful plan instead of an empty table.
+async function seedAutoPlan(sid){
+  const auto = reqItems.filter(r => r.autoplan && r.course_filter?.course_ids?.length);
+  if(!auto.length) return;
+  const have = new Set(reqPlan.map(p => p.course_id));
+  const rows = [];
+  auto.forEach(r => r.course_filter.course_ids.forEach(cid => {
+    if(!have.has(cid)) rows.push({ student_id: sid, item_id: r.item_id, course_id: cid, is_completed: false });
+  }));
+  if(!rows.length) return;
+  try{
+    await sbInsert(TBL_REQ_COURSE, rows);
+    const plan = await sbGet(TBL_REQ_COURSE,
+      `student_id=eq.${sid}&select=id,item_id,course_id,is_completed,term,credits_awarded,`
+      + `courses(course_id,code,num,title,credits,discontinued)`);
+    reqPlan = (plan||[]).map(r => ({
+      id: r.id, item_id: r.item_id, course_id: r.course_id,
+      is_completed: r.is_completed, term: r.term, credits_awarded: r.credits_awarded,
+      code: r.courses?.code || '', num: r.courses?.num || '',
+      title: r.courses?.title || r.course_id,
+      credits: r.credits_awarded != null ? r.credits_awarded : (r.courses?.credits || 0),
+      discontinued: !!r.courses?.discontinued,
+    }));
+  }catch(e){ console.warn('autoplan seeding skipped:', e.message); }
+}
+
 
 function toggleGs(){
   const body = document.getElementById('gs-body');
