@@ -1632,9 +1632,21 @@ function reqCredits(r){
 
   if (r.parent_id != null) return { earned:0, planned:0, need, done:!!r.is_completed };
 
+  // A fixed set — the six required IF courses, the country rotations — is not
+  // chosen, so the requirement is spread evenly across it rather than summed
+  // from the course rows. That is the only way the Civic Project reconciles:
+  // each CV course reads 2 credits, but the requirement is 5 / 8 / 9 / 10 by
+  // cohort because the value rose from 1 to 2 mid-transition.
+  if (r.autoplan && rows.length){
+    const ticked = rows.filter(p=>p.is_completed).length;
+    const earned = need ? Math.round(need * ticked / rows.length) : 0;
+    return { earned, planned: Math.max(0, need - earned), need,
+             done: ticked === rows.length };
+  }
   if (r.course_filter){
     const done = sum(p=>p.is_completed), todo = sum(p=>!p.is_completed);
-    return { earned: need ? Math.min(done, need) : done, planned: todo, need,
+    return { earned: need ? Math.min(done, need) : done,
+             planned: need ? Math.min(todo, Math.max(0, need - done)) : todo, need,
              done: need ? done >= need : done > 0 };
   }
   if (r.allows_partial){                       // partner university, MOOC
@@ -1856,8 +1868,10 @@ function reqRowHtml(r){
   let plan_html = '';
   if(rows.length){
     plan_html = `<div class="req-plan">` + rows
-      .slice().sort((a,b)=>Number(b.is_completed)-Number(a.is_completed)
-                          || reqCourseCode(a).localeCompare(reqCourseCode(b)))
+      // Order by course code and stay there. Floating completed rows to the
+      // top moves a row the instant it is ticked, so the next one the student
+      // aims at has already shifted out from under the pointer.
+      .slice().sort((a,b)=>reqCourseCode(a).localeCompare(reqCourseCode(b)))
       .map(p => `<div class="req-prow ${p.is_completed?'done':''}">
         <div class="req-mini ${p.is_completed?'on':''}" onclick="reqToggleCourse(${p.id})"></div>
         <code>${esc(reqCourseCode(p))}</code>
@@ -1869,7 +1883,16 @@ function reqRowHtml(r){
   }
 
   let action = '';
-  if(isCourseBased){
+  if(isCourseBased && r.autoplan){
+    // fixed by the cohort — nothing to choose, so no planning prompt
+    const ticked = rows.filter(p=>p.is_completed).length;
+    action = rows.length
+      ? `<div class="req-done-line">
+          <span>${ticked === rows.length ? 'All complete.' : `${ticked} of ${rows.length} complete — set by your cohort.`}</span>
+          <button class="req-edit" onclick="reqOpenPicker(${r.item_id})">Adjust</button></div>`
+      : `<div class="req-empty slim"><p>This set is fixed for your cohort but has not loaded yet.</p>
+          <button class="req-btn" onclick="reqOpenPicker(${r.item_id})">Open</button></div>`;
+  } else if(isCourseBased){
     const short = need - earn - plan;
     if(!rows.length){
       action = `<div class="req-empty">
@@ -2296,13 +2319,31 @@ async function reqReload(){
 // from — the six required Innovation Foundation courses. Seed them once so a
 // first-time student sees a meaningful plan instead of an empty table.
 async function seedAutoPlan(sid){
-  const auto = reqItems.filter(r => r.autoplan && r.course_filter?.course_ids?.length);
+  // Items the student does not choose from: the six required Innovation
+  // Foundation courses, and the Field Practice country rotations.
+  const auto = reqItems.filter(r => r.autoplan && r.course_filter);
   if(!auto.length) return;
   const have = new Set(reqPlan.map(p => p.course_id));
+  const pending = auto.filter(r => !reqPlan.some(p => p.item_id === r.item_id));
+  if(!pending.length) return;
+
   const rows = [];
-  auto.forEach(r => r.course_filter.course_ids.forEach(cid => {
-    if(!have.has(cid)) rows.push({ student_id: sid, item_id: r.item_id, course_id: cid, is_completed: false });
-  }));
+  for(const r of pending){
+    let pool = [];
+    const ids = r.course_filter.course_ids;
+    if(Array.isArray(ids) && ids.length){
+      pool = ids.map(cid => ({ course_id: cid }));
+    }else{
+      try{ pool = await reqFetchPool(r); }
+      catch(e){ console.warn('autoplan pool failed for', r.label, e.message); continue; }
+    }
+    pool.forEach(c => {
+      if(!have.has(c.course_id)){
+        have.add(c.course_id);
+        rows.push({ student_id: sid, item_id: r.item_id, course_id: c.course_id, is_completed: false });
+      }
+    });
+  }
   if(!rows.length) return;
   try{
     await sbInsert(TBL_REQ_COURSE, rows);
