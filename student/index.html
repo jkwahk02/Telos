@@ -689,6 +689,36 @@ button,input,select,textarea{font-family:inherit;}
 .req-nt textarea:focus{outline:none;border-color:var(--accent-m);}
 .req-addnote{font-size:13px;color:var(--text3);cursor:pointer;background:none;border:none;padding:0;margin-top:5px;}
 .req-addnote:hover{color:var(--accent);}
+/* note threads */
+.req-thread-open{display:inline-flex;align-items:center;gap:6px;border:none;background:none;
+  color:var(--blue);font-size:13px;font-family:inherit;cursor:pointer;padding:0;margin-top:9px;}
+.req-thread-open:hover{text-decoration:underline;}
+.req-dot{width:6px;height:6px;border-radius:50%;background:var(--amber-b);display:inline-block;}
+.req-thread{margin-top:11px;border-top:1px solid var(--border);padding-top:10px;}
+.req-thread-hd{display:flex;align-items:center;font-size:11px;font-weight:600;color:var(--text3);
+  letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;}
+.req-thread-close{margin-left:auto;border:none;background:none;color:var(--text3);
+  font-size:12px;font-family:inherit;cursor:pointer;text-transform:none;letter-spacing:0;}
+.req-thread-close:hover{color:var(--accent);}
+.req-note-row{display:flex;gap:10px;margin-bottom:12px;}
+.req-note-row:last-child{margin-bottom:0;}
+.req-note-av{width:28px;height:28px;border-radius:50%;background:var(--accent-l);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
+.req-note-av.adv{background:var(--blue-l);color:var(--blue);}
+.req-note-body{flex:1;min-width:0;}
+.req-note-head{display:flex;align-items:baseline;gap:8px;}
+.req-note-who{font-weight:600;font-size:14px;}
+.req-note-tag{font-size:11px;background:var(--blue-l);color:var(--blue);padding:1px 7px;border-radius:20px;}
+.req-note-when{font-size:12px;color:var(--text3);}
+.req-note-del{margin-left:auto;border:none;background:none;color:var(--text3);
+  font-size:15px;line-height:1;cursor:pointer;padding:0 2px;}
+.req-note-del:hover{color:var(--red);}
+.req-note-text{font-size:14px;line-height:1.55;margin-top:2px;white-space:pre-wrap;}
+.req-note-body textarea{width:100%;border:1px solid var(--border-em);border-radius:var(--r);
+  padding:8px 10px;font-size:14px;font-family:inherit;color:var(--text);background:var(--surface);resize:vertical;}
+.req-note-body textarea:focus{outline:none;border-color:var(--accent-m);}
+.req-note-actions{display:flex;align-items:center;gap:9px;margin-top:7px;}
+.req-note-hint{font-size:12px;color:var(--text3);}
 .req-nc{background:var(--surface);border:1px solid var(--amber-b);border-radius:var(--r-lg);overflow:hidden;margin-bottom:12px;}
 .req-nc.done{border-color:var(--accent-b);}
 .req-nc-hd{background:var(--amber-l);padding:7px 16px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--amber-d);}
@@ -933,6 +963,8 @@ const TBL_FACULTY   = 'faculty_profiles';
 const TBL_STUDENT_LOG = 'student_log';
 const TBL_REQ_CHECK   = 'student_requirement_checks';
 const TBL_REQ_COURSE  = 'student_requirement_courses';
+const TBL_REQ_NOTE    = 'student_requirement_notes';
+const TBL_CAT_CONFIRM = 'student_category_confirmations';
 const TBL_COURSES     = 'courses';
 const VW_COURSE_PROG  = 'course_programs';
 const VW_REQ_STATUS   = 'student_requirement_status';
@@ -983,7 +1015,10 @@ let reqItems      = [];      // student_requirement_status (본인)
 let reqCats       = [];      // student_requirement_category (본인)
 let reqSummary    = null;    // student_requirement_summary (본인, 1행)
 let reqPlan       = [];      // student_requirement_courses (본인) + 과목 정보
-let reqNoteOpen   = {};      // { item_id: true } — 메모 입력창 펼침 상태
+let reqNotes      = [];      // student_requirement_notes (본인)
+let reqConfirms   = [];      // student_category_confirmations (본인)
+let reqThreadOpen = {};      // { item_id: true } — 스레드 펼침 상태
+let reqDraft      = {};      // { item_id: '작성 중인 글' }
 let courseLineage = [];      // course_lineage — 코드가 바뀐 과목의 구/신 대응
 let pickerItem    = null;    // 과목 계획 팝업이 열려 있는 항목
 let pickerPool    = [];      // 팝업에 뜨는 과목 후보
@@ -1219,7 +1254,7 @@ async function loadData(){
 
     // 2. 병렬 로드
     const [meetingRows,histRows,facultyRows,studentLogRows,
-           reqRows,reqSumRows,reqCatRows,reqPlanRows,lineageRows] = await Promise.all([
+           reqRows,reqSumRows,reqCatRows,reqPlanRows,lineageRows,reqNoteRows,reqConfirmRows] = await Promise.all([
       sbGet(TBL_MEETING,`student_id=eq.${sid}&status=in.(scheduled,rescheduling)&order=meeting_date.asc`),
       sbGet(
         TBL_MEETING,
@@ -1235,6 +1270,8 @@ async function loadData(){
       sbGet(TBL_REQ_COURSE,
         `student_id=eq.${sid}&select=id,item_id,course_id,is_completed,term,credits_awarded,`
         + `courses(course_id,code,num,title,credits,discontinued)`).catch(()=>[]),
+      sbGet(TBL_REQ_NOTE,    `student_id=eq.${sid}&order=created_at.asc`).catch(()=>[]),
+      sbGet(TBL_CAT_CONFIRM, `student_id=eq.${sid}`).catch(()=>[]),
       // a renumbered course appears under both codes; the picker must not let
       // a student count the same course twice
       sbGet('course_lineage',
@@ -1263,6 +1300,8 @@ async function loadData(){
       credits: r.credits_awarded != null ? r.credits_awarded : (r.courses?.credits || 0),
       discontinued: !!r.courses?.discontinued,
     }));
+    reqNotes    = reqNoteRows || [];
+    reqConfirms = reqConfirmRows || [];
     await seedAutoPlan(sid);
     scheduledMeetings = meetingRows;
     allMeetings       = histRows;
@@ -1312,6 +1351,7 @@ function loadFallback(){
   allFaculty = FALLBACK_FACULTY;            // []
   availMap = FALLBACK_AVAIL;               // {}
   reqItems = []; reqCats = []; reqPlan = []; reqSummary = null;
+  reqNotes = []; reqConfirms = [];
   dataLoaded = true;
   document.getElementById('nav-avatar').textContent = '—';
   document.getElementById('nav-name').textContent = '';
@@ -1383,7 +1423,8 @@ function renderOverview(){
   const reflDone     = allMeetings.filter(m=>m.status==='completed'&&m.student_log?.reflection).length > 0;
   // 졸업요건은 4년에 걸쳐 채워지므로 "전부 이수"가 아니라 "한 번이라도 기록함"이 완료 기준.
   // 그렇지 않으면 Getting started 카드가 졸업 직전까지 사라지지 않는다.
-  const reqTouched   = reqItems.some(r => r.is_completed || (r.credits_earned||0) > 0 || r.student_note);
+  const reqTouched   = reqPlan.some(p => p.is_completed) || reqNotes.length > 0
+                    || reqItems.some(r => (r.credits_entered||0) > 0);
 
   const gsSteps = [
     {
@@ -1884,8 +1925,7 @@ function reqRowHtml(r){
       ? `<div class="req-box ro ${done?'on':''}"></div>`
       : `<div class="req-box ${done?'on':''}" onclick="reqToggleItem(${r.item_id})"></div>`;
 
-  const confirmed = r.advisor_confirmed
-    ? `<span class="req-conf" title="Confirmed by your advisor">✓ Confirmed</span>` : '';
+  const confirmed = '';   // sign-off lives on the category header
 
   let detail = r.detail ? `<div class="req-hint">${esc(r.detail)}</div>` : '';
 
@@ -1951,11 +1991,7 @@ function reqRowHtml(r){
   }
 
   // note: shown when present, otherwise behind a link
-  const noteOpen = reqNoteOpen[r.item_id] || (r.student_note||'').length > 0;
-  const note = noteOpen
-    ? `<div class="req-nt"><textarea rows="2" placeholder="Add a note for your advisor"
-         onchange="reqSaveNote(${r.item_id}, this)">${esc(r.student_note||'')}</textarea></div>`
-    : `<button class="req-addnote" onclick="reqOpenNote(${r.item_id})">＋ Note</button>`;
+  const note = reqThreadHtml(r);
 
   const kids = reqChildrenOf(r.item_id).map(k => `<tr class="req-sub">
       <td class="req-chk"><div class="req-box ${k.is_completed?'on':''}" onclick="reqToggleItem(${k.item_id})"></div></td>
@@ -2341,17 +2377,125 @@ async function reqSaveCredits(itemId, input){
   }catch(e){ showToast(`Could not save: ${e.message}`); }
 }
 
-function reqOpenNote(itemId){ reqNoteOpen[itemId] = true; renderRequirements();
-  setTimeout(()=>document.querySelector(`#page-requirements textarea`)?.focus(), 30); }
+// ── NOTE THREADS ──
+//
+// A note is a dated post by whoever wrote it, so an advisor can answer in
+// place instead of overwriting the student. Composing is explicit: nothing is
+// saved until Post, which is why there is no auto-save here.
 
-async function reqSaveNote(itemId, ta){
+function reqNotesFor(itemId){
+  return reqNotes.filter(n => n.item_id === itemId)
+                 .sort((a,b) => String(a.created_at).localeCompare(String(b.created_at)));
+}
+
+function reqNoteWhen(iso){
+  if(!iso) return '';
+  const d = new Date(iso), now = new Date();
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString('en-US',
+    sameYear ? {month:'short', day:'numeric'} : {year:'numeric', month:'short', day:'numeric'});
+}
+
+function reqNoteAuthor(n){
+  if(n.author_role === 'student') return { name:'You', initials: initials(studentData?.name_en||'You'), advisor:false };
+  const fac = allFaculty.find(f => f.email === n.author_email);
+  const name = fac?.name_en || n.author_email;
+  return { name, initials: initials(name), advisor:true };
+}
+
+function reqThreadHtml(r){
+  const list = reqNotesFor(r.item_id);
+  const open = reqThreadOpen[r.item_id];
+
+  if(!open){
+    const unreadFromAdvisor = list.some(n => n.author_role === 'advisor');
+    return `<button class="req-thread-open" onclick="reqOpenThread(${r.item_id})">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+        <path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" stroke-linejoin="round"/></svg>
+      ${list.length ? `${list.length} note${list.length>1?'s':''}` : 'Add a note'}
+      ${unreadFromAdvisor ? `<span class="req-dot" title="Your advisor commented"></span>` : ''}
+    </button>`;
+  }
+
+  const posts = list.map(n => {
+    const a = reqNoteAuthor(n);
+    const mine = n.author_email === (supabaseUser?.user?.email || '');
+    return `<div class="req-note-row">
+      <div class="req-note-av ${a.advisor?'adv':''}">${esc(a.initials)}</div>
+      <div class="req-note-body">
+        <div class="req-note-head">
+          <span class="req-note-who">${esc(a.name)}</span>
+          ${a.advisor?`<span class="req-note-tag">Advisor</span>`:''}
+          <span class="req-note-when">${reqNoteWhen(n.created_at)}${n.edited_at?' · edited':''}</span>
+          ${mine?`<button class="req-note-del" title="Delete" onclick="reqDeleteNote(${n.id})">×</button>`:''}
+        </div>
+        <div class="req-note-text">${esc(n.body)}</div>
+      </div></div>`;
+  }).join('');
+
+  const draft = reqDraft[r.item_id] || '';
+  return `<div class="req-thread">
+    <div class="req-thread-hd">
+      <span>Notes${list.length?` · ${list.length}`:''}</span>
+      <button class="req-thread-close" onclick="reqCloseThread(${r.item_id})">Close</button>
+    </div>
+    ${posts}
+    <div class="req-note-row">
+      <div class="req-note-av">${esc(initials(studentData?.name_en||''))}</div>
+      <div class="req-note-body">
+        <textarea id="req-draft-${r.item_id}" rows="2" placeholder="Add a note for your advisor…"
+          oninput="reqDraft[${r.item_id}]=this.value;reqDraftChanged(${r.item_id})">${esc(draft)}</textarea>
+        <div class="req-note-actions">
+          <button class="btn-sm-teal" id="req-post-${r.item_id}" ${draft.trim()?'':'disabled'}
+            onclick="reqPostNote(${r.item_id})">Post</button>
+          <span class="req-note-hint">Visible to your advisor</span>
+        </div>
+      </div></div>
+  </div>`;
+}
+
+function reqOpenThread(itemId){
+  reqThreadOpen[itemId] = true; renderRequirements();
+  setTimeout(()=>document.getElementById('req-draft-'+itemId)?.focus(), 30);
+}
+function reqCloseThread(itemId){
+  // a half-written note is kept in reqDraft, so reopening restores it
+  delete reqThreadOpen[itemId]; renderRequirements();
+}
+function reqDraftChanged(itemId){
+  const b = document.getElementById('req-post-'+itemId);
+  if(b) b.disabled = !(reqDraft[itemId]||'').trim();
+}
+
+async function reqPostNote(itemId){
+  const body = (reqDraft[itemId]||'').trim();
+  if(!body) return;
+  const btn = document.getElementById('req-post-'+itemId);
+  if(btn){ btn.disabled = true; btn.textContent = 'Posting…'; }
   try{
-    await sbUpsert(TBL_REQ_CHECK,
-      { student_id: studentData.id, item_id: itemId, student_note: ta.value.trim() || null },
-      'student_id,item_id');
-    showToast('Note saved');
-    await reqReload();
-  }catch(e){ showToast(`Could not save: ${e.message}`); }
+    const rows = await sbInsert(TBL_REQ_NOTE, {
+      student_id: studentData.id, item_id: itemId, body,
+      // the trigger overwrites both from the signed-in token; sent so the
+      // insert is well-formed even if a policy shape changes
+      author_email: supabaseUser?.user?.email || '', author_role: 'student',
+    });
+    reqNotes = reqNotes.concat(rows || []);
+    delete reqDraft[itemId];
+    renderRequirements();
+  }catch(e){
+    showToast(`Could not post: ${e.message}`);
+    if(btn){ btn.disabled = false; btn.textContent = 'Post'; }
+  }
+}
+
+async function reqDeleteNote(noteId){
+  const n = reqNotes.find(x => x.id === noteId);
+  if(!n || !confirm('Delete this note?')) return;
+  try{
+    await sbDelete(TBL_REQ_NOTE, 'id', noteId);
+    reqNotes = reqNotes.filter(x => x.id !== noteId);
+    renderRequirements();
+  }catch(e){ showToast(`Could not delete: ${e.message}`); }
 }
 
 // Re-read the three views and the plan. The views do the arithmetic, so this
@@ -2368,6 +2512,7 @@ async function reqReload(){
   ]);
   reqItems   = st || [];
   reqCats    = cat || [];
+  reqNotes   = (await sbGet(TBL_REQ_NOTE, `student_id=eq.${sid}&order=created_at.asc`).catch(()=>reqNotes)) || [];
   reqSummary = (sum && sum[0]) || null;
   reqPlan    = (plan || []).map(r => ({
     id: r.id, item_id: r.item_id, course_id: r.course_id,
