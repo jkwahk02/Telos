@@ -51,7 +51,8 @@ button,input,select,textarea{font-family:inherit;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* MAIN */
-.main{padding:24px;max-width:1200px;margin:0 auto;width:100%;}
+.main{padding:24px clamp(16px,3vw,44px);max-width:1680px;margin:0 auto;width:100%;}
+.main.narrow{max-width:960px;}
 .page{display:none;}
 .page.active{display:block;}
 
@@ -99,7 +100,6 @@ button,input,select,textarea{font-family:inherit;}
 /* TABLE */
 .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;}
 /* MY STUDENTS — two panes: the roster stays put, the right side changes */
-.main.wide{max-width:1700px;}
 .sp-split{display:grid;grid-template-columns:300px minmax(0,1fr);
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
   overflow:hidden;min-height:calc(100vh - 150px);}
@@ -1596,7 +1596,8 @@ document.querySelectorAll('.nav-tab').forEach(t => {
 
 function renderCurrent() {
   if (!dataLoaded) return;
-  if (currentPage!=='students') document.querySelector('.main')?.classList.remove('wide');
+  const measured = currentPage === 'codebook' || currentPage === 'settings';
+  document.querySelector('.main')?.classList.toggle('narrow', measured);
   if (currentPage==='overview') renderOverview();
   if (currentPage==='students') renderStudents();
   if (currentPage==='meetings') renderMeetings();
@@ -2609,7 +2610,6 @@ function renderProgramSummary() {
 // so the dozen places that set it (deep links, post-save refreshes) still work.
 
 function renderStudents() {
-  document.querySelector('.main')?.classList.add('wide');
   const list = filteredStudents();
   if (openStudId && !list.some(s => s.id === openStudId) && !students.some(s => s.id === openStudId)) {
     openStudId = null;
