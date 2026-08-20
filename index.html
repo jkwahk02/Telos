@@ -1613,7 +1613,9 @@ async function saveConfirmedLink(meetingId) {
     const m = meetings.find(x => String(x.id) === String(meetingId));
     if (m) m.meetingLink = link;
     confirmedLinkEditing[meetingId] = false;
-    showToast('✓ Meeting link saved');
+    await patchGoogleEventLink(meetingId);
+    showToast(m?.gcalEventId ? '✓ Meeting link saved — calendar invitation updated'
+                             : '✓ Meeting link saved');
     renderMeetings();
   } catch(e) {
     showToast(`Save failed: ${e.message}`);
@@ -1679,6 +1681,30 @@ function disconnectGoogleCalendar() {
   localStorage.removeItem('telos_gcal_calendar_id');
   renderSettings();
   showToast('Google Calendar disconnected');
+}
+
+// Put a later-added link onto an event the student already holds. Google mails
+// the change because of sendUpdates, so this is also how they come to have it.
+async function patchGoogleEventLink(meetingId){
+  const m = meetings.find(x => String(x.id) === String(meetingId));
+  if(!gcalToken || !m?.gcalEventId || !gcalCalendarId) return;
+  const st = students.find(s => s.id === m.studentId);
+  try{
+    await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(gcalCalendarId)}`
+        + `/events/${encodeURIComponent(m.gcalEventId)}?sendUpdates=all`,
+      { method:'PATCH',
+        headers:{ Authorization:`Bearer ${gcalToken}`, 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          location: m.meetingLink || '',
+          description: [
+            `Student: ${st?.name || m.studentId} (${m.studentId})`,
+            st?.major1 ? `Major: ${st.major1}` : '',
+            m.meetingLink ? `Zoom: ${m.meetingLink}` : '',
+            m.studentAgenda ? `Agenda: ${m.studentAgenda}` : '',
+          ].filter(Boolean).join('\n'),
+        }) });
+  }catch(e){ console.warn('Calendar link update failed:', e); }
 }
 
 async function cancelGoogleEvent(meetingId){
@@ -1960,7 +1986,7 @@ function buildPendingExpand(m, st) {
     actionHtml = `
       <div style="border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2);">
         <div style="display:flex;align-items:center;gap:8px;">
-          <input data-zoom-id="${m.id}" class="fi" placeholder="Zoom link (optional)" style="flex:1;min-width:0;height:34px;background:var(--surface);">
+          <input id="zoom-${m.id}" data-zoom-id="${m.id}" class="fi" placeholder="Zoom link (optional)" style="flex:1;min-width:0;height:34px;background:var(--surface);">
           <button class="btn-log" onclick="confirmMeetingRequest(${m.id})" ${sel===null?'disabled style="opacity:.4;cursor:default;"':''}>✓ Confirm</button>
           <button class="btn-cancel" style="background:var(--surface);color:var(--text2);border:1px solid var(--border-em);" onclick="rescheduleMeetingRequest(${m.id})">Ask to reschedule</button>
         </div>
@@ -2139,6 +2165,7 @@ m.advisorConfirmed = true;
         format:       m.meetingFormat || 'Zoom',
         duration:     m.meetingDuration || 60,
         agenda:       m.studentAgenda || '',
+        meetingLink:  m.meetingLink || '',
       }),
     }).then(async r => { if(!r.ok) confirmMailFallback(m, st, chosenSlot, await r.text()); })
       .catch(e => confirmMailFallback(m, st, chosenSlot, e.message));
