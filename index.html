@@ -2140,13 +2140,8 @@ m.advisorConfirmed = true;
         duration:     m.meetingDuration || 60,
         agenda:       m.studentAgenda || '',
       }),
-    }).then(async r => { if(!r.ok){
-        console.warn('Confirmation mail failed:', await r.text());
-        showToast('Confirmed, but the email to the student did not go out.');
-      }}).catch(e => {
-        console.warn('Confirmation mail failed:', e);
-        showToast('Confirmed, but the email to the student did not go out.');
-      });
+    }).then(async r => { if(!r.ok) confirmMailFallback(m, st, chosenSlot, await r.text()); })
+      .catch(e => confirmMailFallback(m, st, chosenSlot, e.message));
 
   } catch(e) {
     showToast(`Confirm failed: ${e.message}`);
@@ -2190,13 +2185,8 @@ async function rescheduleMeetingRequest(meetingId) {
         format:       m.meetingFormat || 'Zoom',
         agenda:       m.studentAgenda || '',
       }),
-    }).then(async r => { if(!r.ok){
-        console.warn('Reschedule mail failed:', await r.text());
-        showToast('Marked for rescheduling, but the email to the student did not go out.');
-      }}).catch(e => {
-        console.warn('Reschedule mail failed:', e);
-        showToast('Marked for rescheduling, but the email to the student did not go out.');
-      });
+    }).then(async r => { if(!r.ok) rescheduleMailFallback(m, st, await r.text()); })
+      .catch(e => rescheduleMailFallback(m, st, e.message));
     
   } catch(e) {
     showToast(`Failed: ${e.message}`);
@@ -3346,6 +3336,86 @@ function closeCheckin(){ document.getElementById('ci-modal')?.classList.remove('
 // genuinely comes from the advisor, inside the same domain, with no provider
 // in the way. Body is kept plain and short: mailto: is URL-encoded plain text
 // and clients truncate it.
+// A draft in the advisor's own mail client. It cannot be sent programmatically
+// and the app never learns whether it went, which is why this is the fallback
+// and not the mechanism. What it gives is a message that genuinely comes from
+// the advisor, inside the same domain, with no provider in the way. Bodies stay
+// plain and short: mailto: is URL-encoded plain text and clients truncate it.
+function buildMailto(to, subject, lines){
+  return `mailto:${(to||'').trim()}`
+    + `?subject=${encodeURIComponent(subject)}`
+    + `&body=${encodeURIComponent(lines.join('\r\n'))}`;
+}
+
+function showMailFallback({name, email, headline, subject, lines, why, onClose}){
+  const m = document.getElementById('ci-modal');
+  if(!m){ showToast(headline); return; }
+  m.innerHTML = `<div class="ci-box">
+    <div class="ci-hd">The email did not go out
+      <button class="ci-x" onclick="closeMailFallback()">×</button></div>
+    <div class="ci-bd">
+      <div style="background:var(--amber-l);border:1px solid var(--amber-b);border-radius:var(--r);
+        padding:12px 14px;font-size:15px;color:var(--amber-d);line-height:1.55;">
+        <b>${esc(headline)}</b><br>
+        Telos cannot send from an unverified domain yet, so ${esc(name)} has not been told.
+        You can send it yourself — the draft is already written.
+      </div>
+      ${why?`<div class="mg-hint" style="margin-top:8px;">Provider said: ${esc(String(why).slice(0,240))}</div>`:''}
+      <div class="ci-ft">
+        <span class="mg-hint" style="margin:0;">${email?esc(email):'No email on file for this student'}</span>
+        <button class="sp-btn" onclick="closeMailFallback()">Not now</button>
+        ${email?`<a class="sp-btn solid" style="text-decoration:none;"
+          href="${buildMailto(email, subject, lines)}"
+          onclick="setTimeout(closeMailFallback,300)">Open email draft</a>`:''}
+      </div>
+    </div></div>`;
+  m.classList.add('on');
+  window._mailFallbackClose = onClose || null;
+}
+function closeMailFallback(){
+  document.getElementById('ci-modal')?.classList.remove('on');
+  const fn = window._mailFallbackClose; window._mailFallbackClose = null;
+  if(fn) fn();
+}
+
+function confirmMailFallback(m, st, slot, why){
+  const when = slot.facDateStr || slot.dateStr || slot.dateLabel || '';
+  const time = `${slot.facStart || slot.start || ''}${(slot.facEnd||slot.end)?' – '+(slot.facEnd||slot.end):''}`;
+  showMailFallback({
+    name: st?.name || m.studentId, email: st?.email || '',
+    headline: 'The meeting is confirmed, but the student has not been emailed.',
+    subject: 'Your advising meeting is confirmed',
+    lines: [
+      `Dear ${String(st?.name||'').split(' ')[0]},`, '',
+      'I have confirmed our advising meeting:', '',
+      `  Date:     ${when}`,
+      `  Time:     ${time} (KST)`,
+      `  Format:   ${m.meetingFormat || 'Zoom'}`,
+      ...(m.meetingLink ? [`  Link:     ${m.meetingLink}`] : []),
+      '',
+      'You can see it in Telos: https://jkwahk02.github.io/Telos/student/', '',
+      FACULTY,
+    ],
+    why,
+  });
+}
+
+function rescheduleMailFallback(m, st, why){
+  showMailFallback({
+    name: st?.name || m.studentId, email: st?.email || '',
+    headline: 'The request is marked for rescheduling, but the student has not been emailed.',
+    subject: 'Could we reschedule our meeting?',
+    lines: [
+      `Dear ${String(st?.name||'').split(' ')[0]},`, '',
+      'I am not able to make the time we had, and have asked Telos to reopen it.',
+      'Could you propose a few new times that suit you?', '',
+      'You can do that here: https://jkwahk02.github.io/Telos/student/', '',
+      FACULTY,
+    ],
+    why,
+  });
+}
+
 function checkinMailto(st, body){
   const first = String(st.name||'').split(' ')[0];
   const lines = [
