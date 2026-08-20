@@ -98,6 +98,224 @@ button,input,select,textarea{font-family:inherit;}
 
 /* TABLE */
 .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;}
+/* MY STUDENTS — two panes: the roster stays put, the right side changes */
+.main.wide{max-width:1700px;}
+.sp-split{display:grid;grid-template-columns:300px minmax(0,1fr);
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  overflow:hidden;min-height:calc(100vh - 150px);}
+.sp-rail{border-right:1px solid var(--border);background:var(--surface2);
+  display:flex;flex-direction:column;min-width:0;}
+.sp-rail-top{padding:12px 14px;border-bottom:1px solid var(--border);
+  display:flex;flex-direction:column;gap:9px;}
+.sp-search{border:1px solid var(--border-em);border-radius:var(--r);background:var(--surface);
+  padding:7px 11px;font-size:14px;color:var(--text);width:100%;}
+.sp-search:focus{outline:none;border-color:var(--blue-m);}
+.sp-chips{display:flex;gap:5px;flex-wrap:wrap;}
+.sp-chip{font-size:13px;padding:3px 10px;border-radius:20px;border:1px solid var(--border-em);
+  background:var(--surface);color:var(--text2);cursor:pointer;white-space:nowrap;}
+.sp-chip.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:500;}
+.sp-chip.warn{background:var(--amber-l);border-color:var(--amber-b);color:var(--amber);}
+.sp-chip.warn.on{background:var(--amber-b);border-color:var(--amber-b);color:#fff;}
+.sp-rail-list{flex:1;overflow-y:auto;}
+.sp-row{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;
+  align-items:flex-start;cursor:pointer;}
+.sp-row:hover{background:var(--surface3);}
+.sp-row.sel{background:var(--surface);box-shadow:inset 3px 0 0 var(--blue);}
+.sp-av{width:32px;height:32px;border-radius:50%;background:var(--blue-l);color:var(--blue);
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;}
+.sp-nm{font-size:15px;font-weight:600;line-height:1.3;}
+.sp-nm em{font-style:normal;font-weight:400;font-size:13px;color:var(--text3);margin-left:5px;}
+.sp-meta{font-size:13px;color:var(--text3);margin-top:1px;}
+.sp-tags{margin-top:4px;display:flex;gap:5px;flex-wrap:wrap;}
+.sp-mj{font-size:13px;background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-b);
+  padding:0 8px;border-radius:20px;font-weight:500;}
+.sp-mn{font-size:13px;background:var(--surface);color:var(--blue);border:1px solid var(--blue-b);
+  padding:0 8px;border-radius:20px;font-weight:500;}
+.sp-mn i{font-style:normal;font-weight:600;font-size:11px;letter-spacing:.04em;
+  text-transform:uppercase;opacity:.7;margin-right:5px;}
+.sp-und{font-size:13px;background:var(--amber-l);color:var(--amber);border:1px solid var(--amber-b);
+  padding:0 8px;border-radius:20px;font-weight:600;}
+.sp-rail-foot{padding:9px 14px;border-top:1px solid var(--border);font-size:13px;color:var(--text3);}
+
+.sp-detail{display:flex;flex-direction:column;min-width:0;background:var(--bg);}
+.sp-empty{flex:1;display:flex;align-items:center;justify-content:center;
+  color:var(--text3);font-size:15px;padding:40px;text-align:center;}
+.sp-head{padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surface);
+  display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;}
+.sp-head-av{width:42px;height:42px;font-size:15px;}
+.sp-name{font-size:21px;font-weight:600;letter-spacing:-.01em;}
+.sp-name em{font-style:normal;font-weight:400;font-size:15px;color:var(--text3);margin-left:7px;}
+.sp-facts{display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-top:7px;}
+.sp-facts>span{display:flex;flex-direction:column;gap:1px;}
+.sp-facts i{font-style:normal;font-size:11px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.05em;color:var(--text3);}
+.sp-facts b{font-size:14px;font-weight:500;}
+.sp-facts .sp-sep{width:1px;align-self:stretch;background:var(--border-em);}
+.sp-you{font-size:11px;background:var(--blue-l);color:var(--blue);padding:1px 6px;border-radius:20px;}
+.sp-tabs{display:flex;gap:3px;padding:0 20px;border-bottom:1px solid var(--border);background:var(--surface);}
+.sp-tab{padding:9px 13px;font-size:15px;color:var(--text2);border:none;background:none;
+  cursor:pointer;border-bottom:2px solid transparent;}
+.sp-tab.on{color:var(--text);border-bottom-color:var(--text);font-weight:600;}
+.sp-tab .sp-badge{font-size:11px;font-weight:700;background:var(--amber-l);color:var(--amber);
+  border:1px solid var(--amber-b);border-radius:20px;padding:0 6px;margin-left:4px;vertical-align:1px;}
+.sp-tab .sp-udot{width:7px;height:7px;border-radius:50%;background:var(--amber-b);
+  display:inline-block;margin-left:5px;vertical-align:1px;}
+.sp-body{padding:18px 20px 26px;}
+.sp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  overflow:hidden;margin-bottom:16px;}
+.sp-chd{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;
+  gap:10px;font-size:15px;font-weight:600;}
+.sp-cbd{padding:14px 16px;}
+.sp-btn{border:1px solid var(--border-em);background:var(--surface);border-radius:var(--r);
+  padding:6px 13px;font-size:14px;color:var(--text);cursor:pointer;}
+.sp-btn:hover{border-color:var(--blue-m);color:var(--blue);}
+.sp-btn.solid{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600;}
+.sp-btn.solid:hover{color:#fff;opacity:.9;}
+.sp-btn .sp-ico{font-style:normal;margin-right:6px;}
+/* Requirements — the student's own table, with categories that collapse */
+.rq-hero{padding:12px 16px 11px;border-bottom:1px solid var(--border);}
+.rq-bar{height:9px;border-radius:20px;background:var(--surface3);display:flex;overflow:hidden;}
+.rq-bar>span{background:var(--teal);}
+.rq-bar>em{background:repeating-linear-gradient(115deg,var(--blue-b),var(--blue-b) 4px,var(--blue-l) 4px,var(--blue-l) 8px);}
+.rq-legend{font-size:14px;color:var(--text2);margin-top:7px;}
+.rq-legend b{font-size:17px;font-weight:600;color:var(--text);}
+.rq-legend b.plan{color:var(--blue);}
+.rq-sep{margin:0 9px;color:var(--text3);}
+.rq-tbl{width:100%;border-collapse:collapse;table-layout:fixed;}
+.rq-tbl th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--text2);background:var(--surface2);padding:7px 6px;text-align:right;}
+.rq-tbl th.l{text-align:left;padding-left:8px;}
+.rq-tbl th.plan{color:var(--blue);}
+.rq-tbl th.last{padding-right:16px;}
+.rq-tbl td{padding:11px 6px;vertical-align:top;border-top:1px solid var(--border);font-size:15px;}
+.rq-cat td{background:var(--surface2);font-weight:600;font-size:15px;padding:7px 6px;
+  border-top:1px solid var(--border-em);cursor:pointer;}
+.rq-cat:hover td{background:var(--surface3);}
+.rq-cat.miss td{background:var(--amber-l);color:var(--amber-d);border-top-color:var(--amber-b);}
+.rq-cat.ok td{background:var(--teal-l);color:var(--teal);border-top-color:var(--green-b);}
+.rq-cat.open td{border-bottom:1px solid var(--border);}
+.rq-cat-l{display:flex;align-items:center;gap:9px;padding-left:10px;min-height:26px;}
+.rq-car{font-size:11px;color:var(--text3);width:11px;flex-shrink:0;}
+.rq-right{margin-left:auto;font-weight:400;}
+.rq-short{font-size:13px;opacity:.85;}
+.rq-conf{font-size:13px;color:var(--teal);white-space:nowrap;}
+.rq-cbtn{padding:3px 12px;font-size:13px;}
+.rq-chk{width:34px;padding-left:16px !important;}
+.rq-n{text-align:right;font-variant-numeric:tabular-nums;}
+.rq-n.last{padding-right:16px !important;}
+.rq-n.plan{color:var(--blue);}
+.rq-n.ok{color:var(--teal);font-weight:600;}
+.rq-n.part{color:var(--amber);font-weight:600;}
+.rq-n.none{color:var(--text3);}
+.rq-box{width:19px;height:19px;border-radius:5px;border:1.5px solid var(--border-em);
+  background:var(--surface);margin-top:1px;position:relative;}
+.rq-box.on{background:var(--teal);border-color:var(--teal);}
+.rq-box.on:after{content:'✓';position:absolute;inset:0;color:#fff;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;}
+.rq-box.part{border-color:var(--amber-b);}
+.rq-box.part:after{content:'';position:absolute;left:3px;top:7px;width:9px;height:2px;
+  background:var(--amber-b);border-radius:1px;}
+.rq-lbl{font-weight:500;}
+.rq-hint{font-size:13px;color:var(--text3);margin-top:2px;line-height:1.45;}
+.rq-plan{margin-top:9px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.rq-prow{padding:7px 12px;display:flex;align-items:center;gap:10px;font-size:14px;
+  border-bottom:1px solid var(--border);}
+.rq-prow:last-child{border-bottom:none;}
+.rq-prow.done{background:var(--teal-l);}
+.rq-prow code{font-family:'DM Mono',monospace;font-size:13px;color:var(--text2);width:62px;flex-shrink:0;}
+.rq-prow .t{flex:1;min-width:0;}
+.rq-mini{width:16px;height:16px;border-radius:4px;flex-shrink:0;
+  border:1.5px solid var(--blue-b);background:var(--surface);position:relative;}
+.rq-mini.on{background:var(--teal);border-color:var(--teal);}
+.rq-mini.on:after{content:'✓';position:absolute;inset:0;color:#fff;font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;}
+.rq-term{font-size:12px;color:var(--blue);background:var(--blue-l);padding:1px 7px;
+  border-radius:20px;white-space:nowrap;}
+.rq-cr{font-size:13px;color:var(--text2);width:26px;text-align:right;}
+.rq-line{margin-top:8px;font-size:13px;color:var(--text2);}
+.rq-msgs{margin-top:11px;border-top:1px solid var(--border);padding-top:10px;}
+.rq-msgs-h{display:flex;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:10px;}
+.rq-reply{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:400;font-size:13px;
+  color:var(--blue);cursor:pointer;}
+.rq-reply:hover{text-decoration:underline;}
+.rq-msgs .mg-del{display:none;}
+.rq-tot td{background:var(--surface2);border-top:1px solid var(--border-em);
+  font-weight:600;font-size:16px;padding:10px 6px;}
+.rq-foot{font-size:13px;color:var(--text3);background:var(--surface2);padding:9px 16px;}
+/* Messages */
+.mg-row{display:flex;gap:12px;margin-bottom:16px;}
+.mg-row:last-child{margin-bottom:0;}
+.mg-av{width:34px;height:34px;border-radius:50%;background:var(--teal-l);color:var(--teal);
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;}
+.mg-av.adv{background:var(--blue-l);color:var(--blue);}
+.mg-body{flex:1;min-width:0;}
+.mg-hd{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;}
+.mg-who{font-weight:600;font-size:15px;}
+.mg-tag{font-size:12px;background:var(--blue-l);color:var(--blue);padding:1px 8px;border-radius:20px;}
+.mg-ci{font-size:12px;background:var(--teal-l);color:var(--teal);padding:1px 8px;border-radius:20px;font-weight:600;}
+.mg-when{font-size:13px;color:var(--text3);}
+.mg-anch{font-size:12px;color:var(--text2);border:1px solid var(--border-em);border-radius:20px;
+  padding:0 9px;margin-left:auto;cursor:pointer;}
+.mg-anch:hover{border-color:var(--blue-m);color:var(--blue);}
+.mg-del{border:none;background:none;color:var(--text3);font-size:17px;line-height:1;
+  cursor:pointer;padding:0 3px;}
+.mg-del:hover{color:var(--red);}
+.mg-txt{font-size:15px;line-height:1.6;margin-top:3px;white-space:pre-wrap;}
+.mg-vis{font-size:12px;color:var(--text3);margin-top:4px;}
+.mg-none{font-size:15px;color:var(--text3);padding:8px 0 16px;}
+.mg-filt{padding:9px 16px;background:var(--blue-l);border-bottom:1px solid var(--blue-b);
+  font-size:13px;color:var(--blue);display:flex;align-items:center;}
+.mg-filt-x{margin-left:auto;cursor:pointer;text-decoration:underline;}
+.mg-compose{border-top:1px solid var(--border);padding-top:16px;margin-top:4px;}
+.mg-nact{display:flex;align-items:flex-start;gap:8px;}
+.mg-nact textarea{flex:1;min-width:0;border:1px solid var(--border-em);border-radius:var(--r);
+  padding:9px 12px;font-size:15px;font-family:inherit;color:var(--text);background:var(--surface);resize:vertical;}
+.mg-nact textarea:focus{outline:none;border-color:var(--blue-m);}
+.mg-post{flex-shrink:0;padding:6px 15px;}
+.mg-post:disabled{opacity:.45;cursor:default;}
+.mg-about{position:relative;display:flex;align-items:center;gap:9px;margin-top:9px;
+  font-size:13px;color:var(--text3);flex-wrap:wrap;}
+.mg-sel{border:1px solid var(--border-em);border-radius:var(--r);padding:3px 11px;
+  color:var(--text2);background:var(--surface);cursor:pointer;}
+.mg-sel:hover{border-color:var(--blue-m);}
+.mg-hint{font-size:13px;color:var(--text3);line-height:1.5;}
+.mg-menu{display:none;position:absolute;left:46px;bottom:100%;margin-bottom:6px;z-index:20;
+  background:var(--surface);border:1px solid var(--border-em);border-radius:var(--r);
+  padding:6px 0;box-shadow:0 8px 26px rgba(0,0,0,.12);min-width:230px;max-height:320px;overflow-y:auto;}
+.mg-menu.on{display:block;}
+.mg-menu i{display:block;font-style:normal;font-size:11px;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--text3);padding:7px 13px 3px;}
+.mg-menu u{display:block;text-decoration:none;font-size:14px;color:var(--text2);
+  padding:5px 13px;cursor:pointer;}
+.mg-menu u:hover{background:var(--surface2);color:var(--text);}
+.mg-menu u.dim{color:var(--text3);cursor:default;}
+.mg-vislabel{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--text3);margin:14px 0 6px;}
+.mg-visgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;}
+.mg-visres{font-size:13px;color:var(--text3);margin-top:7px;}
+
+/* Check-in */
+.ci-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:900;
+  align-items:center;justify-content:center;padding:20px;}
+.ci-modal.on{display:flex;}
+.ci-box{background:var(--surface);border-radius:var(--r-lg);width:100%;max-width:620px;
+  overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.ci-hd{padding:14px 18px;border-bottom:1px solid var(--border);font-size:17px;font-weight:600;
+  display:flex;align-items:center;}
+.ci-x{margin-left:auto;border:none;background:none;font-size:22px;line-height:1;
+  color:var(--text3);cursor:pointer;}
+.ci-bd{padding:14px 18px 18px;}
+.ci-bd textarea{width:100%;border:1px solid var(--border-em);border-radius:var(--r);
+  padding:10px 12px;font-size:15px;font-family:inherit;color:var(--text);
+  background:var(--surface);resize:vertical;}
+.ci-bd textarea:focus{outline:none;border-color:var(--blue-m);}
+.ci-ft{display:flex;align-items:center;gap:9px;margin-top:16px;padding-top:13px;
+  border-top:1px solid var(--border);}
+.ci-ft .sp-btn:nth-of-type(1){margin-left:auto;}
+
+
+
 table{width:100%;border-collapse:collapse;font-size:17px;}
 thead th{font-size:14px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:9px 14px;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
 thead th:hover{color:var(--text);}
@@ -123,8 +341,8 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .bdg-teal{background:var(--teal-l);color:var(--teal);}
 
 /* EXPAND PANEL */
-.xwrap{overflow:hidden;max-height:0;transition:max-height .32s cubic-bezier(.4,0,.2,1);}
-.xwrap.open{max-height:5000px;}
+.xwrap{display:none;}
+.xwrap.open{display:block;}
 .action-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--surface2);border-bottom:1px solid var(--border);border-left:3px solid var(--blue-m);gap:16px;}
 .ab-items{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
 .ab-item{display:flex;flex-direction:column;gap:1px;}
@@ -148,7 +366,10 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .tl-content{flex:1;padding-bottom:14px;}
 .tl-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
 .tl-date{font-size:17px;font-weight:600;color:var(--text);}
-.tl-logid{font-size:17px;color:var(--text3);font-family:'DM Mono',monospace;}
+.tl-time{font-size:17px;color:var(--text2);font-variant-numeric:tabular-nums;}
+.tl-dot.sent{background:var(--surface);border:2px solid var(--blue-b);}
+.tl-by{margin-left:auto;font-size:13px;color:var(--text3);display:flex;gap:7px;align-items:baseline;}
+.tl-mail{font-family:'DM Mono',monospace;font-size:12px;}
 .tl-empty{padding:20px 0 10px;text-align:center;font-size:17px;color:var(--text3);}
 .upcoming-card{border:1px dashed var(--border-em);border-radius:var(--r);padding:10px 13px;}
 .upcoming-date{font-size:17px;font-weight:500;color:var(--text);}
@@ -202,8 +423,9 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .vis-chair{background:var(--blue-l);color:var(--blue);}
 .vis-advisors{background:var(--green-l);color:var(--green);}
 .vis-all{background:var(--amber-l);color:var(--amber);}
-.log-xwrap{overflow:hidden;max-height:0;transition:max-height .3s cubic-bezier(.4,0,.2,1);}
-.log-xwrap.open{max-height:1000px;}
+.log-xwrap{display:none;}
+.log-xwrap.open{display:block;animation:xopen .24s ease;}
+@keyframes xopen{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
 .log-ab{display:flex;align-items:center;padding:8px 14px;gap:18px;background:var(--surface2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-wrap:wrap;}
 .log-sc{padding:12px 14px;background:var(--surface);}
 
@@ -594,6 +816,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="ci-modal" id="ci-modal"></div>
 
 <!-- LOGIN MODAL -->
 <script>
@@ -621,10 +844,23 @@ const TBL_STUDENTS = 'students';
 const TBL_LOG      = 'advising_log';
 const TBL_MEETING   = 'student_meeting';   // ← 신규
 const TBL_AVAIL     = 'faculty_availability'; // ← 신규
+const TBL_REQ_CHECK = 'student_requirement_checks';
+const TBL_REQ_COURSE = 'student_requirement_courses';
+const VW_REQ_STATUS  = 'student_requirement_status';
+const VW_REQ_SUMMARY = 'student_requirement_summary';
+const TBL_CAT_CONFIRM = 'student_category_confirmations';
+const TBL_REQ_NOTE    = 'student_requirement_notes';
+const VW_CHECKIN      = 'student_checkin_events';
   
 // ── STATE ──
 let students = [];
 let sessions = [];
+// Graduation requirements. The views are security_invoker and filter to the
+// signed-in advisor's advisees, so an unfiltered read returns exactly the
+// students this advisor is allowed to see.
+let reqSummaries = {};   // { student_id: summary row }
+let reqDetail    = {};   // { student_id: { items:[], plan:[] } } — loaded on expand
+let reqOpenFor   = null; // which student's panel is expanded
 let meetings = [];  // ← 추가
 let dataLoaded = false;
 let pendingSelSlot   = {};   // { meetingId: slotIndex }
@@ -647,7 +883,8 @@ let IS_CHAIR = false;  // set from faculty_profiles.is_chair after login
 
 let studFilter = 'my', studExtra = '', studSearch = '', studSort = {col:'name',dir:1};
 let openStudId = null, showFormFor = null, selTopics = [], selVisibility = 'private';
-let profileOpenFor = null; // null이면 open, id가 일치하면 minimized  
+let profileOpenFor = null; // null이면 open, id가 일치하면 minimized
+let studTab = 'profile';   // which detail tab is showing; kept across students
 let logFilter = 'all', logSearch = '', openLogId = null, editingLogId = null;
 
 
@@ -661,7 +898,10 @@ function toggleHelpHero() {
 }
   
 function shortMajor(m){
-  const map={'Data Science and AI':'DSAI','Humanities and Social Sciences':'HSS',
+  // students.major* now carries the catalog wording; the old string is kept
+  // so the label survives any row that was not migrated.
+  const map={'Data Science and Artificial Intelligence':'DSAI',
+    'Data Science and AI':'DSAI','Humanities and Social Sciences':'HSS',
     'Natural Sciences':'NS','Business Innovation':'BI',
     'Self-designed':'Self'};
   return map[m]||m||'—';
@@ -707,10 +947,11 @@ function showToast(msg){
 }
 
 const VIS_OPTIONS = [
-  { val:'private',    label:'Only me',     desc:'Draft or sensitive note' },
-  { val:'advisors', label:'+ Advisors', desc:'Assigned advisors' },
-  { val:'chair',      label:'+ Chair',      desc:'Program chair' },
-  { val:'all_faculty',label:'All faculty',  desc:'All Telos advisors' },
+  { val:'private',    label:'Private',     desc:'Draft or sensitive note',
+    msgDesc:'Only you and the student' },
+  { val:'advisors', label:'+ Advisors', desc:'Assigned advisors', msgDesc:'Assigned advisors' },
+  { val:'chair',      label:'+ Chair',      desc:'Program chair', msgDesc:'Program chair' },
+  { val:'all_faculty',label:'All faculty',  desc:'All Telos advisors', msgDesc:'All Telos advisors' },
 ];
 
 function buildVisGrid(prefix, current) {
@@ -733,14 +974,38 @@ function buildVisGrid(prefix, current) {
     </div>`).join('');
 }
 
-function visResultText(val) {
+function visResultText(val, kind) {
+  // A message is addressed to the student, so every rung names them — the word
+  // 'Private' claims restriction without saying to whom, and this line says it.
+  const stu = kind === 'message' ? ' <span class="bdg bdg-gray">the student</span>' : '';
   const map = {
-    private:    'Visible to: <span class="bdg bdg-gray">you only</span>',
-    advisors:   'Visible to: <span class="bdg bdg-gray">you</span> <span class="bdg bdg-gray">Advisor 1 &amp; 2</span>',
-    chair:      'Visible to: <span class="bdg bdg-blue">you</span> <span class="bdg bdg-blue">Advisor 1 &amp; 2</span> <span class="bdg bdg-blue">Program Chair</span>',
-    all_faculty:'Visible to: <span class="bdg bdg-blue">all faculty</span>',
+    private:    `Visible to: <span class="bdg bdg-gray">you</span>${stu}`,
+    advisors:   `Visible to: <span class="bdg bdg-gray">you</span>${stu} <span class="bdg bdg-gray">Advisor 1 &amp; 2</span>`,
+    chair:      `Visible to: <span class="bdg bdg-blue">you</span>${stu} <span class="bdg bdg-blue">Advisor 1 &amp; 2</span> <span class="bdg bdg-blue">Program Chair</span>`,
+    all_faculty:`Visible to:${stu} <span class="bdg bdg-blue">all faculty</span>`,
   };
+  if (kind !== 'message' && val === 'private') return 'Visible to: <span class="bdg bdg-gray">you only</span>';
   return map[val] || map['private'];
+}
+
+// The same four tiles the session-log form draws, wired to the message state.
+function visGridHtml(sid, current, prefix){
+  return `<div class="mg-visgrid">` + VIS_OPTIONS.map(o => `
+    <div onclick="setMsgVis('${sid}','${o.val}')"
+      style="padding:7px 10px;border:1px solid ${current===o.val?'var(--blue-b)':'var(--border-em)'};
+        border-radius:var(--r);cursor:pointer;
+        background:${current===o.val?'var(--blue-l)':'var(--surface2)'};
+        display:flex;flex-direction:column;gap:2px;">
+      <div style="display:flex;align-items:center;gap:5px;">
+        <div style="width:11px;height:11px;border-radius:50%;flex-shrink:0;
+          border:1.5px solid ${current===o.val?'var(--blue)':'var(--border-em)'};
+          background:${current===o.val?'var(--blue)':'transparent'};"></div>
+        <span style="font-size:13px;font-weight:600;
+          color:${current===o.val?'var(--blue)':'var(--text)'};">${o.label}</span>
+      </div>
+      <div style="font-size:10px;color:${current===o.val?'var(--blue-m)':'var(--text3)'};
+        padding-left:16px;line-height:1.35;">${o.msgDesc || o.desc}</div>
+    </div>`).join('') + `</div>`;
 }
 
 function setVisibility(prefix, val) {
@@ -1331,6 +1596,7 @@ document.querySelectorAll('.nav-tab').forEach(t => {
 
 function renderCurrent() {
   if (!dataLoaded) return;
+  if (currentPage!=='students') document.querySelector('.main')?.classList.remove('wide');
   if (currentPage==='overview') renderOverview();
   if (currentPage==='students') renderStudents();
   if (currentPage==='meetings') renderMeetings();
@@ -1414,8 +1680,21 @@ function disconnectGoogleCalendar() {
   showToast('Google Calendar disconnected');
 }
 
-async function addToGoogleCalendar(meetingId) {
-  if (!gcalToken) { showToast('Google Calendar not connected — go to Settings.'); return; }
+async function cancelGoogleEvent(meetingId){
+  const m = meetings.find(x => String(x.id) === String(meetingId));
+  if(!gcalToken || !m?.gcalEventId || !gcalCalendarId) return;
+  try{
+    await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(gcalCalendarId)}`
+        + `/events/${encodeURIComponent(m.gcalEventId)}?sendUpdates=all`,
+      { method:'DELETE', headers:{ Authorization:`Bearer ${gcalToken}` } });
+    m.gcalEventId = null;
+    await sbUpdate(TBL_MEETING, 'id', meetingId, { gcal_event_id: null });
+  }catch(e){ console.warn('Calendar cancellation failed:', e); }
+}
+
+async function addToGoogleCalendar(meetingId, quiet) {
+  if (!gcalToken) { if(!quiet) showToast('Google Calendar not connected — go to Settings.'); return; }
   const m = meetings.find(x => String(x.id) === String(meetingId));
   const st = students.find(s => s.id === m?.studentId);
   if (!m || !st) return;
@@ -1438,10 +1717,14 @@ async function addToGoogleCalendar(meetingId) {
       start: { dateTime: startDateTime, timeZone: FACULTY_TIMEZONE },
       end:   { dateTime: endDateTime,   timeZone: FACULTY_TIMEZONE },
       ...(m.meetingLink ? { location: m.meetingLink } : {}),
+      // Inviting the student is what sends them the notice: Google mails the
+      // attendee from this calendar, which needs no sending domain of our own.
+      ...(st.email ? { attendees: [{ email: st.email }] } : {}),
     };
 
     const res = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events`,
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events`
+        + `?sendUpdates=all`,
       {
         method: 'POST',
         headers: { Authorization: `Bearer ${gcalToken}`, 'Content-Type': 'application/json' },
@@ -1455,10 +1738,13 @@ async function addToGoogleCalendar(meetingId) {
     m.gcalEventId = created.id;
     m.gcalEventLink = created.htmlLink;
     await sbUpdate(TBL_MEETING, 'id', meetingId, { gcal_event_id: created.id });
-    showToast('✓ Added to "Telos Meetings" in Google Calendar');
+    if(!quiet) showToast(st.email
+      ? `✓ Added to "Telos Meetings" — ${st.name} has been invited`
+      : `✓ Added to "Telos Meetings" — no email on file for ${st.name}, so no invitation was sent`);
     renderMeetings();
   } catch(e) {
-    showToast(`Calendar error: ${e.message}`);
+    if(!quiet) showToast(`Calendar error: ${e.message}`);
+    else console.warn('Calendar invite failed:', e);
   }
 }
   
@@ -1830,7 +2116,11 @@ m.advisorConfirmed = true;
       : (chosenSlot.dateLabel || chosenSlot.dateStr)} ${chosenSlot.facStart || chosenSlot.start}`);
     renderCurrent();
 
-    // 학생에게 확인 이메일 발송
+    // Two notices, deliberately: the calendar invite carries itself (Google
+    // mails the attendee, no sending domain of ours involved) while the Resend
+    // mail depends on a verified domain. Whichever is working, the student hears.
+    if (gcalToken) addToGoogleCalendar(m.id, true);
+
     const st = students.find(s => s.id === m.studentId);
     fetch(`${SUPABASE_URL}/functions/v1/notify-student-confirmed`, {
       method: 'POST',
@@ -1850,7 +2140,13 @@ m.advisorConfirmed = true;
         duration:     m.meetingDuration || 60,
         agenda:       m.studentAgenda || '',
       }),
-    }).catch(e => console.warn('Student notification failed:', e));
+    }).then(async r => { if(!r.ok){
+        console.warn('Confirmation mail failed:', await r.text());
+        showToast('Confirmed, but the email to the student did not go out.');
+      }}).catch(e => {
+        console.warn('Confirmation mail failed:', e);
+        showToast('Confirmed, but the email to the student did not go out.');
+      });
 
   } catch(e) {
     showToast(`Confirm failed: ${e.message}`);
@@ -1875,6 +2171,8 @@ async function rescheduleMeetingRequest(meetingId) {
     }
     delete pendingSelSlot[meetingId];
     delete pendingPropMode[meetingId];
+    // Pull the slot out of the student's calendar; Google tells them why.
+    cancelGoogleEvent(meetingId);
     showToast('Student notified — asked to propose a different time');
     renderCurrent();
 
@@ -1892,7 +2190,13 @@ async function rescheduleMeetingRequest(meetingId) {
         format:       m.meetingFormat || 'Zoom',
         agenda:       m.studentAgenda || '',
       }),
-    }).catch(e => console.warn('Reschedule notification failed:', e));
+    }).then(async r => { if(!r.ok){
+        console.warn('Reschedule mail failed:', await r.text());
+        showToast('Marked for rescheduling, but the email to the student did not go out.');
+      }}).catch(e => {
+        console.warn('Reschedule mail failed:', e);
+        showToast('Marked for rescheduling, but the email to the student did not go out.');
+      });
     
   } catch(e) {
     showToast(`Failed: ${e.message}`);
@@ -2304,49 +2608,816 @@ function renderProgramSummary() {
 
   
 // ── MY STUDENTS ──
-function renderStudents() {
-  const mine = myStudents();
-  const baseList = studFilter === 'all' ? students : mine;
-  const fp = sessions.filter(s =>
-    s.followUp === 'Y' &&
-    (studFilter === 'all' ? true : s.faculty === FACULTY_EMAIL)
-  ).length;
-  const ns = baseList.filter(s => s.sessions === 0).length;
+// ── MY STUDENTS ──
+//
+// Two panes. The roster on the left keeps its scroll and filters while the
+// right side swaps between students, so working through a filtered list is one
+// click per student. The right side is tabbed rather than stacked: a year of
+// sessions and a running thread make one scroll several screens tall.
+//
+// openStudId is the selected student — the name is kept from the old expander
+// so the dozen places that set it (deep links, post-save refreshes) still work.
 
+function renderStudents() {
+  document.querySelector('.main')?.classList.add('wide');
+  const list = filteredStudents();
+  if (openStudId && !list.some(s => s.id === openStudId) && !students.some(s => s.id === openStudId)) {
+    openStudId = null;
+  }
   document.getElementById('page-students').innerHTML = `
-    <div class="filter-bar">
-      <span class="flabel">View:</span>
-      <button class="fchip ${studFilter==='my'?'active':''}" onclick="setStudFilter('my')">My students only</button>
-      <button class="fchip ${studFilter==='all'?'active':''}" onclick="setStudFilter('all')">Show all</button>
-      <div class="fsep"></div>
-      <button class="fchip warn ${studExtra==='fu'?'active':''}" onclick="setStudExtra('fu')">Follow-up pending (${fp})</button>
-      <button class="fchip warn ${studExtra==='ns'?'active':''}" onclick="setStudExtra('ns')">0 sessions (${ns})</button>
-      <input class="search-box" placeholder="Search by name or ID…" value="${esc(studSearch)}" oninput="studSearch=this.value;renderStudBody()">
-    </div>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr>
-          <th class="${thCls('id')}" onclick="sortStud('id')">Student ID</th>
-          <th class="${thCls('name')}" onclick="sortStud('name')">Name</th>
-          <th class="${thCls('cohort')}" onclick="sortStud('cohort')">Cohort</th>
-          <th class="${thCls('major1')}" onclick="sortStud('major1')">1st major</th>
-          <th>Role</th>
-          <th class="${thCls('sessions')}" onclick="sortStud('sessions')">Sessions</th>
-          <th class="${thCls('lastMeeting')}" onclick="sortStud('lastMeeting')">Last meeting</th>
-          <th class="${thCls('nextMeeting')}" onclick="sortStud('nextMeeting')">Next meeting</th>
-        </tr></thead>
-        <tbody id="stud-tbody"></tbody>
-      </table>
+    <div class="sp-split">
+      <div class="sp-rail">
+        <div class="sp-rail-top">
+          <input class="sp-search" id="sp-search" placeholder="Search name or ID…"
+            value="${esc(studSearch)}" oninput="studSearch=this.value;renderStudRail()">
+          <div class="sp-chips">
+            <span class="sp-chip ${studFilter==='my'?'on':''}" onclick="setStudFilter('my')">My students</span>
+            <span class="sp-chip ${studFilter==='all'?'on':''}" onclick="setStudFilter('all')">All</span>
+          </div>
+          <div class="sp-chips" id="sp-chips2"></div>
+        </div>
+        <div class="sp-rail-list" id="sp-rail-list"></div>
+        <div class="sp-rail-foot" id="sp-rail-foot"></div>
+      </div>
+      <div class="sp-detail" id="sp-detail"></div>
     </div>`;
   renderStudBody();
 }
 
+// Kept under its old name: called from save handlers, deep links and the
+// meeting flows, all of which mean "redraw the student area".
+function renderStudBody(){ renderStudRail(); renderStudDetail(); }
+
+function renderStudRail(){
+  const listEl = document.getElementById('sp-rail-list');
+  if(!listEl) return;
+
+  const base = studFilter === 'all' ? students : myStudents();
+  const fp = sessions.filter(s => s.followUp === 'Y' &&
+    (studFilter === 'all' ? true : s.faculty === FACULTY_EMAIL)).length;
+  const ns = base.filter(s => s.sessions === 0).length;
+  const chips = document.getElementById('sp-chips2');
+  if(chips) chips.innerHTML =
+    `<span class="sp-chip warn ${studExtra==='fu'?'on':''}" onclick="setStudExtra('fu')">Follow-up ${fp}</span>
+     <span class="sp-chip warn ${studExtra==='ns'?'on':''}" onclick="setStudExtra('ns')">No sessions ${ns}</span>`;
+
+  const list = filteredStudents();
+  listEl.innerHTML = list.map(st => {
+    const kr = st.nameKr ? `<em>${esc(st.nameKr)}</em>` : '';
+    return `<div class="sp-row ${openStudId===st.id?'sel':''}" onclick="selectStud('${esc(st.id)}')">
+      <div class="sp-av">${esc(initials(st.name))}</div>
+      <div style="min-width:0;flex:1;">
+        <div class="sp-nm">${esc(st.name)}${kr}</div>
+        <div class="sp-meta">${esc(st.id)} · ${esc(shortCohort(st.cohort))}</div>
+        <div class="sp-tags">${studFieldTags(st)}</div>
+      </div>
+    </div>`;
+  }).join('') || `<div class="sp-empty" style="min-height:120px;">No students match this filter.</div>`;
+
+  const foot = document.getElementById('sp-rail-foot');
+  if(foot) foot.textContent = `${list.length} student${list.length!==1?'s':''}`;
+}
+
+// A second major is a major, so both sit as filled badges and nothing ranks
+// them. Only a minor is labelled, and an undeclared major wears the amber the
+// roster uses everywhere else for something waiting on someone.
+function studFieldTags(st){
+  const out = [];
+  if(st.major1) out.push(`<span class="sp-mj">${esc(shortMajor(st.major1))}</span>`);
+  else          out.push(`<span class="sp-und">Not declared yet</span>`);
+  if(st.major2) out.push(`<span class="sp-mj">${esc(shortMajor(st.major2))}</span>`);
+  if(st.minor)  out.push(`<span class="sp-mn"><i>minor</i>${esc(shortMajor(st.minor))}</span>`);
+  return out.join('');
+}
+
+function selectStud(id){
+  if(openStudId !== id){ openStudId = id; showFormFor = null; }
+  renderStudBody();
+  document.getElementById('sp-detail')?.scrollTo({top:0});
+}
+
+const SP_TABS = [
+  {key:'profile', label:'Profile'},
+  {key:'req',     label:'Requirements'},
+  {key:'adv',     label:'Advising'},
+  {key:'msg',     label:'Messages'},
+];
+
+function setStudTab(k){ studTab = k; renderStudDetail(); }
+
+function renderStudDetail(){
+  const el = document.getElementById('sp-detail');
+  if(!el) return;
+  const st = students.find(s => s.id === openStudId);
+  if(!st){
+    el.innerHTML = `<div class="sp-empty">Select a student to see their profile,
+      requirements and advising history.</div>`;
+    return;
+  }
+
+  const adv1 = getFacultyName(st.advisor1_email);
+  const adv2 = getFacultyName(st.advisor2_email);
+  const me   = e => e && e === FACULTY_EMAIL ? ` <span class="sp-you">you</span>` : '';
+  const sec2label = st.major2 ? '2nd major' : st.minor ? 'Minor' : '';
+  const sec2value = st.major2 ? shortMajor(st.major2) : st.minor ? shortMajor(st.minor) : '';
+
+  const facts = `
+    <div class="sp-facts">
+      <span><i>Student ID</i><b>${esc(st.id)}</b></span>
+      <span><i>Cohort</i><b>${esc(shortCohort(st.cohort))}</b></span>
+      <span><i>Track</i><b>${esc(st.track||'—')}</b></span>
+      <em class="sp-sep"></em>
+      <span><i>1st major</i><b>${esc(shortMajor(st.major1))}</b></span>
+      <span><i>Advisor 1</i><b>${esc(adv1)}${me(st.advisor1_email)}</b></span>
+      ${sec2label ? `<em class="sp-sep"></em>
+      <span><i>${esc(sec2label)}</i><b>${esc(sec2value)}</b></span>
+      <span><i>Advisor 2</i><b>${esc(adv2)}${me(st.advisor2_email)}</b></span>` : ''}
+    </div>`;
+
+  const tabs = SP_TABS.map(t =>
+    `<button class="sp-tab ${studTab===t.key?'on':''}" onclick="setStudTab('${t.key}')">${t.label}${tabMark(st,t.key)}</button>`
+  ).join('');
+
+  el.innerHTML = `
+    <div class="sp-head">
+      <div class="sp-av sp-head-av">${esc(initials(st.name))}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="sp-name">${esc(st.name)}${st.nameKr?`<em>${esc(st.nameKr)}</em>`:''}</div>
+        ${facts}
+      </div>
+      <button class="sp-btn" onclick="openCheckin('${esc(st.id)}')"><i class="sp-ico">\u{1F44B}</i>Check in</button>
+    </div>
+    <div class="sp-tabs">${tabs}</div>
+    <div class="sp-body" id="sp-pane"></div>`;
+
+  renderStudPane(st);
+}
+
+function renderStudPane(st){
+  const p = document.getElementById('sp-pane');
+  if(!p) return;
+  // the tab marks read from both, so both start loading on selection
+  loadReqFor(st.id); loadMsgsFor(st.id);
+  if(studTab === 'profile') p.innerHTML = buildProfileSection(st);
+  else if(studTab === 'adv') p.innerHTML = buildAdvisingPane(st);
+  else if(studTab === 'req') p.innerHTML = buildReqPane(st);
+  else p.innerHTML = buildMsgPane(st);
+}
+
+// The timeline from the old expander, unchanged in shape: the next meeting sits
+// at the top as a dashed node and past sessions run below it.
+function buildAdvisingPane(st){
+  const stSess = sessions.filter(s => s.studentId === st.id)
+                         .sort((a,b) => b.date.localeCompare(a.date));
+  let tl = '';
+  if(showFormFor === st.id) tl += buildNsForm(st);
+
+  tl += `<div class="tl-item"><div class="tl-spine"><div class="tl-dot upcoming"></div></div>
+    <div class="tl-content" style="padding-bottom:12px;"><div class="upcoming-card">
+      ${st.nextMeeting
+        ? `<div class="upcoming-date">Next meeting: ${esc(st.nextMeeting)}</div>${
+            st.nextAgenda?`<div class="upcoming-agenda">${esc(st.nextAgenda)}</div>`:''}`
+        : `<div class="upcoming-none">Next meeting not yet scheduled</div>`}
+    </div></div></div>`;
+
+  const ci = (checkins[st.id] || []).map(c => ({ci:true, date:(c.created_at||'').slice(0,10), row:c}));
+  const events = stSess.map(s => ({ci:false, date:s.date, sess:s}))
+    .concat(ci).sort((a,b) => b.date.localeCompare(a.date));
+
+  if(events.length === 0){
+    tl += `<div class="tl-empty">No sessions recorded yet — click "+ Log session" to add the first one</div>`;
+  } else {
+    events.forEach(ev => {
+      if(ev.ci){ tl += checkinCardHtml(ev.row); return; }
+      const s = ev.sess;
+      const tc = s.type === 'Regular' ? 'blue' : 'gray';
+      const who = getFacultyName(s.faculty) || s.faculty;
+      tl += `<div class="tl-item"><div class="tl-spine"><div class="tl-dot done"></div><div class="tl-line"></div></div>
+        <div class="tl-content">
+          <div class="tl-meta"><span class="tl-date">${esc(s.date)}</span>
+            ${s.meetingTime?`<span class="tl-time">${esc(s.meetingTime)}</span>`:''}
+            ${bdg(s.type,tc)}${bdg(s.format,'gray')}
+            <span class="tl-by">${esc(who)} <span class="tl-mail">${esc(s.faculty)}</span></span>
+          </div>${buildSessCard(s)}
+        </div></div>`;
+    });
+  }
+
+  return `<div class="sp-card">
+    <div class="sp-chd"><span>Advising</span>
+      <span class="bdg bdg-blue">${stSess.length} session${stSess.length!==1?'s':''}</span>
+      <span style="margin-left:auto;">${showFormFor === st.id ? ''
+        : `<button class="sp-btn" onclick="toggleForm('${esc(st.id)}')">＋ Log session</button>`}</span>
+    </div>
+    <div class="tl-wrap">${tl}</div>
+  </div>`;
+}
+
+// ── REQUIREMENTS TAB ──
+//
+// The same table the student sees, with the same numbers: credits are computed
+// here rather than read from a column, so what an advisor reads and what the
+// student reads cannot drift apart. Categories collapse — six rows carry the
+// whole picture, and only the one being discussed needs opening.
+
+let reqOpenCat = {};   // { student_id: { category: true } }
+let reqBusy    = {};   // { student_id: true } while loading
+
+async function loadReqFor(sid){
+  if(reqDetail[sid] || reqBusy[sid]) return;
+  reqBusy[sid] = true;
+  try{
+    const [items, sum, plan, confirms] = await Promise.all([
+      sbGet(VW_REQ_STATUS,  `student_id=eq.${sid}&order=sort_order.asc`).catch(()=>[]),
+      sbGet(VW_REQ_SUMMARY, `student_id=eq.${sid}`).catch(()=>[]),
+      sbGet(TBL_REQ_COURSE,
+        `student_id=eq.${sid}&select=id,item_id,course_id,is_completed,term,credits_awarded,`
+        + `courses(course_id,code,num,title,credits,discontinued)`).catch(()=>[]),
+      sbGet(TBL_CAT_CONFIRM, `student_id=eq.${sid}`).catch(()=>[]),
+    ]);
+    reqDetail[sid] = {
+      items: items || [],
+      summary: (sum && sum[0]) || null,
+      plan: (plan || []).map(p => ({
+        id:p.id, item_id:p.item_id, course_id:p.course_id, is_completed:p.is_completed,
+        term:p.term, code:p.courses?.code||'', num:p.courses?.num||'',
+        title:p.courses?.title||p.course_id,
+        credits: p.credits_awarded ?? p.courses?.credits ?? 0,
+      })),
+      confirms: confirms || [],
+    };
+  } finally {
+    delete reqBusy[sid];
+    if(openStudId === sid && studTab === 'req') renderStudPane(students.find(s=>s.id===sid));
+  }
+}
+
+// Lifted from the student app so both sides show one number. A fixed set —
+// the six required IF courses, the country rotations — is spread evenly rather
+// than summed, which is the only way the Civic Project reconciles: each CV
+// course reads 2 credits while the requirement is 5/8/9/10 by cohort.
+function fReqCredits(r, plan){
+  const need = Number(r.required_credits) || 0;
+  const rows = plan.filter(p => p.item_id === r.item_id);
+  const sum  = f => rows.filter(f).reduce((a,p)=>a + (Number(p.credits)||0), 0);
+
+  if (r.parent_id != null) return { earned:0, planned:0, need, done:!!r.is_completed };
+
+  if (r.autoplan && rows.length){
+    const ticked = rows.filter(p=>p.is_completed).length;
+    const earned = need ? Math.round(need * ticked / rows.length) : 0;
+    return { earned, planned: Math.max(0, need - earned), need, done: ticked === rows.length };
+  }
+  if (r.course_filter){
+    const done = sum(p=>p.is_completed), todo = sum(p=>!p.is_completed);
+    if (!need) return { earned:done, planned:todo, need:0, done:done>0, isOptional:true };
+    return { earned: Math.min(done, need),
+             planned: Math.min(todo, Math.max(0, need - done)), need, done: done >= need };
+  }
+  if (r.allows_partial){
+    const v = Number(r.credits_entered) || 0;
+    if (!need) return { earned:v, planned:0, need:0, done:false, isSource:true };
+    return { earned: Math.min(v, need), planned:0, need, done: v >= need };
+  }
+  return { earned: r.is_completed ? need : 0, planned:0, need, done: !!r.is_completed };
+}
+
+function buildReqPane(st){
+  const d = reqDetail[st.id];
+  if(!d){ loadReqFor(st.id); return `<div class="sp-empty">Loading requirements…</div>`; }
+  if(!d.items.length) return `<div class="sp-empty">No requirement checklist for this student's catalog year.</div>`;
+
+  const s = d.summary || {credits_earned:0,credits_required:0,credits_planned:0,credits_unplanned:0};
+  const pct  = s.credits_required ? Math.min(100, 100*s.credits_earned/s.credits_required) : 0;
+  const pPct = s.credits_required ? Math.min(100-pct, 100*s.credits_planned/s.credits_required) : 0;
+
+  const tops = d.items.filter(r => r.parent_id == null);
+  const cats = [];
+  tops.forEach(r => {
+    let c = cats.find(x => x.name === r.category);
+    if(!c){ c = {name:r.category, items:[]}; cats.push(c); }
+    c.items.push(r);
+  });
+
+  const isAdvisor = st.advisor1_email === FACULTY_EMAIL || st.advisor2_email === FACULTY_EMAIL;
+  const open = reqOpenCat[st.id] || {};
+
+  const body = cats.map(c => {
+    const t = c.items.reduce((a,r) => { const x = fReqCredits(r, d.plan);
+      a.earned += x.earned; a.planned += x.planned; a.required += x.need; return a; },
+      {earned:0, planned:0, required:0});
+    const met     = t.earned >= t.required && t.required > 0;
+    const onTrack = t.earned + t.planned >= t.required;
+    const conf    = d.confirms.find(x => x.category === c.name);
+    const isOpen  = !!open[c.name];
+
+    const right = conf
+      ? `<span class="rq-conf">✓ Confirmed ${fmtDay(conf.confirmed_at)}</span>`
+      : met && isAdvisor
+        ? `<button class="sp-btn solid rq-cbtn" onclick="event.stopPropagation();confirmCategory('${esc(st.id)}','${esc(c.name)}',${t.earned})">Confirm category</button>`
+        : !onTrack
+          ? `<span class="rq-short">${t.required - t.earned - t.planned} credit${(t.required-t.earned-t.planned)!==1?'s':''} short</span>`
+          : '';
+
+    const head = `<tr class="rq-cat ${met?'ok':onTrack?'':'miss'} ${isOpen?'open':''}"
+        onclick="toggleReqCat('${esc(st.id)}','${esc(c.name)}')">
+      <td colspan="2"><div class="rq-cat-l"><span class="rq-car">${isOpen?'▾':'▸'}</span>
+        <span>${esc(c.name)}</span><span class="rq-right">${right}</span></div></td>
+      <td class="rq-n">${t.earned}</td>
+      <td class="rq-n plan">${t.planned||''}</td>
+      <td class="rq-n last">${t.required}</td></tr>`;
+
+    return head + (isOpen ? c.items.map(r => reqRowFor(r, d)).join('') : '');
+  }).join('');
+
+  return `<div class="sp-card">
+    <div class="sp-chd"><span>Requirements</span>
+      <span class="bdg bdg-teal">${s.credits_earned} / ${s.credits_required} credits</span>
+      <span class="bdg ${s.is_eligible?'bdg-green':'bdg-amber'}">${s.is_eligible?'Eligible':'Not yet eligible'}</span>
+    </div>
+    <div class="rq-hero">
+      <div class="rq-bar"><span style="width:${pct}%;"></span><em style="width:${pPct}%;"></em></div>
+      <div class="rq-legend"><b>${s.credits_earned}</b> earned<span class="rq-sep">·</span>
+        <b class="plan">${s.credits_planned}</b> planned<span class="rq-sep">·</span>
+        ${s.credits_unplanned} not yet planned</div>
+    </div>
+    <table class="rq-tbl">
+      <colgroup><col style="width:34px;"><col><col style="width:66px;"><col style="width:70px;"><col style="width:78px;"></colgroup>
+      <thead><tr><th></th><th class="l">Requirement</th>
+        <th>Earned</th><th class="plan">Planned</th><th class="last">Required</th></tr></thead>
+      <tbody>${body}
+        <tr class="rq-tot"><td colspan="2">Total</td>
+          <td class="rq-n">${s.credits_earned}</td>
+          <td class="rq-n plan">${s.credits_planned}</td>
+          <td class="rq-n last">${s.credits_required}</td></tr>
+        <tr><td colspan="5" class="rq-foot">The same table the student sees.
+          You can read it and confirm a completed category; only the student ticks their own courses.</td></tr>
+      </tbody></table>
+  </div>`;
+}
+
+function reqRowFor(r, d){
+  const c = fReqCredits(r, d.plan);
+  const rows = d.plan.filter(p => p.item_id === r.item_id)
+                     .slice().sort((a,b)=>((a.code||'')+(a.num||'')).localeCompare((b.code||'')+(b.num||'')));
+  const boxCls = c.done ? 'on' : c.earned ? 'part' : '';
+  const box = (c.isSource || c.isOptional) ? '' : `<div class="rq-box ${boxCls}"></div>`;
+
+  const plan = rows.length ? `<div class="rq-plan">${rows.map(p => `
+    <div class="rq-prow ${p.is_completed?'done':''}">
+      <div class="rq-mini ${p.is_completed?'on':''}"></div>
+      <code>${esc((p.code||'')+(p.num||''))}</code>
+      <span class="t">${esc(p.title)}</span>
+      ${p.term?`<span class="rq-term">${esc(p.term)}</span>`:''}
+      <span class="rq-cr">${p.credits}</span>
+    </div>`).join('')}</div>` : '';
+
+  const short = c.need - c.earned - c.planned;
+  const line = !rows.length && c.need
+    ? `<div class="rq-line">No courses planned yet.</div>`
+    : short > 0
+      ? `<div class="rq-line">${short} credit${short!==1?'s are':' is'} not in the plan yet.</div>`
+      : c.planned
+        ? `<div class="rq-line">${c.planned} credit${c.planned!==1?'s are':' is'} planned but not yet earned.</div>`
+        : '';
+
+  const earnCls = c.done ? 'ok' : c.earned ? 'part' : 'none';
+  return `<tr class="rq-row">
+    <td class="rq-chk">${box}</td>
+    <td><span class="rq-lbl">${esc(r.label)}</span>
+      ${r.detail?`<div class="rq-hint">${esc(r.detail)}</div>`:''}
+      ${plan}${line}${inlineMsgs(r.student_id || openStudId, 'item', r.item_id)}</td>
+    <td class="rq-n ${earnCls}">${c.earned || (c.isOptional?'—':0)}</td>
+    <td class="rq-n plan">${c.planned||''}</td>
+    <td class="rq-n last">${c.need===0?'—':c.need}</td></tr>`;
+}
+
+// Read in place, write in one place: the thread renders here without a box to
+// type in, and Reply carries the tag over to the composer under Messages.
+function inlineMsgs(sid, kind, key){
+  const rows = (msgs[sid]||[]).filter(n =>
+    kind==='profile' ? n.profile_key===key : String(n.item_id)===String(key));
+  if(!rows.length) return '';
+  return `<div class="rq-msgs">
+    <div class="rq-msgs-h">Messages about this
+      <span class="rq-reply" onclick="setMsgFilter('${sid}','${kind}:${key}')">Reply</span></div>
+    ${rows.map(msgRowHtml).join('')}
+  </div>`;
+}
+
+function toggleReqCat(sid, cat){
+  reqOpenCat[sid] = reqOpenCat[sid] || {};
+  if(reqOpenCat[sid][cat]) delete reqOpenCat[sid][cat]; else reqOpenCat[sid][cat] = true;
+  renderStudPane(students.find(s=>s.id===sid));
+}
+
+function fmtDay(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+// Sign-off records the credits it was given at, so a later change shows up as a
+// discrepancy rather than silently invalidating the confirmation.
+async function confirmCategory(sid, cat, credits){
+  if(!confirm(`Confirm "${cat}" as complete for this student?`)) return;
+  try{
+    const rows = await sbInsert(TBL_CAT_CONFIRM, {
+      student_id: sid, category: cat, confirmed_by: FACULTY_EMAIL, confirmed_credits: credits,
+    });
+    reqDetail[sid]?.confirms.push(...(rows||[]));
+    showToast(`✓ ${cat} confirmed`);
+    renderStudPane(students.find(s=>s.id===sid));
+  }catch(e){ showToast(`Could not confirm: ${e.message}`); }
+}
+
+// ── MESSAGES ──
+//
+// One thread per student. A message may name the requirement or profile answer
+// it is about, which puts it under that thing as well as in the thread; the
+// composer lives here and nowhere else, so there is never a question of which
+// box to type in. A check-in is a message too — it just also lands on the
+// advising timeline.
+
+let msgs        = {};   // { student_id: [rows] }
+let checkins    = {};   // { student_id: [rows from student_checkin_events] }
+let msgBusy     = {};
+let msgFilter   = {};   // { student_id: {kind:'item'|'profile', key, label} }
+let msgDraft    = {};   // { student_id: text }
+let msgVis      = {};   // { student_id: rung }
+let msgAbout    = {};   // { student_id: {kind,key,label} | null }
+
+const PROFILE_LABEL = {vision:'My Mission', career:'Career goal', research:'Research interest',
+  exp:'Significant experiences', strength:'Strengths', concerns:'Concerns & support needed'};
+
+async function loadMsgsFor(sid){
+  if(msgs[sid] || msgBusy[sid]) return;
+  msgBusy[sid] = true;
+  try{
+    const [rows, ci] = await Promise.all([
+      sbGet(TBL_REQ_NOTE, `student_id=eq.${sid}&order=created_at.asc`).catch(()=>[]),
+      sbGet(VW_CHECKIN,   `student_id=eq.${sid}&order=created_at.asc`).catch(()=>[]),
+    ]);
+    msgs[sid] = rows || [];
+    checkins[sid] = ci || [];
+  } finally {
+    delete msgBusy[sid];
+    if(openStudId === sid) renderStudPane(students.find(s=>s.id===sid));
+  }
+}
+
+function msgAuthor(n){
+  const mine = n.author_email === FACULTY_EMAIL;
+  if(n.author_role === 'student') return {name:(students.find(s=>s.email===n.author_email)?.name)||n.author_email, tag:'', cls:''};
+  return {name: mine ? 'You' : getFacultyName(n.author_email),
+          tag: n.author_role === 'advisor' ? 'Advisor' : 'Faculty', cls:'adv'};
+}
+
+function msgAnchorLabel(n){
+  if(n.profile_key) return PROFILE_LABEL[n.profile_key] || n.profile_key;
+  if(n.item_id){
+    for(const sid in reqDetail){
+      const it = reqDetail[sid].items.find(r => r.item_id === n.item_id);
+      if(it) return it.category;
+    }
+    return 'Requirement';
+  }
+  return '';
+}
+
+function msgRowHtml(n){
+  const a = msgAuthor(n);
+  const anchor = msgAnchorLabel(n);
+  const mine = n.author_email === FACULTY_EMAIL;
+  const key = n.profile_key ? `profile:${n.profile_key}` : n.item_id ? `item:${n.item_id}` : '';
+  return `<div class="mg-row">
+    <div class="mg-av ${a.cls}">${esc(initials(a.name==='You'?FACULTY:a.name))}</div>
+    <div class="mg-body">
+      <div class="mg-hd"><span class="mg-who">${esc(a.name)}</span>
+        ${a.tag?`<span class="mg-tag">${a.tag}</span>`:''}
+        ${n.kind==='checkin'?`<span class="mg-ci">Check-in</span>`:''}
+        <span class="mg-when">${fmtDay(n.created_at)}${n.edited_at?' · edited':''}</span>
+        ${anchor?`<span class="mg-anch" onclick="setMsgFilter('${esc(n.student_id)}','${key}')">${esc(anchor)}</span>`:''}
+        ${mine?`<button class="mg-del" title="Delete" onclick="deleteMsg('${esc(n.student_id)}',${n.id})">×</button>`:''}
+      </div>
+      <div class="mg-txt">${esc(n.body)}</div>
+      <div class="mg-vis">${visShort(n.visibility)}</div>
+    </div></div>`;
+}
+
+function visShort(v){
+  return v==='private' ? 'Private — you and the student'
+       : v==='chair' ? 'Visible to advisors and the chair'
+       : v==='all_faculty' ? 'Visible to all faculty'
+       : 'Visible to the assigned advisors';
+}
+
+function buildMsgPane(st){
+  const rows = msgs[st.id];
+  if(!rows){ loadMsgsFor(st.id); return `<div class="sp-empty">Loading messages…</div>`; }
+
+  const f = msgFilter[st.id];
+  const shown = f
+    ? rows.filter(n => f.kind==='profile' ? n.profile_key===f.key : String(n.item_id)===String(f.key))
+    : rows;
+  const unread = rows.filter(n => n.author_role === 'student').length;
+
+  const banner = f ? `<div class="mg-filt">
+      <span>Showing what was said about <b>${esc(f.label)}</b></span>
+      <span class="mg-filt-x" onclick="clearMsgFilter('${esc(st.id)}')">Show all messages ×</span>
+    </div>` : '';
+
+  const list = shown.length
+    ? shown.map(msgRowHtml).join('')
+    : `<div class="mg-none">${f?'Nothing has been said about this yet.':'No messages yet. Write the first one.'}</div>`;
+
+  return `<div class="sp-card">
+    <div class="sp-chd"><span>Messages</span>
+      <span class="bdg bdg-blue">${rows.length}</span>
+      ${unread?`<span class="sp-udot" title="${unread} from the student"></span>`:''}
+    </div>
+    ${banner}
+    <div class="sp-cbd">${list}
+      ${buildComposer(st)}
+    </div>
+  </div>`;
+}
+
+function buildComposer(st){
+  const about = msgAbout[st.id];
+  const vis   = msgVis[st.id] || 'advisors';
+  return `<div class="mg-row mg-compose">
+    <div class="mg-av adv">${esc(initials(FACULTY))}</div>
+    <div class="mg-body">
+      <div class="mg-nact">
+        <textarea id="mg-draft-${esc(st.id)}" rows="2" placeholder="Write to ${esc(st.name)}"
+          oninput="msgDraft['${esc(st.id)}']=this.value;msgDraftChanged('${esc(st.id)}')">${esc(msgDraft[st.id]||'')}</textarea>
+        <button class="sp-btn solid mg-post" id="mg-post-${esc(st.id)}"
+          ${(msgDraft[st.id]||'').trim()?'':'disabled'}
+          onclick="postMsg('${esc(st.id)}')">Post</button>
+      </div>
+      <div class="mg-about">About
+        <span class="mg-sel" onclick="toggleAboutMenu('${esc(st.id)}')">${about?esc(about.label):'Nothing in particular'} ▾</span>
+        <span class="mg-hint">Tag a requirement or a profile answer and the message also shows under it.</span>
+        <div class="mg-menu" id="mg-menu-${esc(st.id)}">${aboutMenuHtml(st)}</div>
+      </div>
+      <div class="mg-vislabel">Who can read it</div>
+      ${visGridHtml(st.id, vis)}
+      <div class="mg-visres">${visResultText(vis, 'message')}</div>
+    </div></div>`;
+}
+
+function aboutMenuHtml(st){
+  const d = reqDetail[st.id];
+  const cats = [];
+  (d?.items||[]).filter(r => r.parent_id == null).forEach(r => {
+    if(!cats.some(c => c.cat === r.category)) cats.push({cat:r.category, item_id:r.item_id});
+  });
+  return `<i>None</i><u onclick="setAbout('${esc(st.id)}',null)">Nothing in particular</u>
+    <i>Profile</i>${Object.keys(PROFILE_LABEL).map(k =>
+      `<u onclick="setAbout('${esc(st.id)}','profile:${k}')">${esc(PROFILE_LABEL[k])}</u>`).join('')}
+    <i>Requirements</i>${cats.map(c =>
+      `<u onclick="setAbout('${esc(st.id)}','item:${c.item_id}')">${esc(c.cat)}</u>`).join('')
+      || `<u class="dim">Open the Requirements tab first</u>`}`;
+}
+
+function setAbout(sid, key){
+  if(!key){ msgAbout[sid] = null; }
+  else {
+    const [kind, k] = key.split(':');
+    msgAbout[sid] = {kind, key:k, label: kind==='profile'
+      ? PROFILE_LABEL[k]
+      : (reqDetail[sid]?.items.find(r=>String(r.item_id)===String(k))?.category || 'Requirement')};
+  }
+  renderStudPane(students.find(s=>s.id===sid));
+}
+function toggleAboutMenu(sid){
+  document.getElementById('mg-menu-'+sid)?.classList.toggle('on');
+}
+function setMsgFilter(sid, key){
+  const [kind, k] = key.split(':');
+  const label = kind==='profile' ? PROFILE_LABEL[k]
+    : (reqDetail[sid]?.items.find(r=>String(r.item_id)===String(k))?.category || 'Requirement');
+  msgFilter[sid] = {kind, key:k, label};
+  msgAbout[sid] = {kind, key:k, label};
+  studTab = 'msg';
+  renderStudDetail();
+}
+function clearMsgFilter(sid){ delete msgFilter[sid]; renderStudPane(students.find(s=>s.id===sid)); }
+function msgDraftChanged(sid){
+  const b = document.getElementById('mg-post-'+sid);
+  if(b) b.disabled = !(msgDraft[sid]||'').trim();
+}
+function setMsgVis(sid, v){
+  msgVis[sid] = v;
+  const modal = document.getElementById('ci-modal');
+  if(modal?.classList.contains('on')){
+    const keep = document.getElementById('ci-body')?.value || '';
+    openCheckin(sid);
+    const box = document.getElementById('ci-body'); if(box) box.value = keep;
+  } else renderStudPane(students.find(s=>s.id===sid));
+}
+
+async function postMsg(sid, kind){
+  const body = (msgDraft[sid]||'').trim();
+  if(!body) return;
+  const about = msgAbout[sid];
+  const btn = document.getElementById('mg-post-'+sid);
+  if(btn){ btn.disabled = true; btn.textContent = 'Posting…'; }
+  try{
+    const row = {
+      student_id: sid, body,
+      visibility: msgVis[sid] || 'advisors',
+      kind: kind || 'message',
+      item_id: about?.kind==='item' ? Number(about.key) : null,
+      profile_key: about?.kind==='profile' ? about.key : null,
+      // the trigger overwrites both from the token; sent so the insert is
+      // well-formed even if a policy shape changes
+      author_email: FACULTY_EMAIL, author_role: 'advisor',
+    };
+    const rows = await sbInsert(TBL_REQ_NOTE, row);
+    msgs[sid] = (msgs[sid]||[]).concat(rows||[]);
+    delete msgDraft[sid];
+    if(kind === 'checkin') checkins[sid] = null;   // reload with the masked view
+    renderStudDetail();
+    return rows && rows[0];
+  }catch(e){
+    showToast(`Could not post: ${e.message}`);
+    if(btn){ btn.disabled = false; btn.textContent = 'Post'; }
+  }
+}
+
+async function deleteMsg(sid, id){
+  if(!confirm('Delete this message?')) return;
+  try{
+    await sbDelete(TBL_REQ_NOTE, 'id', id);
+    msgs[sid] = (msgs[sid]||[]).filter(n => n.id !== id);
+    renderStudPane(students.find(s=>s.id===sid));
+  }catch(e){ showToast(`Could not delete: ${e.message}`); }
+}
+
+
+// ── CHECK-IN ──
+//
+// A short note that goes into the thread and reaches the student as mail. What
+// an advisor usually wants is not a slot but contact, and offering times to
+// someone whose term you know nothing about makes them decline before they can
+// answer — so the mail asks the student to open a meeting request instead, and
+// the scheduling that already exists takes it from there.
+
+// The fact of a check-in is open to every faculty member; the words answer to
+// the rung. can_read_body says which case this is, so a masked card can say so
+// rather than looking like an empty one.
+function checkinCardHtml(c){
+  const who = getFacultyName(c.author_email) || c.author_email;
+  const t = (c.created_at||'').slice(11,16);
+  const body = c.can_read_body
+    ? `<div class="fld"><b>Message</b><p>${esc(c.body||'')}</p></div>`
+    : `<div class="fld"><p style="color:var(--text3);font-style:italic;">Content visible to the sender and the student.</p></div>`;
+  return `<div class="tl-item"><div class="tl-spine"><div class="tl-dot sent"></div><div class="tl-line"></div></div>
+    <div class="tl-content">
+      <div class="tl-meta"><span class="tl-date">${esc((c.created_at||'').slice(0,10))}</span>
+        <span class="tl-time">${esc(t)}</span>
+        ${bdg('Check-in','blue')}${bdg('Email','gray')}
+        <span class="tl-by">${esc(who)} <span class="tl-mail">${esc(c.author_email)}</span></span>
+      </div>
+      <div class="sess-card"><div class="card-bot" style="grid-template-columns:1fr;">${body}</div></div>
+    </div></div>`;
+}
+
+// The tab says what is further down: categories waiting on a signature, and
+// messages from the student.
+function tabMark(st, key){
+  if(key === 'req'){
+    const d = reqDetail[st.id];
+    if(!d) return '';
+    const isAdvisor = st.advisor1_email === FACULTY_EMAIL || st.advisor2_email === FACULTY_EMAIL;
+    if(!isAdvisor) return '';
+    const cats = {};
+    d.items.filter(r => r.parent_id == null).forEach(r => {
+      const x = fReqCredits(r, d.plan);
+      const c = cats[r.category] || (cats[r.category] = {e:0,n:0});
+      c.e += x.earned; c.n += x.need;
+    });
+    const n = Object.keys(cats).filter(k =>
+      cats[k].n > 0 && cats[k].e >= cats[k].n && !d.confirms.some(c => c.category === k)).length;
+    return n ? `<span class="sp-badge">${n}</span>` : '';
+  }
+  if(key === 'msg'){
+    const rows = msgs[st.id];
+    if(!rows) return '';
+    return rows.some(n => n.author_role === 'student') ? `<span class="sp-udot"></span>` : '';
+  }
+  return '';
+}
+
+function openCheckin(sid){
+  const st = students.find(s => s.id === sid);
+  if(!st) return;
+  const last = (checkins[sid]||[]).slice(-1)[0];
+  msgVis[sid] = msgVis[sid] || 'advisors';
+  const m = document.getElementById('ci-modal');
+  m.innerHTML = `<div class="ci-box">
+    <div class="ci-hd">Check in with ${esc(st.name)}
+      <button class="ci-x" onclick="closeCheckin()">×</button></div>
+    <div class="ci-bd">
+      <div class="mg-vislabel" style="margin-top:0;">Your message</div>
+      <textarea id="ci-body" rows="3" placeholder="How is the semester treating you?"></textarea>
+      <div class="mg-hint" style="margin-top:6px;">Posted to the thread and emailed to the student.
+        Both of their advisors see it in the advising history — no mail goes to them.
+        Keep it short: this is a nudge.</div>
+      <div class="mg-vislabel">Who can read it</div>
+      ${visGridHtml(sid, msgVis[sid], 'ci')}
+      <div class="mg-visres">${visResultText(msgVis[sid], 'message')}</div>
+      <div class="ci-ft">
+        <span class="mg-hint" style="margin:0;">${last?`Last check-in ${fmtDay(last.created_at)}`:'No check-in yet'}</span>
+        <button class="sp-btn" onclick="closeCheckin()">Cancel</button>
+        <button class="sp-btn solid" id="ci-send" onclick="sendCheckin('${esc(sid)}')">Send check-in</button>
+      </div>
+    </div></div>`;
+  m.classList.add('on');
+  setTimeout(()=>document.getElementById('ci-body')?.focus(), 40);
+}
+function closeCheckin(){ document.getElementById('ci-modal')?.classList.remove('on'); }
+
+// mailto: opens a draft in the advisor's own mail client. It cannot be sent
+// programmatically and the app never learns whether it went — which is why it
+// is the fallback and not the mechanism. What it does give is a message that
+// genuinely comes from the advisor, inside the same domain, with no provider
+// in the way. Body is kept plain and short: mailto: is URL-encoded plain text
+// and clients truncate it.
+function checkinMailto(st, body){
+  const first = String(st.name||'').split(' ')[0];
+  const lines = [
+    `Hi ${first},`, '',
+    body, '',
+    'You can reply here, or open Telos to request a meeting:',
+    'https://jkwahk02.github.io/Telos/student/', '',
+    FACULTY,
+  ].join('\r\n');
+  // The address itself stays literal: '@' is legal in a mailto: and some
+  // clients balk at %40.
+  return `mailto:${(st.email||'').trim()}`
+    + `?subject=${encodeURIComponent('Checking in')}`
+    + `&body=${encodeURIComponent(lines)}`;
+}
+
+function showCheckinFallback(sid, body, why){
+  const st = students.find(s => s.id === sid);
+  const box = document.querySelector('#ci-modal .ci-bd');
+  if(!box || !st){ closeCheckin(); showToast('Posted to the thread, but the email did not go out.'); return; }
+  box.innerHTML = `
+    <div style="background:var(--amber-l);border:1px solid var(--amber-b);border-radius:var(--r);
+      padding:12px 14px;font-size:15px;color:var(--amber-d);line-height:1.55;">
+      <b>The message is saved, but the email did not go out.</b><br>
+      Telos cannot send from an unverified domain yet, so ${esc(st.name)} has not been told.
+      You can send it yourself — the draft is already written.
+    </div>
+    ${why?`<div class="mg-hint" style="margin-top:8px;">Provider said: ${esc(String(why).slice(0,240))}</div>`:''}
+    <div class="ci-ft">
+      <span class="mg-hint" style="margin:0;">${st.email?esc(st.email):'No email on file for this student'}</span>
+      <button class="sp-btn" onclick="closeCheckin()">Not now</button>
+      ${st.email?`<a class="sp-btn solid" style="text-decoration:none;" href="${checkinMailto(st, body)}"
+        onclick="setTimeout(closeCheckin,300)">Open email draft</a>`:''}
+    </div>`;
+}
+
+async function sendCheckin(sid){
+  const body = (document.getElementById('ci-body')?.value||'').trim();
+  if(!body){ showToast('Write a line first.'); return; }
+  const btn = document.getElementById('ci-send');
+  if(btn){ btn.disabled = true; btn.textContent = 'Sending…'; }
+  msgDraft[sid] = body;
+  const saved = await postMsg(sid, 'checkin');
+  if(!saved){ if(btn){ btn.disabled=false; btn.textContent='Send check-in'; } return; }
+
+  // The message is in the thread either way; the mail is a notice about it.
+  // While the sending domain is unverified that notice can be refused, so the
+  // failure is shown rather than swallowed, with the draft one click away.
+  let mailed = true, why = '';
+  try{
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/notify-student-checkin`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${supabaseUser.access_token}`},
+      body: JSON.stringify({ studentId: sid, message: body }),
+    });
+    if(!r.ok){ mailed = false; why = await r.text(); console.warn('Check-in mail failed:', why); }
+  }catch(e){ mailed = false; why = e.message; console.warn('Check-in mail failed:', e); }
+
+  delete checkins[sid]; delete msgs[sid];
+  loadMsgsFor(sid);
+
+  if(mailed){ closeCheckin(); showToast('✓ Check-in sent'); return; }
+  showCheckinFallback(sid, body, why);
+}
+
+
 function thCls(col){return studSort.col===col?('sort-'+(studSort.dir===1?'asc':'desc')):'';}
-function setStudFilter(v){studFilter=v;studExtra='';renderStudents();}
-function setStudExtra(v){studExtra=studExtra===v?'':v;renderStudBody();}
+function setStudFilter(v){studFilter=v;studExtra='';renderStudRail();}
+function setStudExtra(v){studExtra=studExtra===v?'':v;renderStudRail();}
 function sortStud(col){
   if(studSort.col===col)studSort.dir*=-1;else{studSort.col=col;studSort.dir=1;}
-  renderStudBody();
+  renderStudRail();
 }
 
 function filteredStudents(){
@@ -2367,51 +3438,6 @@ function filteredStudents(){
   });
 }
 
-function renderStudBody(){
-  const list=filteredStudents();
-  const tbody=document.getElementById('stud-tbody');
-  if(!tbody)return;
-  tbody.innerHTML='';
-
-  // Update count
-  let cnt=document.querySelector('#page-students .fcount');
-  if(!cnt){cnt=document.createElement('span');cnt.className='fcount';document.querySelector('#page-students .filter-bar')?.appendChild(cnt);}
-  if(cnt) cnt.textContent=`${list.length} student${list.length!==1?'s':''}`;
-
-  list.forEach(st=>{
-    const isOpen=openStudId===st.id;
-    const role=studFilter==='all'?(st.advisor1===FACULTY?'Primary':st.advisor2===FACULTY?'Secondary':'—'):roleFor(st);
-    const rc=role==='Primary'?'blue':role==='Secondary'?'gray':'gray';
-    const tr=document.createElement('tr');
-    tr.className=isOpen?'row-active':'';
-    tr.onclick=()=>toggleStud(st.id);
-    tr.innerHTML=`
-      <td class="td-fc mono">${esc(st.id)}</td>
-      <td style="font-weight:500;white-space:nowrap;">${esc(st.name)}${st.nameKr?` <span class="text-muted" style="font-size:13px;font-weight:400;">${esc(st.nameKr)}</span>`:''}</td>
-      <td>${esc(shortCohort(st.cohort))}</td>
-      <td>${esc(shortMajor(st.major1))}</td>
-      <td>${bdg(role,rc)}</td>
-      <td style="font-weight:500;color:${st.sessions===0?'var(--red)':'var(--green)'};">${st.sessions}</td>
-      <td class="${!st.lastMeeting?'text-muted':''}">${esc(st.lastMeeting)||'—'}</td>
-      <td class="${!st.nextMeeting?'text-warn':''}" style="${!st.nextMeeting?'font-weight:500;':''}">${esc(st.nextMeeting)||'Not scheduled'}</td>`;
-    tbody.appendChild(tr);
-
-    if(isOpen){
-      const xtr=document.createElement('tr');
-      xtr.className='xtr';
-      xtr.innerHTML = `<td colspan="8"><div class="xwrap open" id="sp-${esc(st.id)}">${buildStudPanel(st)}</div></td>`;
-      tbody.appendChild(xtr);
-    }
-  });
-}
-
-function toggleStud(id){
-  openStudId=openStudId===id?null:id;
-  if(openStudId!==id){showFormFor=null;}
-  selTopics=[];
-  renderStudBody();
-}
-  
 function closeStud(){openStudId=null;showFormFor=null;renderStudBody();}
 
 const PROFILE_DEFS = [
@@ -2498,6 +3524,7 @@ function buildProfileSection(st) {
           ${chipHtml ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:${text?'4':'0'}px;">${chipHtml}</div>` : ''}
           ${textHtml}
           ${emptyHtml}
+          ${inlineMsgs(st.id, 'profile', d.key)}
         </div>
       </div>`;
   }).join('');
@@ -2518,68 +3545,6 @@ function buildProfileSection(st) {
     </div>`;
 }
   
-function buildStudPanel(st){
-  const sec2label = st.major2 ? '2nd major' : st.minor ? 'Minor' : '';
-  const sec2value = st.major2 ? shortMajor(st.major2) : st.minor ? shortMajor(st.minor) : '';
-  const adv1 = getFacultyName(st.advisor1_email);
-  const adv2 = getFacultyName(st.advisor2_email);
-  const myRole = st.advisor1_email === FACULTY_EMAIL ? 'Primary' : st.advisor2_email === FACULTY_EMAIL ? 'Secondary' : '';
-
-  const abExtra = `
-    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
-      <div class="ab-item"><div class="ab-lbl">Student ID</div><div class="ab-val">${esc(st.id)}</div></div>
-      <div class="ab-item"><div class="ab-lbl">Cohort</div><div class="ab-val">${esc(shortCohort(st.cohort))}</div></div>
-      <div class="ab-item"><div class="ab-lbl">Track</div><div class="ab-val">${esc(st.track||'—')}</div></div>
-      <div style="width:1px;background:var(--border-em);margin:0 12px;align-self:stretch;"></div>
-      <div class="ab-item"><div class="ab-lbl">1st major</div><div class="ab-val">${esc(shortMajor(st.major1))}</div></div>
-      <div class="ab-item"><div class="ab-lbl">Advisor 1</div><div class="ab-val">${esc(adv1)}</div></div>
-      ${sec2label ? `
-      <div style="width:1px;background:var(--border-em);margin:0 12px;align-self:stretch;"></div>
-      <div class="ab-item"><div class="ab-lbl">${esc(sec2label)}</div><div class="ab-val">${esc(sec2value)}</div></div>
-      <div class="ab-item"><div class="ab-lbl">Advisor 2</div><div class="ab-val">${esc(adv2)}</div></div>` : ''}
-    </div>`;
-    
-  const stSess=sessions.filter(s=>s.studentId===st.id).sort((a,b)=>b.date.localeCompare(a.date));
-  let tl='';
-  if(showFormFor===st.id) tl+=buildNsForm(st);
-
-  // upcoming
-  tl+=`<div class="tl-item"><div class="tl-spine"><div class="tl-dot upcoming"></div></div>
-    <div class="tl-content" style="padding-bottom:12px;"><div class="upcoming-card">
-      ${st.nextMeeting
-        ?`<div class="upcoming-date">Next meeting: ${esc(st.nextMeeting)}</div>${st.nextAgenda?`<div class="upcoming-agenda">${esc(st.nextAgenda)}</div>`:''}`
-        :`<div class="upcoming-none">Next meeting not yet scheduled</div>`}
-    </div></div></div>`;
-
-  if(stSess.length===0){
-    tl+=`<div class="tl-empty">No sessions recorded yet — click "+ Log session" to add the first one</div>`;
-  } else {
-    stSess.forEach(s=>{
-      const tc=s.type==='Regular'?'blue':'gray';
-      tl+=`<div class="tl-item"><div class="tl-spine"><div class="tl-dot done"></div><div class="tl-line"></div></div>
-        <div class="tl-content">
-          <div class="tl-meta"><span class="tl-date">${esc(s.date)}</span><span class="tl-logid">${esc(s.logId)}</span>
-            ${bdg(s.type,tc)}${bdg(s.format,'gray')}${bdg('Completed','green')}
-          </div>${buildSessCard(s)}
-        </div></div>`;
-    });
-  }
-
-  return `<div class="action-bar">
-      <div class="ab-items">${abExtra}</div>
-      <div class="ab-btns">
-        ${showFormFor === st.id
-          ? ''
-          : `<button class="btn-log" onclick="event.stopPropagation();toggleForm('${st.id}')">+ Log session</button>`
-        }
-        <button class="btn-cls" onclick="event.stopPropagation();closeStud()">×</button>
-      </div>
-    </div>
-    ${buildProfileSection(st)}
-    <div style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:5px 16px 4px;background:var(--surface2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">Advising timeline</div>
-    <div class="tl-wrap">${tl}</div>`;
-}
-
 function buildSessCard(s){
   return `<div class="sess-card">
     <div class="two-pane">
