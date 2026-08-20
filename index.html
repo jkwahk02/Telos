@@ -1596,6 +1596,7 @@ document.querySelectorAll('.nav-tab').forEach(t => {
 
 function renderCurrent() {
   if (!dataLoaded) return;
+  sweepStaleEvents();   // a slot released elsewhere is still in this calendar
   const measured = currentPage === 'codebook' || currentPage === 'settings';
   document.querySelector('.main')?.classList.toggle('narrow', measured);
   if (currentPage==='overview') renderOverview();
@@ -1705,6 +1706,21 @@ async function patchGoogleEventLink(meetingId){
           ].filter(Boolean).join('\n'),
         }) });
   }catch(e){ console.warn('Calendar link update failed:', e); }
+}
+
+let staleSwept = false;
+async function sweepStaleEvents(){
+  if(staleSwept || !gcalToken || !gcalCalendarId) return;
+  staleSwept = true;
+  const stale = meetings.filter(m => m.gcalEventId && !m.advisorConfirmed);
+  for(const m of stale){
+    await cancelGoogleEvent(m.id);
+    console.log('Released calendar slot for meeting', m.id, '— no longer confirmed');
+  }
+  if(stale.length){
+    showToast(`${stale.length} calendar slot${stale.length>1?'s':''} released — the meeting${stale.length>1?'s were':' was'} rescheduled`);
+    renderCurrent();
+  }
 }
 
 async function cancelGoogleEvent(meetingId){
@@ -1855,11 +1871,20 @@ return `
       <div style="height:1px;background:var(--border);"></div>
       <div>
         <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Meeting status</div>
-        <button onclick="event.stopPropagation();markMeetingCompleted(${m.id})"
-          style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--green-l);color:var(--green);border:1px solid var(--green-b);font-size:13px;font-weight:600;cursor:pointer;">
-          ✓ Mark as completed
-        </button>
-        <span style="font-size:12px;color:var(--text3);margin-left:10px;">Session log can be added later from My Students.</span>
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+          <button onclick="event.stopPropagation();markMeetingCompleted(${m.id})"
+            style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--green-l);color:var(--green);border:1px solid var(--green-b);font-size:13px;font-weight:600;cursor:pointer;">
+            ✓ Mark as completed
+          </button>
+          <button onclick="event.stopPropagation();rescheduleMeetingRequest(${m.id})"
+            style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--surface);color:var(--text2);border:1px solid var(--border-em);font-size:13px;cursor:pointer;">
+            Ask to reschedule
+          </button>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:7px;">
+          Session log can be added later from My Students.
+          Rescheduling releases this time and asks ${esc(st?.name?.split(' ')[0] || 'the student')} to propose new ones.
+        </div>
       </div>
     </div>`;
 }
@@ -2176,7 +2201,11 @@ m.advisorConfirmed = true;
 }
 
 async function rescheduleMeetingRequest(meetingId) {
-  if (!confirm('Ask this student to propose a different time?')) return;
+  const wasConfirmed = meetings.find(x => String(x.id) === String(meetingId))?.advisorConfirmed;
+  if (!confirm(wasConfirmed
+    ? 'Release this confirmed meeting and ask the student to propose new times?\n'
+      + 'The time comes out of their calendar and they are told why.'
+    : 'Ask this student to propose a different time?')) return;
   try {
     await sbUpdate(TBL_MEETING, 'id', meetingId, {
       status:           'rescheduling',
@@ -2212,8 +2241,8 @@ async function rescheduleMeetingRequest(meetingId) {
         format:       m.meetingFormat || 'Zoom',
         agenda:       m.studentAgenda || '',
       }),
-    }).then(async r => { if(!r.ok) rescheduleMailFallback(m, st, await r.text()); })
-      .catch(e => rescheduleMailFallback(m, st, e.message));
+    }).then(async r => { if(!r.ok) rescheduleMailFallback(m, st, await r.text(), wasConfirmed); })
+      .catch(e => rescheduleMailFallback(m, st, e.message, wasConfirmed));
     
   } catch(e) {
     showToast(`Failed: ${e.message}`);
@@ -3426,15 +3455,19 @@ function confirmMailFallback(m, st, slot, why){
   });
 }
 
-function rescheduleMailFallback(m, st, why){
+function rescheduleMailFallback(m, st, why, wasConfirmed){
   showMailFallback({
     name: st?.name || m.studentId, email: st?.email || '',
-    headline: 'The request is marked for rescheduling, but the student has not been emailed.',
+    headline: wasConfirmed
+      ? 'The meeting is released, but the student has not been emailed.'
+      : 'The request is marked for rescheduling, but the student has not been emailed.',
     subject: 'Could we reschedule our meeting?',
     lines: [
       `Dear ${String(st?.name||'').split(' ')[0]},`, '',
-      'I am not able to make the time we had, and have asked Telos to reopen it.',
-      'Could you propose a few new times that suit you?', '',
+      wasConfirmed
+        ? 'Something has come up and I can no longer make the time we agreed. I am sorry.'
+        : 'I am not able to make any of the times you proposed.',
+      'Could you propose a few new ones that suit you?', '',
       'You can do that here: https://jkwahk02.github.io/Telos/student/', '',
       FACULTY,
     ],
