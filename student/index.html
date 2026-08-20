@@ -1091,6 +1091,7 @@ let selectedOtherEmail    = null;
 let meetingDuration       = 60;   // minutes
 let selectedMeetingSlots  = [];   // [{dateStr, start, end, dateLabel}]
 let editingRequestId      = null;   // ← 추가: 수정 중인 pending request ID
+let justRequestedId       = null;   // 방금 제출한 요청 — 메일 안내를 함께 표시
 let helpHeroOpen = false;
 
 // ── UTILS ──
@@ -3312,10 +3313,20 @@ const pendingHtml = pending.length ? `
                 href="${requestMailto(m)}">✉ Email my advisor</a>
               <button class="btn-sm-out" style="color:var(--red);border-color:var(--red-l);" onclick="withdrawRequest(${m.id})">Withdraw</button>
             </div>
-            <div style="font-size:12px;color:var(--text3);line-height:1.5;">
-              Your advisor is notified in Telos. If you have been waiting a while,
-              emailing them directly is the surest way to be seen.
-            </div>
+            ${m.id===justRequestedId
+              ? `<div style="background:var(--accent-l);border:1px solid var(--accent-b);
+                   border-radius:var(--r);padding:11px 13px;display:flex;align-items:center;
+                   gap:11px;flex-wrap:wrap;">
+                  <div style="flex:1;min-width:180px;font-size:13px;color:var(--teal);line-height:1.5;">
+                    <b>Request submitted.</b> Your advisor sees it next time they open Telos.
+                    A short email makes sure they know today.</div>
+                  <a class="btn-sm-teal" style="text-decoration:none;display:inline-flex;align-items:center;"
+                    href="${requestMailto(m)}">✉ Email my advisor</a>
+                </div>`
+              : `<div style="font-size:12px;color:var(--text3);line-height:1.5;">
+                  Your advisor is notified in Telos. If you have been waiting a while,
+                  emailing them directly is the surest way to be seen.
+                </div>`}
           </div>
         </div>`;
       }).join('')}
@@ -4115,6 +4126,7 @@ async function submitRequest(){
     };
     const result=await sbInsert(TBL_MEETING,row);
     scheduledMeetings.push(result[0]||row);
+    justRequestedId=result[0]?.id ?? null;
     requestFormOpen=false;
     selectedFacultyEmail=null;
     selectedMeetingSlots=[];
