@@ -31,6 +31,8 @@ button,input,select,textarea{font-family:inherit;}
 .nav-tab{font-size:17px;font-weight:400;color:var(--text2);padding:0 16px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px;transition:color .15s;white-space:nowrap;}
 .nav-tab:hover{color:var(--text);}
 .nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500;}
+.nav-dot{width:7px;height:7px;border-radius:50%;background:var(--amber-b);display:none;}
+.nav-dot.on{display:inline-block;}
 .nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
 .nav-source{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:5px;}
 .src-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
@@ -719,6 +721,50 @@ button,input,select,textarea{font-family:inherit;}
 .req-note-body textarea:focus{outline:none;border-color:var(--accent-m);}
 .req-note-actions{display:flex;align-items:center;gap:9px;margin-top:7px;}
 .req-note-hint{font-size:12px;color:var(--text3);}
+/* the thread's own home, and the read-only copy under what it is about */
+.req-note-ci{font-size:11px;background:var(--accent-l);color:var(--accent);padding:1px 7px;
+  border-radius:20px;font-weight:600;}
+.req-note-anch{font-size:12px;color:var(--text2);border:1px solid var(--border-em);
+  border-radius:20px;padding:0 8px;margin-left:auto;cursor:pointer;}
+.req-note-anch:hover{border-color:var(--blue-m);color:var(--blue);}
+.req-inmsg{margin-top:11px;border-top:1px solid var(--border);padding-top:10px;}
+.req-inmsg-h{display:flex;font-size:11px;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--text3);margin-bottom:10px;}
+.req-inmsg-reply{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:400;
+  font-size:13px;color:var(--blue);cursor:pointer;}
+.req-inmsg-reply:hover{text-decoration:underline;}
+.req-inmsg .req-note-del{display:none;}
+.stu-msg-hd{padding:11px 16px;border-bottom:1px solid var(--border);background:var(--surface2);
+  font-size:15px;font-weight:600;display:flex;align-items:center;gap:9px;}
+.stu-msg-filt{padding:9px 16px;background:var(--blue-l);border-bottom:1px solid var(--blue-b);
+  font-size:13px;color:var(--blue);display:flex;align-items:center;}
+.stu-msg-x{margin-left:auto;cursor:pointer;text-decoration:underline;}
+.stu-msg-body{padding:14px 16px;}
+.stu-msg-none{font-size:14px;color:var(--text3);padding:6px 0 14px;}
+.stu-compose{border-top:1px solid var(--border);padding-top:14px;margin-top:4px;}
+.stu-nact{display:flex;align-items:flex-start;gap:8px;}
+.stu-nact textarea{flex:1;min-width:0;border:1px solid var(--border-em);border-radius:var(--r);
+  padding:9px 11px;font-size:14px;font-family:inherit;color:var(--text);
+  background:var(--surface);resize:vertical;}
+.stu-nact textarea:focus{outline:none;border-color:var(--accent-m);}
+.stu-nact button{flex-shrink:0;}
+.stu-nact button:disabled{opacity:.45;cursor:default;}
+.stu-about{position:relative;display:flex;align-items:center;gap:9px;margin-top:9px;
+  font-size:13px;color:var(--text3);flex-wrap:wrap;}
+.stu-sel{border:1px solid var(--border-em);border-radius:var(--r);padding:3px 11px;
+  color:var(--text2);background:var(--surface);cursor:pointer;}
+.stu-sel:hover{border-color:var(--accent-m);}
+.stu-about-hint{font-size:13px;color:var(--text3);}
+.stu-menu{display:none;position:absolute;left:46px;bottom:100%;margin-bottom:6px;z-index:30;
+  background:var(--surface);border:1px solid var(--border-em);border-radius:var(--r);
+  padding:6px 0;box-shadow:0 8px 26px rgba(0,0,0,.12);min-width:230px;
+  max-height:320px;overflow-y:auto;}
+.stu-menu.on{display:block;}
+.stu-menu i{display:block;font-style:normal;font-size:11px;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--text3);padding:7px 13px 3px;}
+.stu-menu u{display:block;text-decoration:none;font-size:14px;color:var(--text2);
+  padding:5px 13px;cursor:pointer;}
+.stu-menu u:hover{background:var(--surface2);color:var(--text);}
 .req-nc{background:var(--surface);border:1px solid var(--amber-b);border-radius:var(--r-lg);overflow:hidden;margin-bottom:12px;}
 .req-nc.done{border-color:var(--accent-b);}
 .req-nc-hd{background:var(--amber-l);padding:7px 16px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--amber-d);}
@@ -848,6 +894,7 @@ button,input,select,textarea{font-family:inherit;}
     <button class="nav-tab active" data-page="overview">Overview</button>
     <button class="nav-tab" data-page="profile">My Profile</button>
     <button class="nav-tab" data-page="requirements">Requirements</button>
+    <button class="nav-tab" data-page="messages">Messages<span class="nav-dot" id="msg-dot"></span></button>
     <button class="nav-tab" data-page="meetings">Meetings</button>
     <button class="nav-tab" data-page="help">Help & Guide</button>
     <button class="nav-tab" data-page="settings">Settings</button>
@@ -943,6 +990,7 @@ button,input,select,textarea{font-family:inherit;}
   <div class="page active" id="page-overview"></div>
   <div class="page" id="page-profile"></div>
   <div class="page" id="page-requirements"></div>
+  <div class="page" id="page-messages"></div>
   <div class="page" id="page-meetings"></div>
   <div class="page" id="page-help"></div>
   <div class="page" id="page-settings"></div>
@@ -1018,6 +1066,9 @@ let reqPlan       = [];      // student_requirement_courses (본인) + 과목 �
 let reqNotes      = [];      // student_requirement_notes (본인)
 let reqConfirms   = [];      // student_category_confirmations (본인)
 let reqThreadOpen = {};      // { item_id: true } — 스레드 펼침 상태
+let reqMsgFilter  = null;    // { kind, key, label } — 특정 주제로 좁혀 볼 때
+let reqMsgAbout   = null;    // { kind, key, label } — 작성 중인 글의 태그
+let reqMsgDraft   = '';      // 작성 중인 글
 let reqDraft      = {};      // { item_id: '작성 중인 글' }
 let courseLineage = [];      // course_lineage — 코드가 바뀐 과목의 구/신 대응
 let pickerItem    = null;    // 과목 계획 팝업이 열려 있는 항목
@@ -1335,6 +1386,7 @@ async function loadData(){
     STUDENT_TIMEZONE = studentData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     dataLoaded=true;
     renderCurrent();
+    applyDeepLink();   // a link from an email lands on what the email asked for
   }catch(e){
     console.error('Load error:',e);
     dot.className='src-dot error';
@@ -1381,6 +1433,8 @@ function renderCurrent(){
   if(currentPage==='overview') renderOverview();
   if(currentPage==='profile')  renderProfile();
   if(currentPage==='requirements') renderRequirements();
+  if(currentPage==='messages'){ renderMessages(); stuMarkSeen(); }
+  refreshMsgDot();
   if(currentPage==='meetings') renderMeetings();
   if(currentPage==='settings') renderSettings();
   if(currentPage==='help')     renderHelp();
@@ -1990,8 +2044,9 @@ function reqRowHtml(r){
         onchange="reqSaveCredits(${r.item_id}, this)">${cap}</div>`;
   }
 
-  // note: shown when present, otherwise behind a link
-  const note = reqThreadHtml(r);
+  // Read in place, write in one place: the thread renders under the
+  // requirement without a box, and Reply carries the tag to the composer.
+  const note = stuInlineMsgs('item', r.item_id);
 
   const kids = reqChildrenOf(r.item_id).map(k => `<tr class="req-sub">
       <td class="req-chk"><div class="req-box ${k.is_completed?'on':''}" onclick="reqToggleItem(${k.item_id})"></div></td>
@@ -2401,6 +2456,202 @@ function reqNoteAuthor(n){
   const fac = allFaculty.find(f => f.email === n.author_email);
   const name = fac?.name_en || n.author_email;
   return { name, initials: initials(name), advisor:true };
+}
+
+const STU_PROFILE_LABEL = {vision:'My Mission', career:'Career goal',
+  research:'Research interest', exp:'Significant experiences',
+  strength:'Strengths', concerns:'Concerns & support needed'};
+
+function stuMsgAuthor(n){
+  if(n.author_role === 'student') return {name:'You', initials:initials(studentData?.name_en||'You'), advisor:false};
+  const fac = allFaculty.find(f => f.email === n.author_email);
+  const name = fac?.name_en || n.author_email;
+  return {name, initials:initials(name), advisor:true};
+}
+
+function stuMsgAnchor(n){
+  if(n.profile_key) return {key:'profile:'+n.profile_key, label: STU_PROFILE_LABEL[n.profile_key] || n.profile_key};
+  if(n.item_id){
+    const it = reqItems.find(r => r.item_id === n.item_id);
+    return {key:'item:'+n.item_id, label: it ? it.category : 'Requirement'};
+  }
+  return null;
+}
+
+function stuMsgRow(n){
+  const a = stuMsgAuthor(n);
+  const mine = n.author_email === (supabaseUser?.user?.email || '');
+  const anc = stuMsgAnchor(n);
+  return `<div class="req-note-row">
+    <div class="req-note-av ${a.advisor?'adv':''}">${esc(a.initials)}</div>
+    <div class="req-note-body">
+      <div class="req-note-head">
+        <span class="req-note-who">${esc(a.name)}</span>
+        ${a.advisor?`<span class="req-note-tag">Advisor</span>`:''}
+        ${n.kind==='checkin'?`<span class="req-note-ci">Check-in</span>`:''}
+        <span class="req-note-when">${reqNoteWhen(n.created_at)}${n.edited_at?' · edited':''}</span>
+        ${anc?`<span class="req-note-anch" onclick="stuMsgFilterSet('${anc.key}')">${esc(anc.label)}</span>`:''}
+        ${mine?`<button class="req-note-del" title="Delete" onclick="reqDeleteNote(${n.id})">×</button>`:''}
+      </div>
+      <div class="req-note-text">${esc(n.body)}</div>
+    </div></div>`;
+}
+
+// Under a requirement or a profile answer: what was said, in full, with no box
+// to type in. Writing happens in one place.
+function stuInlineMsgs(kind, key){
+  const rows = reqNotes.filter(n => kind==='profile' ? n.profile_key===key
+                                                     : String(n.item_id)===String(key))
+                       .sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at)));
+  if(!rows.length) return '';
+  return `<div class="req-inmsg">
+    <div class="req-inmsg-h">Messages about this
+      <span class="req-inmsg-reply" onclick="stuMsgFilterSet('${kind}:${key}')">Reply</span></div>
+    ${rows.map(stuMsgRow).join('')}
+  </div>`;
+}
+
+function stuMsgFilterSet(key){
+  const [kind, k] = key.split(':');
+  reqMsgFilter = {kind, key:k, label: kind==='profile'
+    ? (STU_PROFILE_LABEL[k]||k)
+    : (reqItems.find(r=>String(r.item_id)===String(k))?.category || 'Requirement')};
+  reqMsgAbout = reqMsgFilter;
+  goToPage('messages');
+  setTimeout(()=>document.getElementById('stu-draft')?.focus(), 80);
+}
+function stuMsgFilterClear(){ reqMsgFilter = null; renderMessages(); }
+function stuMsgAbout(key){
+  if(!key) reqMsgAbout = null;
+  else {
+    const [kind, k] = key.split(':');
+    reqMsgAbout = {kind, key:k, label: kind==='profile'
+      ? (STU_PROFILE_LABEL[k]||k)
+      : (reqItems.find(r=>String(r.item_id)===String(k))?.category || 'Requirement')};
+  }
+  renderMessages();
+}
+function stuMsgMenu(){ document.getElementById('stu-about-menu')?.classList.toggle('on'); }
+function stuDraftChanged(){
+  const b = document.getElementById('stu-post');
+  if(b) b.disabled = !(reqMsgDraft||'').trim();
+}
+
+// The whole thread, at the foot of the page.
+function stuMsgPane(){
+  const all = reqNotes.slice().sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at)));
+  const f = reqMsgFilter;
+  const shown = f
+    ? all.filter(n => f.kind==='profile' ? n.profile_key===f.key : String(n.item_id)===String(f.key))
+    : all;
+
+  const cats = [];
+  reqTop().forEach(r => { if(!cats.some(c=>c.cat===r.category)) cats.push({cat:r.category, item_id:r.item_id}); });
+
+  const banner = f ? `<div class="stu-msg-filt">
+      <span>Showing what was said about <b>${esc(f.label)}</b></span>
+      <span class="stu-msg-x" onclick="stuMsgFilterClear()">Show all messages ×</span>
+    </div>` : '';
+
+  const list = shown.length ? shown.map(stuMsgRow).join('')
+    : `<div class="stu-msg-none">${f?'Nothing has been said about this yet.'
+        :'No messages yet. Ask your advisor anything — you do not need to be formal.'}</div>`;
+
+  return `<div class="req-wrap" id="stu-msgs">
+    <div class="stu-msg-hd">Messages with your advisors
+      <span class="bdg bdg-blue">${all.length}</span></div>
+    ${banner}
+    <div class="stu-msg-body">${list}
+      <div class="req-note-row stu-compose">
+        <div class="req-note-av">${esc(initials(studentData?.name_en||''))}</div>
+        <div class="req-note-body">
+          <div class="stu-nact">
+            <textarea id="stu-draft" rows="2" placeholder="Ask your advisor anything — no need to be formal"
+              oninput="reqMsgDraft=this.value;stuDraftChanged()">${esc(reqMsgDraft||'')}</textarea>
+            <button class="btn-sm-teal" id="stu-post" ${(reqMsgDraft||'').trim()?'':'disabled'}
+              onclick="stuPostMsg()">Post</button>
+          </div>
+          <div class="stu-about">About
+            <span class="stu-sel" onclick="stuMsgMenu()">${reqMsgAbout?esc(reqMsgAbout.label):'Nothing in particular'} ▾</span>
+            <span class="stu-about-hint">Tag a requirement and the message also shows under it.</span>
+            <div class="stu-menu" id="stu-about-menu">
+              <i>None</i><u onclick="stuMsgAbout(null)">Nothing in particular</u>
+              <i>My profile</i>${Object.keys(STU_PROFILE_LABEL).map(k =>
+                `<u onclick="stuMsgAbout('profile:${k}')">${esc(STU_PROFILE_LABEL[k])}</u>`).join('')}
+              <i>Requirements</i>${cats.map(c =>
+                `<u onclick="stuMsgAbout('item:${c.item_id}')">${esc(c.cat)}</u>`).join('')}
+            </div>
+          </div>
+          <div class="stu-about-hint" style="margin-top:6px;">Your advisors can read this.</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// A link from an email should land on the thing the email asked for.
+function applyDeepLink(){
+  let p;
+  try { p = new URLSearchParams(location.search); } catch { return; }
+  if(p.get('request') !== 'meeting') return;
+  const advisor = p.get('advisor') || '';
+  // clear it so a refresh does not reopen the form
+  history.replaceState({}, '', location.pathname + location.hash);
+  setTimeout(() => {
+    try{
+      goToMeetings();
+      openRequestForm(advisor && allFaculty.some(f => f.email === advisor) ? advisor : null);
+    }catch(e){ console.warn('Deep link failed:', e); }
+  }, 300);
+}
+
+function renderMessages(){
+  const el = document.getElementById('page-messages');
+  if(!el) return;
+  el.innerHTML = `
+    <div style="margin-bottom:14px;">
+      <div style="font-size:22px;font-weight:600;letter-spacing:-.01em;">Messages</div>
+      <div style="font-size:14px;color:var(--text2);line-height:1.55;margin-top:3px;max-width:64ch;">
+        One thread with your advisors. A message about a requirement or a profile answer
+        also appears under it, so you can pick up where you left off.</div>
+    </div>` + stuMsgPane();
+}
+
+// An advisor has written since the student last opened the tab.
+function stuUnread(){
+  const last = Number(localStorage.getItem('telos_msg_seen') || 0);
+  return reqNotes.some(n => n.author_role !== 'student'
+    && new Date(n.created_at || 0).getTime() > last);
+}
+function stuMarkSeen(){
+  localStorage.setItem('telos_msg_seen', String(Date.now()));
+  document.getElementById('msg-dot')?.classList.remove('on');
+}
+function refreshMsgDot(){
+  document.getElementById('msg-dot')?.classList.toggle('on', stuUnread());
+}
+
+async function stuPostMsg(){
+  const body = (reqMsgDraft||'').trim();
+  if(!body) return;
+  const btn = document.getElementById('stu-post');
+  if(btn){ btn.disabled = true; btn.textContent = 'Posting…'; }
+  try{
+    const rows = await sbInsert(TBL_REQ_NOTE, {
+      student_id: studentData.id, body,
+      item_id: reqMsgAbout?.kind==='item' ? Number(reqMsgAbout.key) : null,
+      profile_key: reqMsgAbout?.kind==='profile' ? reqMsgAbout.key : null,
+      // the trigger overwrites author and visibility from the token; sent so
+      // the insert is well-formed even if a policy shape changes
+      author_email: supabaseUser?.user?.email || '', author_role: 'student',
+    });
+    reqNotes = reqNotes.concat(rows || []);
+    reqMsgDraft = '';
+    renderMessages();
+  }catch(e){
+    showToast(`Could not post: ${e.message}`);
+    if(btn){ btn.disabled = false; btn.textContent = 'Post'; }
+  }
 }
 
 function reqThreadHtml(r){
@@ -3055,9 +3306,15 @@ const pendingHtml = pending.length ? `
                 <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">My proposed slots</div>
                 ${mySlotHtml}
               </div>`}
-            <div style="display:flex;gap:7px;">
+            <div style="display:flex;gap:7px;flex-wrap:wrap;">
               <button class="btn-sm-out" onclick="openEditRequest(${m.id})">✎ Edit request</button>
+              <a class="btn-sm-out" style="text-decoration:none;display:inline-flex;align-items:center;"
+                href="${requestMailto(m)}">✉ Email my advisor</a>
               <button class="btn-sm-out" style="color:var(--red);border-color:var(--red-l);" onclick="withdrawRequest(${m.id})">Withdraw</button>
+            </div>
+            <div style="font-size:12px;color:var(--text3);line-height:1.5;">
+              Your advisor is notified in Telos. If you have been waiting a while,
+              emailing them directly is the surest way to be seen.
             </div>
           </div>
         </div>`;
@@ -3869,6 +4126,33 @@ async function submitRequest(){
   }
 }
 
+function requestMailto(m){
+  const fac = allFaculty.find(f => f.email === m.faculty_email);
+  const slots = m.proposed_slots
+    ? (typeof m.proposed_slots === 'string' ? JSON.parse(m.proposed_slots) : m.proposed_slots)
+    : [];
+  // Plain text and short: mailto: is URL-encoded and clients truncate it.
+  const lines = [
+    `Dear Professor ${fac?.name_en || ''},`, '',
+    `I have submitted a meeting request in Telos (${m.meeting_format || 'Zoom'}, ${m.meeting_duration || 60} min).`,
+    '',
+    'Times I proposed:',
+    ...(slots.length
+      ? slots.map(sl => `  · ${sl.dateLabel || sl.dateStr} ${sl.start}-${sl.end}`)
+      : ['  · (none listed)']),
+    '',
+    ...(m.student_agenda ? ['What I would like to discuss:', m.student_agenda, ''] : []),
+    'You can confirm a time here: https://jkwahk02.github.io/Telos/',
+    '',
+    studentData?.name_en || '',
+  ].join('\r\n');
+  // The address itself stays literal: '@' is legal in a mailto: and some
+  // clients balk at %40.
+  return `mailto:${(m.faculty_email || '').trim()}`
+    + `?subject=${encodeURIComponent('Meeting request in Telos')}`
+    + `&body=${encodeURIComponent(lines)}`;
+}
+
 async function withdrawRequest(meetingId){
   if(!confirm('Withdraw this meeting request?')) return;
   try{
@@ -4244,12 +4528,14 @@ function goToProfile(){
   document.getElementById('page-profile').classList.add('active');
   currentPage='profile';renderProfile();
 }
-function goToMeetings(){
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active',t.dataset.page==='meetings'));
+function goToPage(pg){
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active',t.dataset.page===pg));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-meetings').classList.add('active');
-  currentPage='meetings';renderMeetings();
+  document.getElementById('page-'+pg)?.classList.add('active');
+  currentPage=pg;
+  renderCurrent();
 }
+function goToMeetings(){ goToPage('meetings'); }
 
 // ── USER MENU ──
 function toggleUserMenu(){document.getElementById('nav-dropdown').classList.toggle('open');}
