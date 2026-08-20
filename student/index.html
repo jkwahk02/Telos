@@ -1092,6 +1092,7 @@ let meetingDuration       = 60;   // minutes
 let selectedMeetingSlots  = [];   // [{dateStr, start, end, dateLabel}]
 let editingRequestId      = null;   // ← 추가: 수정 중인 pending request ID
 let justRequestedId       = null;   // 방금 제출한 요청 — 메일 안내를 함께 표시
+let justReleasedConfirmed = false;  // 그 요청이 확정된 미팅을 무른 것인지
 let helpHeroOpen = false;
 
 // ── UTILS ──
@@ -3318,8 +3319,9 @@ const pendingHtml = pending.length ? `
                    border-radius:var(--r);padding:11px 13px;display:flex;align-items:center;
                    gap:11px;flex-wrap:wrap;">
                   <div style="flex:1;min-width:180px;font-size:13px;color:var(--teal);line-height:1.5;">
-                    <b>Request submitted.</b> Your advisor sees it next time they open Telos.
-                    A short email makes sure they know today.</div>
+                    ${justReleasedConfirmed
+                      ? '<b>The old time is released.</b> Your advisor may still have it blocked out — Telos does not email them about a change like this, so please send a line.'
+                      : '<b>Request submitted.</b> Your advisor sees it next time they open Telos. A short email makes sure they know today.'}</div>
                   <a class="btn-sm-teal" style="text-decoration:none;display:inline-flex;align-items:center;"
                     href="${requestMailto(m)}">✉ Email my advisor</a>
                 </div>`
@@ -4127,6 +4129,7 @@ async function submitRequest(){
     const result=await sbInsert(TBL_MEETING,row);
     scheduledMeetings.push(result[0]||row);
     justRequestedId=result[0]?.id ?? null;
+    justReleasedConfirmed=false;
     requestFormOpen=false;
     selectedFacultyEmail=null;
     selectedMeetingSlots=[];
@@ -4144,17 +4147,25 @@ function requestMailto(m){
     ? (typeof m.proposed_slots === 'string' ? JSON.parse(m.proposed_slots) : m.proposed_slots)
     : [];
   // Plain text and short: mailto: is URL-encoded and clients truncate it.
+  // A first request and a released one are not the same message. The second
+  // undoes a time the advisor had agreed to and may have blocked out, so it
+  // says so rather than arriving as though nothing had been settled.
+  const released = m.id === justRequestedId && justReleasedConfirmed;
   const lines = [
     `Dear Professor ${fac?.name_en || ''},`, '',
-    `I have submitted a meeting request in Telos (${m.meeting_format || 'Zoom'}, ${m.meeting_duration || 60} min).`,
+    released
+      ? 'I am sorry — I can no longer make the time we had agreed, so I have released it in Telos and proposed some new ones.'
+      : `I have submitted a meeting request in Telos (${m.meeting_format || 'Zoom'}, ${m.meeting_duration || 60} min).`,
     '',
-    'Times I proposed:',
+    released ? 'New times I can do:' : 'Times I proposed:',
     ...(slots.length
       ? slots.map(sl => `  · ${sl.dateLabel || sl.dateStr} ${sl.start}-${sl.end}`)
       : ['  · (none listed)']),
     '',
     ...(m.student_agenda ? ['What I would like to discuss:', m.student_agenda, ''] : []),
-    'You can confirm a time here: https://jkwahk02.github.io/Telos/',
+    released
+      ? 'The old slot has been released. You can confirm a new one here: https://jkwahk02.github.io/Telos/'
+      : 'You can confirm a time here: https://jkwahk02.github.io/Telos/',
     '',
     studentData?.name_en || '',
   ].join('\r\n');
@@ -4184,7 +4195,8 @@ async function saveEditRequest(meetingId) {
   const agenda = document.getElementById('req-agenda')?.value.trim() || '';
   if (!selectedMeetingSlots.length) { showToast('Please select at least one slot.'); return; }
 
-  const isRescheduling = m.status === 'rescheduling' || m.advisor_confirmed === true;
+  const wasConfirmed   = m.advisor_confirmed === true;
+  const isRescheduling = m.status === 'rescheduling' || wasConfirmed;
   
   const patch = {
     student_agenda:   agenda,
@@ -4209,8 +4221,9 @@ async function saveEditRequest(meetingId) {
       m.advisor_confirmed = false;
 //      m.meeting_date      = null;
     }
-    editingRequestId     = null;
-    requestFormOpen      = false;
+    editingRequestId      = null;
+    if (isRescheduling) { justRequestedId = meetingId; justReleasedConfirmed = wasConfirmed; }
+    requestFormOpen       = false;
     selectedFacultyEmail = null;
     selectedMeetingSlots = [];
     renderMeetings();
