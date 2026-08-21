@@ -795,6 +795,7 @@ button,input,select,textarea{font-family:inherit;}
 .req-mini{width:16px;height:16px;border-radius:4px;flex-shrink:0;cursor:pointer;
   border:1.5px solid var(--blue-b);background:var(--surface);}
 .req-mini.on{background:var(--accent);border-color:var(--accent);position:relative;}
+.req-mini.ro{cursor:default;}
 .req-mini.on:after{content:'✓';position:absolute;inset:0;color:#fff;font-size:11px;
   font-weight:700;display:flex;align-items:center;justify-content:center;}
 .req-x{border:none;background:none;color:var(--text3);cursor:pointer;font-size:16px;
@@ -1729,17 +1730,14 @@ function reqCredits(r){
 
   if (r.parent_id != null) return { earned:0, planned:0, need, done:!!r.is_completed };
 
-  // A fixed set — the six required IF courses, the country rotations — is not
-  // chosen, so the requirement is spread evenly across it rather than summed
-  // from the course rows. That is the only way the Civic Project reconciles:
-  // each CV course reads 2 credits, but the requirement is 5 / 8 / 9 / 10 by
-  // cohort because the value rose from 1 to 2 mid-transition.
-  if (r.autoplan && rows.length){
-    const ticked = rows.filter(p=>p.is_completed).length;
-    const earned = need ? Math.round(need * ticked / rows.length) : 0;
-    return { earned, planned: Math.max(0, need - earned), need,
-             done: ticked === rows.length };
-  }
+  // A fixed set — the six required IF courses, the country rotations — used to
+  // be credited by spreading the requirement across its courses rather than
+  // adding up what the student earned, because a Civic Project is worth 1
+  // credit or 2 depending on when it was sat and the course row cannot say
+  // which. credits_awarded carries that now, so these items are summed like
+  // everything else. A student who completed the rotation before the credit
+  // rose therefore reads short of the requirement, which is what the registrar
+  // says too.
   if (r.course_filter){
     const done = sum(p=>p.is_completed), todo = sum(p=>!p.is_completed);
     // An optional item carries no requirement of its own but still earns what
@@ -2008,7 +2006,9 @@ function reqRowHtml(r){
     const ticked = rows.filter(p=>p.is_completed).length;
     action = rows.length
       ? `<div class="req-done-line">
-          <span>${ticked === rows.length ? 'All complete.' : `${ticked} of ${rows.length} complete — set by your cohort.`}</span>
+          <span>${ticked === rows.length ? 'All complete.'
+            : `${ticked} of ${rows.length} complete — your cohort's rotation.`}
+            Took a different destination? Adjust it here.</span>
           <button class="req-edit" onclick="reqOpenPicker(${r.item_id})">Adjust</button></div>`
       : `<div class="req-empty slim"><p>This set is fixed for your cohort but has not loaded yet.</p>
           <button class="req-btn" onclick="reqOpenPicker(${r.item_id})">Open</button></div>`;
@@ -2782,14 +2782,37 @@ async function reqReload(){
 // Items flagged autoplan have a fixed course list the student cannot choose
 // from — the six required Innovation Foundation courses. Seed them once so a
 // first-time student sees a meaningful plan instead of an empty table.
+// Every code that stands for the same thing as this one — its predecessors,
+// its successor, and the substitutes that filled the same slot. Used to decide
+// whether a destination is already in the plan under another name.
+function reqSameAs(courseId){
+  const out = new Set([courseId]);
+  let grew = true;
+  while(grew){
+    grew = false;
+    for(const l of courseLineage){
+      const p = l.predecessor_course_id, s = l.successor_course_id;
+      if(out.has(p) && !out.has(s)){ out.add(s); grew = true; }
+      if(out.has(s) && !out.has(p)){ out.add(p); grew = true; }
+    }
+  }
+  return out;
+}
+
 async function seedAutoPlan(sid){
   // Items the student does not choose from: the six required Innovation
-  // Foundation courses, and the Field Practice country rotations.
+  // Foundation courses, and the Field Practice country rotations. The cohort's
+  // set is offered as a starting point; the student adjusts it when their own
+  // term went differently — a visa refusal, a substituted destination.
   const auto = reqItems.filter(r => r.autoplan && r.course_filter);
   if(!auto.length) return;
-  const have = new Set(reqPlan.map(p => p.course_id));
-  const pending = auto.filter(r => !reqPlan.some(p => p.item_id === r.item_id));
-  if(!pending.length) return;
+
+  // A destination already in the plan blocks every code that means the same
+  // destination, whichever generation it belongs to.
+  const have = new Set();
+  reqPlan.forEach(p => reqSameAs(p.course_id).forEach(c => have.add(c)));
+
+  const pending = auto;
 
   const rows = [];
   for(const r of pending){
@@ -2803,7 +2826,7 @@ async function seedAutoPlan(sid){
     }
     pool.forEach(c => {
       if(!have.has(c.course_id)){
-        have.add(c.course_id);
+        reqSameAs(c.course_id).forEach(x => have.add(x));
         rows.push({ student_id: sid, item_id: r.item_id, course_id: c.course_id, is_completed: false });
       }
     });
