@@ -2924,7 +2924,7 @@ function fReqCredits(r, plan){
   if (r.course_filter){
     const done = sum(p=>p.is_completed), todo = sum(p=>!p.is_completed);
     if (!need) return { earned:done, planned:todo, need:0, done:done>0, isOptional:true };
-    return { earned: Math.min(done, need),
+    return { earned: done,
              planned: todo, need, done: done >= need };
   }
   if (r.allows_partial){
