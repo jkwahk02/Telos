@@ -1745,8 +1745,8 @@ function reqCredits(r){
     // course belongs to exactly one requirement, this is the only place that
     // credit can be counted.
     if (!need) return { earned: done, planned: todo, need:0, done: done > 0, isOptional:true };
-    return { earned: Math.min(done, need),
-             planned: Math.min(todo, Math.max(0, need - done)), need,
+    return { earned: done,
+             planned: todo, need,
              done: done >= need };
   }
   if (r.allows_partial){                       // partner university, MOOC
