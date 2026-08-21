@@ -2913,11 +2913,14 @@ function fReqCredits(r, plan){
 
   if (r.parent_id != null) return { earned:0, planned:0, need, done:!!r.is_completed };
 
-  if (r.autoplan && rows.length){
-    const ticked = rows.filter(p=>p.is_completed).length;
-    const earned = need ? Math.round(need * ticked / rows.length) : 0;
-    return { earned, planned: Math.max(0, need - earned), need, done: ticked === rows.length };
-  }
+  // A fixed set — the six required IF courses, the country rotations — used to
+  // be credited by spreading the requirement across its courses rather than
+  // adding up what the student earned, because a Civic Project is worth 1
+  // credit or 2 depending on when it was sat and the course row cannot say
+  // which. credits_awarded carries that now, so these items are summed like
+  // everything else. A student who completed the rotation before the credit
+  // rose therefore reads short of the requirement, which is what the registrar
+  // says too.
   if (r.course_filter){
     const done = sum(p=>p.is_completed), todo = sum(p=>!p.is_completed);
     if (!need) return { earned:done, planned:todo, need:0, done:done>0, isOptional:true };
