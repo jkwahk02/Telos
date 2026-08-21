@@ -2675,10 +2675,7 @@ function renderStudents() {
         <div class="sp-rail-top">
           <input class="sp-search" id="sp-search" placeholder="Search name or ID…"
             value="${esc(studSearch)}" oninput="studSearch=this.value;renderStudRail()">
-          <div class="sp-chips">
-            <span class="sp-chip ${studFilter==='my'?'on':''}" onclick="setStudFilter('my')">My students</span>
-            <span class="sp-chip ${studFilter==='all'?'on':''}" onclick="setStudFilter('all')">All</span>
-          </div>
+          <div class="sp-chips" id="sp-chips1"></div>
           <div class="sp-chips" id="sp-chips2"></div>
         </div>
         <div class="sp-rail-list" id="sp-rail-list"></div>
@@ -2701,6 +2698,14 @@ function renderStudRail(){
   const fp = sessions.filter(s => s.followUp === 'Y' &&
     (studFilter === 'all' ? true : s.faculty === FACULTY_EMAIL)).length;
   const ns = base.filter(s => s.sessions === 0).length;
+  // The scope chips are redrawn here too. setStudFilter only calls this
+  // function, so a chip left behind by the page-level render would keep the
+  // old selection highlighted while the list below it changed.
+  const scope = document.getElementById('sp-chips1');
+  if(scope) scope.innerHTML =
+    `<span class="sp-chip ${studFilter==='my'?'on':''}" onclick="setStudFilter('my')">My students</span>
+     <span class="sp-chip ${studFilter==='all'?'on':''}" onclick="setStudFilter('all')">All</span>`;
+
   const chips = document.getElementById('sp-chips2');
   if(chips) chips.innerHTML =
     `<span class="sp-chip warn ${studExtra==='fu'?'on':''}" onclick="setStudExtra('fu')">Follow-up ${fp}</span>
