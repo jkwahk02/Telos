@@ -1097,7 +1097,7 @@ let justReleasedConfirmed = false;  // 그 요청이 확정된 미팅을 무른 
 let helpHeroOpen = false;
 
 // ── UTILS ──
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function initials(n){return (n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 function shortMajor(m){
   const map={'Data Science and Artificial Intelligence':'DSAI',
@@ -4297,6 +4297,7 @@ function renderSettings() {
           Managed by administrator
         </div>
         ${[
+          ['Name',   studentData?.name_en  || '—'],
           ['Email',  studentData?.email    || '—'],
           ['Cohort', studentData?.cohort   || '—'],
           ['School', studentData?.school   || '—'],
@@ -4309,14 +4310,6 @@ function renderSettings() {
         <div class="settings-section-divider">
           <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-8 8H3v-3l8-8z"/></svg>
           Editable by you
-        </div>
-        <div class="settings-field-row editable">
-          <div class="settings-edit-bar"></div>
-          <div class="settings-field-label">Display name</div>
-          <div class="settings-field-input">
-            <input class="fi" id="stu-name" value="${esc(studentData?.name_en||'')}"
-              style="height:30px;font-size:14px;" oninput="markSettingsDirty()">
-          </div>
         </div>
         <div class="settings-field-row editable">
           <div class="settings-edit-bar"></div>
@@ -4347,20 +4340,14 @@ function markSettingsDirty() {
 }
 
 async function saveSettings() {
-  const tz   = document.getElementById('stu-tz-select')?.value;
-  const name = document.getElementById('stu-name')?.value.trim();
-  if (!name) { showToast('Name cannot be empty.'); return; }
+  const tz = document.getElementById('stu-tz-select')?.value;
   const btn = document.getElementById('btn-save-settings');
   const status = document.getElementById('stu-save-status');
   if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
   try {
-    await sbPatch(TBL_STUDENTS, 'id', studentData.id, { timezone: tz, name_en: name });
+    await sbPatch(TBL_STUDENTS, 'id', studentData.id, { timezone: tz });
     studentData.timezone = tz;
-    studentData.name_en  = name;
     STUDENT_TIMEZONE = tz;
-    document.getElementById('nav-name').textContent   = name;
-    document.getElementById('nav-avatar').textContent = initials(name);
-    document.getElementById('dd-name').textContent    = name;
     if (status) { status.textContent = 'Saved ✓'; setTimeout(() => { status.textContent = ''; }, 2500); }
     showToast('Timezone updated');
   } catch(e) {
