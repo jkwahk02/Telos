@@ -2855,8 +2855,12 @@ function windRailTo(id, done){
   const row = listEl?.querySelector(`.sp-row[data-id="${CSS.escape(id)}"]`);
   if(!listEl || !row){ finish(); return; }
 
+  // Measured, not offsetTop: the list is position:static, so offsetTop is
+  // counted from some ancestor further up and carries the page chrome with it -
+  // which is exactly how far short the reel was stopping.
   const from = listEl.scrollTop;
-  const to   = Math.max(0, Math.min(row.offsetTop, listEl.scrollHeight - listEl.clientHeight));
+  const want = from + row.getBoundingClientRect().top - listEl.getBoundingClientRect().top;
+  const to   = Math.max(0, Math.min(want, listEl.scrollHeight - listEl.clientHeight));
   if(Math.abs(to - from) < 2){ finish(); return; }
 
   if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
