@@ -2742,6 +2742,10 @@ function renderStudents() {
   if (openStudId && !list.some(s => s.id === openStudId) && !students.some(s => s.id === openStudId)) {
     openStudId = null;
   }
+  // Arriving on an empty page and being told to pick someone is a step nobody
+  // wants: the first name on the roster is as good a place to start as any, and
+  // it shows what the page is for.
+  if (!openStudId && list.length) openStudId = list[0].id;
   document.getElementById('page-students').innerHTML = `
     <div class="sp-topbar">
       <div class="sp-chips" id="sp-chips1"></div>
