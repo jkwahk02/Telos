@@ -679,6 +679,18 @@ button,input,select,textarea{font-family:inherit;}
 .req-sub .req-chk{padding-left:38px !important;}
 .req-sub .req-box{width:13px;height:13px;border-radius:4px;}
 .req-sub .req-box.on:after{font-size:9px;}
+/* Moving a course between requirements. The grip marks a course that has
+   somewhere else to go; while one is being dragged the requirements that can
+   count it are lit and the rest recede, so an impossible move is visibly
+   impossible rather than refused after the fact. */
+.req-grip{width:16px;text-align:center;color:#c9c7c1;cursor:grab;font-size:13px;
+  line-height:1;user-select:none;flex-shrink:0;}
+.req-grip:active{cursor:grabbing;}
+.req-nogrip{width:16px;flex-shrink:0;}
+.req-prow:hover .req-grip{color:var(--text2);}
+.req-prow.dragging{opacity:.35;}
+tr.req-can>td{background:var(--blue-l);box-shadow:inset 0 2px 0 var(--blue),inset 0 -2px 0 var(--blue);}
+tr.req-cant>td{opacity:.4;}
 .req-ci{display:flex;align-items:center;gap:7px;margin-top:6px;flex-wrap:wrap;}
 .req-ci label{font-size:13px;color:var(--text2);}
 .req-ci input{width:72px;height:32px;border:1px solid var(--border-em);border-radius:var(--r);background:var(--surface);padding:0 8px;font-size:13px;font-weight:600;text-align:center;color:var(--text);}
@@ -1383,6 +1395,9 @@ async function loadData(){
     });
         
     reqItems      = reqRows || [];
+    reqBuildEligibility().then(() => {
+      if(currentPage === 'requirements') renderRequirements();
+    });
     reqCats       = reqCatRows || [];
     courseLineage = lineageRows || [];
     reqSummary = (reqSumRows && reqSumRows[0]) || null;
@@ -1909,6 +1924,61 @@ function goToRequirements(){
 
 // ── the checklist ──
 
+// One set of handlers for the page, bound once. Rows are redrawn constantly, so
+// nothing is attached to them - the page listens and works out which row it was.
+function reqBindDrag(){
+  const el = document.getElementById('page-requirements');
+  if(!el || el.dataset.dnd) return;
+  el.dataset.dnd = '1';
+  let held = null;
+
+  const clear = () => {
+    el.querySelectorAll('tr.req-can, tr.req-cant')
+      .forEach(x => x.classList.remove('req-can','req-cant'));
+    el.querySelectorAll('.req-prow.dragging').forEach(x => x.classList.remove('dragging'));
+    held = null;
+  };
+
+  el.addEventListener('dragstart', e => {
+    const row = e.target.closest('.req-prow[draggable="true"]'); if(!row) return;
+    held = reqPlan.find(p => String(p.id) === row.dataset.rowid);
+    if(!held){ return; }
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', held.course_id);
+    const ok = reqTargetsFor(held.course_id, held.item_id);
+    el.querySelectorAll('tr[data-item]').forEach(tr => {
+      const id = Number(tr.dataset.item);
+      if(id === held.item_id) return;
+      tr.classList.add(ok.has(id) ? 'req-can' : 'req-cant');
+    });
+  });
+
+  // Only a requirement that can hold the course accepts the drop; the rest
+  // never call preventDefault, so the pointer says no on its own.
+  el.addEventListener('dragover', e => {
+    if(!held || !e.target.closest('tr.req-can')) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  });
+
+  el.addEventListener('drop', async e => {
+    const tr = e.target.closest('tr.req-can'); if(!tr || !held) return;
+    e.preventDefault();
+    const row = held, to = Number(tr.dataset.item);
+    clear();
+    try{
+      await sbPatch(TBL_REQ_COURSE, 'id', row.id,
+        { item_id: to, updated_at: new Date().toISOString() });
+      await reqReload();
+      showToast(`${reqCourseCode(row)} moved.`);
+    }catch(err){
+      showToast(`Could not move it: ${err.message}`);
+    }
+  });
+
+  el.addEventListener('dragend', clear);
+}
+
 function renderRequirements(){
   const el = document.getElementById('page-requirements');
   if(!reqItems.length){
@@ -1996,6 +2066,7 @@ function renderRequirements(){
       <tr><td colspan="5" class="req-foot">Graduation is based on total credits earned, not the number of courses completed. Changes save automatically.</td></tr>
       </tbody></table></div>`
     + reqPickerHtml();
+  reqBindDrag();
 
   // the picker markup ships an empty list container; fill it now that it exists
   if(pickerItem) renderPickerRows();
@@ -2031,14 +2102,21 @@ function reqRowHtml(r){
       // top moves a row the instant it is ticked, so the next one the student
       // aims at has already shifted out from under the pointer.
       .slice().sort((a,b)=>reqCourseCode(a).localeCompare(reqCourseCode(b)))
-      .map(p => `<div class="req-prow ${p.is_completed?'done':''}">
+      .map(p => {
+        const movable = reqTargetsFor(p.course_id, r.item_id).size > 0;
+        return `<div class="req-prow ${p.is_completed?'done':''}"
+        ${movable?'draggable="true"':''} data-rowid="${p.id}">
+        ${movable
+          ? `<span class="req-grip" title="Drag to another requirement">⠿</span>`
+          : `<span class="req-nogrip"></span>`}
         <div class="req-mini ${p.is_completed?'on':''}" onclick="reqToggleCourse(${p.id})"></div>
         <code>${esc(reqCourseCode(p))}</code>
         <span class="t">${esc(p.title)}</span>
         ${p.term?`<span class="req-term">${esc(p.term)}</span>`:''}
         <span class="req-cr">${p.credits}</span>
         <button class="req-x" title="Remove from plan" onclick="reqRemoveCourse(${p.id})">×</button>
-      </div>`).join('') + `</div>`;
+      </div>`;
+      }).join('') + `</div>`;
   }
 
   let action = '';
@@ -2097,7 +2175,7 @@ function reqRowHtml(r){
       <td class="req-num">—</td><td class="req-num plan"></td><td class="req-num last">—</td></tr>`).join('');
 
   const earnCls = done ? 'ok' : earn ? 'part' : 'none';
-  return `<tr>
+  return `<tr${isCourseBased?` data-item="${r.item_id}"`:''}>
       <td class="req-chk">${box}</td>
       <td><span class="req-lbl">${esc(r.label)}</span> ${confirmed}
         ${detail}${plan_html}${action}${note}</td>
@@ -2131,6 +2209,40 @@ function reqResolveFilter(f){
     // rather than showing an empty list.
     if(v && v !== 'Self-designed') out.program = v;
   }
+  return out;
+}
+
+// Which requirements could count each course. The picker already knows how to
+// read a course_filter; this asks it once per requirement when the checklist
+// loads, so a drag can say straight away where a course may land instead of
+// finding out on the drop.
+//
+// A requirement whose filter resolves to nothing - free electives - takes
+// anything, and is recorded as such rather than fetching the whole catalogue.
+let reqEligible = new Map();
+let reqAnyItem  = [];
+
+async function reqBuildEligibility(){
+  const next = new Map(), any = [];
+  const items = reqItems.filter(r => r.course_filter && r.parent_id == null);
+  await Promise.all(items.map(async r => {
+    const f = reqResolveFilter(r.course_filter);
+    if(!f || !Object.keys(f).length){ any.push(r.item_id); return; }
+    try{
+      (await reqFetchPool(r)).forEach(c => {
+        if(!next.has(c.course_id)) next.set(c.course_id, new Set());
+        next.get(c.course_id).add(r.item_id);
+      });
+    }catch(e){ /* a requirement we cannot read simply offers no target */ }
+  }));
+  reqEligible = next; reqAnyItem = any;
+}
+
+// Where this course could go, other than where it already is.
+function reqTargetsFor(courseId, fromItem){
+  const out = new Set(reqAnyItem);
+  (reqEligible.get(courseId) || []).forEach(i => out.add(i));
+  out.delete(fromItem);
   return out;
 }
 
@@ -2378,10 +2490,26 @@ async function reqSavePicker(){
 
   try{
     if(added.length){
-      await sbInsert(TBL_REQ_COURSE, added.map(cid => ({
-        student_id: sid, item_id: item.item_id, course_id: cid,
-        is_completed: false,
-      })));
+      // A course counts under one requirement at a time. If it is already in the
+      // plan under another one, this is a move rather than a new entry, and it
+      // has to be done as a move: writing a fresh row would lose whether the
+      // course was finished and what it was worth, and the student would find a
+      // completed course had quietly become a plan again.
+      const moving = [], adding = [];
+      for(const cid of added){
+        const held = reqPlan.find(p => p.course_id === cid && p.item_id !== item.item_id);
+        if(held) moving.push(held); else adding.push(cid);
+      }
+      for(const row of moving){
+        await sbPatch(TBL_REQ_COURSE, 'id', row.id,
+          { item_id: item.item_id, updated_at: new Date().toISOString() });
+      }
+      if(adding.length){
+        await sbInsert(TBL_REQ_COURSE, adding.map(cid => ({
+          student_id: sid, item_id: item.item_id, course_id: cid,
+          is_completed: false,
+        })));
+      }
     }
     for(const cid of removed){
       const row = reqPlan.find(p => p.item_id===item.item_id && p.course_id===cid);
