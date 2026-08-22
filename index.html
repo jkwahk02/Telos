@@ -1140,6 +1140,105 @@ async function sbUpdate(table, col, val, row) {
 let loginAttempts = 0;
 let loginLocked = false;
   
+// Everything the app needs to know about the signed-in professor: name, chair
+// status, school, the email-to-name map the session log renders with. It used
+// to live inside the login handler, which meant a restored session entered the
+// app with none of it set. Both paths call it now.
+async function hydrateFacultyProfile(email, token, user){
+  // Step 2: Look up faculty name + first-login flag from faculty_profiles
+  const profRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}&select=name_en,email,school,is_chair,must_change_password`,
+    { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` } }
+  );
+  const profData = await profRes.json();
+  
+  if (profData.length > 0) {
+    FACULTY        = profData[0].name_en;
+    FACULTY_EMAIL  = profData[0].email;        // ← 추가
+    IS_CHAIR       = profData[0].is_chair === true;
+    FACULTY_SCHOOL = profData[0].school || '';
+    FACULTY_TIMEZONE = profData[0].timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    // 첫 로그인 시 timezone이 null이면 브라우저 값으로 DB에 저장
+    if (!profData[0].timezone) {
+      const browserTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      fetch(`${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timezone: browserTZ }),
+      }).catch(()=>{});
+    }
+  } else {
+    FACULTY        = user?.user_metadata?.full_name || email.split('@')[0];
+    FACULTY_EMAIL  = email;                    // ← 추가 (fallback: 로그인 email 그대로)
+    IS_CHAIR       = false;
+    FACULTY_SCHOOL = '';
+    FACULTY_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone; // ← 추가
+  }
+
+  // Chair인 경우 같은 school 소속 교수 목록 추가 로드
+  if (IS_CHAIR && FACULTY_SCHOOL) {
+    const allProfRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/faculty_profiles?school=eq.${encodeURIComponent(FACULTY_SCHOOL)}&select=name_en`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` } }
+    );
+    const allProfData = await allProfRes.json();
+    SCHOOL_FACULTY_NAMES = allProfData.map(p => p.name_en);
+  }
+
+  const allFacRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/faculty_profiles?select=name_en,email`,
+    { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` } }
+  );
+  const allFacData = await allFacRes.json();
+  allFacData.forEach(f => { facultyMap[f.email] = f.name_en; });
+  
+  FACULTY_INITIALS = FACULTY.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+  // Step 3: Update nav
+  document.getElementById('nav-avatar').textContent = FACULTY_INITIALS;
+  document.getElementById('nav-name').textContent   = FACULTY;
+  document.getElementById('dd-name').textContent    = FACULTY;
+  return profData;
+}
+
+// ── SESSION ──
+// sessionStorage, not localStorage: a refresh keeps you signed in, closing the
+// tab does not. This app reads every student's record, so a session that
+// outlives the tab is not a trade worth making.
+const SESSION_KEY = 'telos_faculty_session';
+
+function saveSession(){
+  try{ sessionStorage.setItem(SESSION_KEY, JSON.stringify(supabaseUser)); }catch(e){}
+}
+function clearSession(){
+  try{ sessionStorage.removeItem(SESSION_KEY); }catch(e){}
+}
+
+// Access tokens last about an hour, so a restored one is often stale already.
+// The refresh token buys a new one without asking for the password again; if
+// that fails the session is gone and the wall comes back.
+async function restoreSession(){
+  let saved = null;
+  try{ saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); }catch(e){ return false; }
+  if(!saved?.access_token) return false;
+  supabaseUser = saved;
+
+  const expiresSoon = !saved.expires_at || (saved.expires_at*1000 - Date.now() < 60000);
+  if(expiresSoon){
+    if(!saved.refresh_token){ supabaseUser = null; clearSession(); return false; }
+    try{
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+        method:'POST', headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},
+        body: JSON.stringify({ refresh_token: saved.refresh_token })});
+      if(!r.ok) throw new Error('refresh failed');
+      supabaseUser = await r.json();
+      saveSession();
+    }catch(e){ supabaseUser = null; clearSession(); return false; }
+  }
+  return true;
+}
+
 // ── AUTH ──
 async function handleWallLogin() {
   const email    = document.getElementById('wall-email').value.trim();
@@ -1169,60 +1268,7 @@ async function handleWallLogin() {
 
     supabaseUser = data;
 
-    // Step 2: Look up faculty name + first-login flag from faculty_profiles
-    const profRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}&select=name_en,email,school,is_chair,must_change_password`,
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}` } }
-    );
-    const profData = await profRes.json();
-    
-    if (profData.length > 0) {
-      FACULTY        = profData[0].name_en;
-      FACULTY_EMAIL  = profData[0].email;        // ← 추가
-      IS_CHAIR       = profData[0].is_chair === true;
-      FACULTY_SCHOOL = profData[0].school || '';
-      FACULTY_TIMEZONE = profData[0].timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-      
-      // 첫 로그인 시 timezone이 null이면 브라우저 값으로 DB에 저장
-      if (!profData[0].timezone) {
-        const browserTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        fetch(`${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}`, {
-          method: 'PATCH',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ timezone: browserTZ }),
-        }).catch(()=>{});
-      }
-    } else {
-      FACULTY        = data.user?.user_metadata?.full_name || email.split('@')[0];
-      FACULTY_EMAIL  = email;                    // ← 추가 (fallback: 로그인 email 그대로)
-      IS_CHAIR       = false;
-      FACULTY_SCHOOL = '';
-      FACULTY_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone; // ← 추가
-    }
-
-    // Chair인 경우 같은 school 소속 교수 목록 추가 로드
-    if (IS_CHAIR && FACULTY_SCHOOL) {
-      const allProfRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/faculty_profiles?school=eq.${encodeURIComponent(FACULTY_SCHOOL)}&select=name_en`,
-        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}` } }
-      );
-      const allProfData = await allProfRes.json();
-      SCHOOL_FACULTY_NAMES = allProfData.map(p => p.name_en);
-    }
-
-    const allFacRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/faculty_profiles?select=name_en,email`,
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}` } }
-    );
-    const allFacData = await allFacRes.json();
-    allFacData.forEach(f => { facultyMap[f.email] = f.name_en; });
-    
-    FACULTY_INITIALS = FACULTY.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-
-    // Step 3: Update nav
-    document.getElementById('nav-avatar').textContent = FACULTY_INITIALS;
-    document.getElementById('nav-name').textContent   = FACULTY;
-    document.getElementById('dd-name').textContent    = FACULTY;
+    const profData = await hydrateFacultyProfile(email, data.access_token, data.user);
     document.getElementById('dd-email').textContent   = supabaseUser?.user?.email || '';
     document.getElementById('nav-user-btn').style.display = 'flex';
     document.getElementById('src-dot').className = 'src-dot authed';
@@ -1237,6 +1283,7 @@ async function handleWallLogin() {
     }
 
     // Step 5: Normal login — enter app
+    saveSession();
     await loadData();
 
   } catch(e) {
@@ -1323,6 +1370,7 @@ async function handlePasswordChange() {
     }
 
     // 3. Hide pw wall, restore defaults, and enter/stay in app
+    saveSession();
     document.getElementById('pw-change-wall').style.display = 'none';
     document.getElementById('pw-new').value = '';
     document.getElementById('pw-confirm').value = '';
@@ -1349,6 +1397,7 @@ async function handleSignOut() {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${supabaseUser.access_token}` },
     }).catch(()=>{});
   }
+  clearSession();
   supabaseUser = null;
   FACULTY = '';
   FACULTY_INITIALS = '';
@@ -1561,7 +1610,6 @@ function mapMeeting(r) {
 async function insertSession(row) {
   // Map app field names → Supabase column names
   const dbRow = {
-    log_id:                row.logId,
     meeting_date:          row.date,
     meeting_time: row.meetingTime || null,
     faculty_email:         FACULTY_EMAIL,     // ← email로 변경
@@ -3903,12 +3951,12 @@ async function saveSession(studId){
 //  const nextAgenda=document.getElementById('ns-na')?.value.trim()||'';
   const majorChangeNote=document.getElementById('ns-mc')?.value.trim()||'';
 
-  // Determine next Log ID
-  const existingNums = sessions
-    .map(s=>parseInt((s.logId||'').replace('LOG-',''))||0)
-    .filter(n=>n>0);
-  const nextNum = existingNums.length ? Math.max(...existingNums)+1 : sessions.length+1;
-  const logId = `LOG-${String(nextNum).padStart(3,'0')}`;
+  // The database assigns the log id. It used to be worked out here, from the
+  // highest number among the loaded rows - which broke the moment a professor
+  // stopped being able to see every other professor's logs, because the
+  // highest visible number is not the highest number in use. Left null here
+  // and filled in from the insert's response below.
+  const logId = null;
 
   // Optimistic local update first
   const newSess = {
@@ -3928,8 +3976,15 @@ async function saveSession(studId){
   // Write to Supabase if signed in
   if (isSignedIn()) {
     try {
-      // 1. advising_log INSERT (기존과 동일)
-      await insertSession(newSess);
+      // 1. advising_log INSERT - the response carries the assigned log id
+      const inserted = await insertSession(newSess);
+      const assignedId = Array.isArray(inserted) ? inserted[0]?.log_id : inserted?.log_id;
+      if (assignedId) {
+        newSess.logId = assignedId;
+        syncStudents();
+      } else {
+        throw new Error('The server did not return a log id for this session.');
+      }
   
       // 2. student_meeting 연동 (신규)
       // 이 학생의 confirmed + scheduled 미팅이 있으면
@@ -5466,12 +5521,30 @@ document.addEventListener('click', (e) => {
 });
 
 // ── START ──
-// Data loads after login — do not call loadData() here
+// A stored session enters the app directly; without one the wall stays up.
 if(SUPABASE_URL !== 'YOUR_SUPABASE_URL'){
   document.getElementById('setup-banner').style.display = 'none';
 }
-// Focus email field on load
-document.getElementById('wall-email').focus();
+(async () => {
+  if(await restoreSession()){
+    try{
+      await hydrateFacultyProfile(supabaseUser.user?.email || '',
+                                  supabaseUser.access_token, supabaseUser.user);
+      document.getElementById('dd-email').textContent = supabaseUser.user?.email || '';
+      document.getElementById('login-wall').style.display = 'none';
+      document.getElementById('nav-user-btn').style.display = 'flex';
+      document.getElementById('src-dot').className = 'src-dot authed';
+      await loadData();
+      return;
+    }catch(e){
+      supabaseUser = null; clearSession();
+      document.getElementById('login-wall').style.display = 'flex';
+      document.getElementById('nav-user-btn').style.display = 'none';
+      document.getElementById('src-dot').className = 'src-dot';
+    }
+  }
+  document.getElementById('wall-email').focus();
+})();
 </script>
 </body>
 </html>
