@@ -3697,8 +3697,20 @@ async function sendCheckin(sid){
 
 
 function thCls(col){return studSort.col===col?('sort-'+(studSort.dir===1?'asc':'desc')):'';}
-function setStudFilter(v){studFilter=v;studExtra='';renderStudRail();}
-function setStudExtra(v){studExtra=studExtra===v?'':v;renderStudRail();}
+// Narrowing the roster can leave you reading someone who is no longer on it -
+// switch from All to My students while looking at somebody else's advisee and
+// the list says one thing while the page says another. Whoever is left at the
+// top of the new list takes over. Widening never triggers it: the student you
+// were reading is still there.
+function studKeepSelectionInList(){
+  const list = filteredStudents();
+  if(list.some(s => s.id === openStudId)) { renderStudBody(); return; }
+  openStudId = list.length ? list[0].id : null;
+  renderStudBody();
+  if(openStudId) windRailTo(openStudId);
+}
+function setStudFilter(v){studFilter=v;studExtra='';studKeepSelectionInList();}
+function setStudExtra(v){studExtra=studExtra===v?'':v;studKeepSelectionInList();}
 function sortStud(col){
   if(studSort.col===col)studSort.dir*=-1;else{studSort.col=col;studSort.dir=1;}
   renderStudRail();
