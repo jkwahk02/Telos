@@ -2815,6 +2815,15 @@ function renderStudRail(){
       </div>
     </div>`;
   }).join('') || `<div class="sp-empty" style="min-height:120px;">No students match this filter.</div>`;
+
+  // A reel has to be able to bring any name to the window, the last one
+  // included, so the strip runs on past the end: one viewport less one row of
+  // empty space. Without it a roster shorter than the rail cannot scroll at
+  // all, and the highlight simply appears wherever that student already sat.
+  listEl.style.paddingBottom = '0px';
+  const viewport = listEl.clientHeight;
+  if(list.length) listEl.style.paddingBottom = Math.max(0, viewport - SP_ROW_H) + 'px';
+
   listEl.scrollTop = keepScroll;
 
   // Whoever sits directly above the chosen student, half shown. No wrap: the
@@ -2846,21 +2855,26 @@ function studFieldTags(st){
   return out.join('');
 }
 
+const SP_ROW_H = 68;   // must match .sp-row height in the stylesheet
+
 // The roster reads like a reel: the order never changes, the list winds round
 // until the student you asked for sits in the window at the top. Landing there
 // is what makes the selection legible from anywhere in a roster of sixty.
 function windRailTo(id, done){
   const finish = () => { if(done) done(); };
   const listEl = document.getElementById('sp-rail-list');
-  const row = listEl?.querySelector(`.sp-row[data-id="${CSS.escape(id)}"]`);
-  if(!listEl || !row){ finish(); return; }
+  if(!listEl){ finish(); return; }
 
-  // Measured, not offsetTop: the list is position:static, so offsetTop is
-  // counted from some ancestor further up and carries the page chrome with it -
-  // which is exactly how far short the reel was stopping.
+  // Every row is the same height, so the stop is arithmetic: the nth student
+  // sits at n * SP_ROW_H. Measuring was the mistake - offsetTop is counted from
+  // whichever ancestor happens to be positioned, and getBoundingClientRect
+  // needs the list to have been laid out already. The index cannot be wrong.
+  const idx = filteredStudents().findIndex(s => s.id === id);
+  if(idx < 0){ finish(); return; }
+
   const from = listEl.scrollTop;
-  const want = from + row.getBoundingClientRect().top - listEl.getBoundingClientRect().top;
-  const to   = Math.max(0, Math.min(want, listEl.scrollHeight - listEl.clientHeight));
+  const max  = Math.max(0, listEl.scrollHeight - listEl.clientHeight);
+  const to   = Math.min(idx * SP_ROW_H, max);
   if(Math.abs(to - from) < 2){ finish(); return; }
 
   if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
