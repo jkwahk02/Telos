@@ -116,7 +116,8 @@ button,input,select,textarea{font-family:inherit;}
 .sp-chip.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:500;}
 .sp-chip.warn{background:var(--amber-l);border-color:var(--amber-b);color:var(--amber);}
 .sp-chip.warn.on{background:var(--amber-b);border-color:var(--amber-b);color:#fff;}
-.sp-rail-list{flex:1;min-height:0;overflow-y:auto;border-right:1px solid var(--border);}
+.sp-rail-list{flex:1;min-height:0;overflow-y:auto;border-right:1px solid var(--border);
+  padding-top:30px;}
 .sp-row{height:68px;padding:0 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;
   align-items:center;cursor:pointer;box-sizing:border-box;}
 .sp-row{transition:background .12s;}
@@ -151,16 +152,6 @@ button,input,select,textarea{font-family:inherit;}
   border:1px solid var(--border);border-radius:var(--r-lg);padding:11px 14px;margin-bottom:12px;}
 .sp-topbar .sp-search{flex:1;min-width:200px;width:auto;}
 .sp-count{font-size:13px;color:var(--text3);white-space:nowrap;}
-/* A sliver of the name above the window, so the roster reads as something you
-   are looking into rather than a list that starts here - and so there is a way
-   back up by one. It does not wrap: at the top of the roster there is nothing
-   above, and the sliver is simply absent. */
-.sp-peek{height:30px;overflow:hidden;background:var(--surface2);cursor:pointer;
-  border-bottom:1px solid var(--border);display:flex;align-items:flex-end;
-  padding:0 14px 5px 58px;gap:7px;color:var(--blue);background:var(--blue-l);}
-.sp-peek:hover{color:var(--text);}
-.sp-peek b{font-size:14px;font-weight:600;line-height:1;}
-.sp-peek span{font-size:12px;line-height:1;}
 .sp-row.sel,.sp-row.sel:hover{background:var(--blue-b);box-shadow:none;}
 .sp-row.sel .sp-av{background:var(--surface);width:38px;height:38px;font-size:14px;}
 .sp-row.sel .sp-nm{font-size:19px;letter-spacing:-.01em;line-height:1.25;}
@@ -2761,7 +2752,6 @@ function renderStudents() {
     </div>
     <div class="sp-split">
       <div class="sp-rail">
-        <div id="sp-peek"></div>
         <div class="sp-rail-list" id="sp-rail-list"></div>
       </div>
       <div class="sp-detail" id="sp-detail"></div>
@@ -2822,25 +2812,11 @@ function renderStudRail(){
   // all, and the highlight simply appears wherever that student already sat.
   listEl.style.paddingBottom = '0px';
   const viewport = listEl.clientHeight;
-  if(list.length) listEl.style.paddingBottom = Math.max(0, viewport - SP_ROW_H) + 'px';
+  if(list.length) listEl.style.paddingBottom =
+    Math.max(0, viewport - SP_ROW_H - SP_PEEK) + 'px';
 
   listEl.scrollTop = keepScroll;
 
-  // Whoever sits directly above the chosen student, half shown. No wrap: the
-  // first student on the roster has nobody above them.
-  const peekEl = document.getElementById('sp-peek');
-  if(peekEl){
-    const at = list.findIndex(s => s.id === openStudId);
-    const above = at > 0 ? list[at-1] : null;
-    peekEl.innerHTML = above
-      ? `<b>${esc(above.name)}</b><span>${esc(above.id)}</span>` : '';
-    peekEl.style.display = above ? 'flex' : 'none';
-    peekEl.onclick = above ? () => selectStud(above.id) : null;
-    peekEl.title = above ? `Go to ${above.name}` : '';
-  }
-
-  const foot = document.getElementById('sp-rail-foot');
-  if(foot) foot.textContent = `${list.length} student${list.length!==1?'s':''}`;
 }
 
 // A second major is a major, so both sit as filled badges and nothing ranks
@@ -2856,6 +2832,8 @@ function studFieldTags(st){
 }
 
 const SP_ROW_H = 68;   // must match .sp-row height in the stylesheet
+const SP_PEEK  = 30;   // must match .sp-rail-list padding-top: the gap the
+                       // previous name shows through, kept blank at the top
 
 // The roster reads like a reel: the order never changes, the list winds round
 // until the student you asked for sits in the window at the top. Landing there
