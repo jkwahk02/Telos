@@ -119,7 +119,14 @@ button,input,select,textarea{font-family:inherit;}
 .sp-rail-list{flex:1;overflow-y:auto;border-right:1px solid var(--border);}
 .sp-row{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;
   align-items:flex-start;cursor:pointer;}
+.sp-row{transition:background .12s;}
 .sp-row:hover{background:var(--surface3);}
+/* A short rise on the band when the student changes, so the eye follows the
+   move up from the list instead of finding a different page. Only on an actual
+   change of student - a redraw after saving a note should not blink. */
+@keyframes sp-rise{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+.sp-enter{animation:sp-rise .22s cubic-bezier(.2,.7,.3,1);}
+@media (prefers-reduced-motion:reduce){.sp-enter{animation:none;}}
 .sp-row.sel{background:var(--surface);box-shadow:inset 3px 0 0 var(--blue);}
 .sp-av{width:32px;height:32px;border-radius:50%;background:var(--blue-l);color:var(--blue);
   display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;}
@@ -144,28 +151,43 @@ button,input,select,textarea{font-family:inherit;}
   border:1px solid var(--border);border-radius:var(--r-lg);padding:11px 14px;margin-bottom:12px;}
 .sp-topbar .sp-search{flex:1;min-width:200px;width:auto;}
 .sp-count{font-size:13px;color:var(--text3);white-space:nowrap;}
-.sp-pin{display:flex;gap:10px;align-items:center;padding:13px 14px;min-height:88px;
-  background:var(--blue-b);border-bottom:1px solid var(--border);}
-.sp-pin .sp-av{background:var(--surface);}
-.sp-pin .sp-meta{color:var(--blue);}
-.sp-em{font-size:13px;color:var(--blue);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* A sliver of the name above the window, so the roster reads as something you
+   are looking into rather than a list that starts here - and so there is a way
+   back up by one. It does not wrap: at the top of the roster there is nothing
+   above, and the sliver is simply absent. */
+.sp-peek{height:30px;overflow:hidden;background:var(--surface2);cursor:pointer;
+  border-bottom:1px solid var(--border);display:flex;align-items:flex-end;
+  padding:0 14px 5px 62px;gap:7px;color:var(--text3);}
+.sp-peek:hover{background:var(--surface3);color:var(--text2);}
+.sp-peek b{font-size:14px;font-weight:600;line-height:1;}
+.sp-peek span{font-size:12px;line-height:1;}
+.sp-row.sel{position:sticky;top:0;z-index:2;background:var(--blue-b);
+  min-height:96px;align-items:center;box-shadow:none;}
+.sp-row.sel:hover{background:var(--blue-b);}
+.sp-row.sel .sp-av{background:var(--surface);width:38px;height:38px;font-size:14px;}
+.sp-row.sel .sp-nm{font-size:19px;letter-spacing:-.01em;line-height:1.25;}
+.sp-row.sel .sp-nm em{font-size:14px;}
+.sp-row.sel .sp-meta{font-size:14px;color:var(--blue);}
+.sp-em{display:none;font-size:14px;color:var(--blue);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sp-row.sel .sp-em{display:block;}
 
 .sp-detail{display:flex;flex-direction:column;min-width:0;background:var(--bg);}
 .sp-empty{flex:1;display:flex;align-items:center;justify-content:center;
   color:var(--text3);font-size:15px;padding:40px;text-align:center;}
 .sp-head{padding:13px 20px;border-bottom:1px solid var(--border);background:var(--blue-l);
-  display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-height:88px;}
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-height:96px;}
 .sp-head .sp-facts{flex:1;margin-top:0;}
 .sp-head .sp-you{background:var(--surface);}
 .sp-head-av{width:42px;height:42px;font-size:15px;}
 .sp-name{font-size:21px;font-weight:600;letter-spacing:-.01em;}
 .sp-name em{font-style:normal;font-weight:400;font-size:15px;color:var(--text3);margin-left:7px;}
 .sp-facts{display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-top:7px;}
-.sp-facts>span{display:flex;flex-direction:column;gap:1px;}
-.sp-facts>span.sp-pair{flex-direction:row;gap:13px;}
-.sp-facts i{font-style:normal;font-size:11px;font-weight:600;text-transform:uppercase;
+.sp-facts>span,.sp-facts .sp-pair>span{display:flex;flex-direction:column;gap:1px;}
+.sp-facts>span.sp-pair{flex-direction:row;gap:14px;}
+.sp-facts i{font-style:normal;font-size:12px;font-weight:600;text-transform:uppercase;
   letter-spacing:.05em;color:var(--text3);}
-.sp-facts b{font-size:14px;font-weight:500;}
+.sp-facts b{font-size:15px;font-weight:500;}
 .sp-facts .sp-sep{width:1px;align-self:stretch;background:var(--border-em);}
 .sp-you{font-size:11px;background:var(--blue-l);color:var(--blue);padding:1px 6px;border-radius:20px;}
 .sp-tabs{display:flex;gap:3px;padding:0 20px;border-bottom:1px solid var(--border);background:var(--surface);}
@@ -2743,7 +2765,7 @@ function renderStudents() {
     </div>
     <div class="sp-split">
       <div class="sp-rail">
-        <div id="sp-pin"></div>
+        <div id="sp-peek"></div>
         <div class="sp-rail-list" id="sp-rail-list"></div>
       </div>
       <div class="sp-detail" id="sp-detail"></div>
@@ -2753,7 +2775,12 @@ function renderStudents() {
 
 // Kept under its old name: called from save handlers, deep links and the
 // meeting flows, all of which mean "redraw the student area".
-function renderStudBody(){ renderStudRail(); renderStudDetail(); }
+let spLastId = null, spJustChanged = false;
+function renderStudBody(){
+  spJustChanged = (openStudId !== spLastId);
+  spLastId = openStudId;
+  renderStudRail(); renderStudDetail();
+}
 
 function renderStudRail(){
   const listEl = document.getElementById('sp-rail-list');
@@ -2776,34 +2803,37 @@ function renderStudRail(){
     `<span class="sp-chip warn ${studExtra==='fu'?'on':''}" onclick="setStudExtra('fu')">Follow-up ${fp}</span>
      <span class="sp-chip warn ${studExtra==='ns'?'on':''}" onclick="setStudExtra('ns')">No sessions ${ns}</span>`;
 
-  // The student being read sits at the head of the rail rather than in the list,
-  // so it stays put however far down the roster they were, and the detail
-  // header no longer has to repeat their name.
-  const chosen = students.find(s => s.id === openStudId);
-  const pinEl = document.getElementById('sp-pin');
-  if(pinEl) pinEl.innerHTML = chosen ? `
-    <div class="sp-pin">
-      <div class="sp-av">${esc(initials(chosen.name))}</div>
-      <div style="min-width:0;flex:1;">
-        <div class="sp-nm">${esc(chosen.name)}${chosen.nameKr?`<em>${esc(chosen.nameKr)}</em>`:''}</div>
-        <div class="sp-meta">${esc(chosen.id)} · ${esc(shortCohort(chosen.cohort))}</div>
-        <div class="sp-em" title="${esc(chosen.email)}">${esc(chosen.email)}</div>
-      </div>
-    </div>` : '';
-
+  // Nobody leaves the roster. The student being read keeps their place in it
+  // and is dressed as the window at the top - sticky, so once the list has been
+  // wound round to them they stay in view while you look further down.
   const list = filteredStudents();
-  // Programmes moved into the header with the rest of the student, so a row is
-  // two lines again and the roster stays short.
-  listEl.innerHTML = list.filter(st => st.id !== openStudId).map(st => {
-    const kr = st.nameKr ? `<em>${esc(st.nameKr)}</em>` : '';
-    return `<div class="sp-row" onclick="selectStud('${esc(st.id)}')">
+  const keepScroll = listEl.scrollTop;
+  listEl.innerHTML = list.map(st => {
+    const kr  = st.nameKr ? `<em>${esc(st.nameKr)}</em>` : '';
+    const on  = st.id === openStudId;
+    return `<div class="sp-row${on?' sel':''}" data-id="${esc(st.id)}" onclick="selectStud('${esc(st.id)}')">
       <div class="sp-av">${esc(initials(st.name))}</div>
       <div style="min-width:0;flex:1;">
         <div class="sp-nm">${esc(st.name)}${kr}</div>
         <div class="sp-meta">${esc(st.id)} · ${esc(shortCohort(st.cohort))}</div>
+        <div class="sp-em" title="${esc(st.email)}">${esc(st.email)}</div>
       </div>
     </div>`;
-  }).join('') || `<div class="sp-empty" style="min-height:120px;">${chosen?'No other students match this filter.':'No students match this filter.'}</div>`;
+  }).join('') || `<div class="sp-empty" style="min-height:120px;">No students match this filter.</div>`;
+  listEl.scrollTop = keepScroll;
+
+  // Whoever sits directly above the chosen student, half shown. No wrap: the
+  // first student on the roster has nobody above them.
+  const peekEl = document.getElementById('sp-peek');
+  if(peekEl){
+    const at = list.findIndex(s => s.id === openStudId);
+    const above = at > 0 ? list[at-1] : null;
+    peekEl.innerHTML = above
+      ? `<b>${esc(above.name)}</b><span>${esc(above.id)}</span>` : '';
+    peekEl.style.display = above ? 'flex' : 'none';
+    peekEl.onclick = above ? () => selectStud(above.id) : null;
+    peekEl.title = above ? `Go to ${above.name}` : '';
+  }
 
   const foot = document.getElementById('sp-rail-foot');
   if(foot) foot.textContent = `${list.length} student${list.length!==1?'s':''}`;
@@ -2821,10 +2851,44 @@ function studFieldTags(st){
   return out.join('');
 }
 
+// The roster reads like a reel: the order never changes, the list winds round
+// until the student you asked for sits in the window at the top. Landing there
+// is what makes the selection legible from anywhere in a roster of sixty.
+function windRailTo(id){
+  const listEl = document.getElementById('sp-rail-list');
+  const row = listEl?.querySelector(`.sp-row[data-id="${CSS.escape(id)}"]`);
+  if(!listEl || !row) return;
+
+  const from = listEl.scrollTop;
+  const to   = Math.max(0, Math.min(row.offsetTop, listEl.scrollHeight - listEl.clientHeight));
+  if(Math.abs(to - from) < 2) return;
+
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    listEl.scrollTop = to; return;
+  }
+
+  // Longer travel earns a little more time, but never enough to wait on.
+  const ms = Math.min(520, 240 + Math.abs(to - from) * 0.35);
+  const t0 = performance.now();
+  // Eases out and settles just past the mark, the way a reel does.
+  const ease = t => { const p = t - 1; return 1 + p*p*(2.15*p + 3.15); };
+  (function step(now){
+    const t = Math.min(1, (now - t0) / ms);
+    listEl.scrollTop = from + (to - from) * ease(t);
+    if(t < 1) requestAnimationFrame(step);
+    else listEl.scrollTop = to;
+  })(t0);
+}
+
 function selectStud(id){
   if(openStudId !== id){ openStudId = id; showFormFor = null; }
   renderStudBody();
+  windRailTo(id);
   document.getElementById('sp-detail')?.scrollTo({top:0});
+  if(window.scrollY > 0){
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({top:0, behavior: smooth ? 'smooth' : 'auto'});
+  }
 }
 
 const SP_TABS = [
@@ -2873,7 +2937,7 @@ function renderStudDetail(){
   ).join('');
 
   el.innerHTML = `
-    <div class="sp-head">
+    <div class="sp-head${spJustChanged?' sp-enter':''}">
       ${facts}
       <button class="sp-btn" onclick="openCheckin('${esc(st.id)}')"><i class="sp-ico">\u{1F44B}</i>Check in</button>
     </div>
@@ -2881,6 +2945,7 @@ function renderStudDetail(){
     <div class="sp-body" id="sp-pane"></div>`;
 
   renderStudPane(st);
+  spJustChanged = false;   // one rise per change, not one per redraw
 }
 
 function renderStudPane(st){
