@@ -117,8 +117,8 @@ button,input,select,textarea{font-family:inherit;}
 .sp-chip.warn{background:var(--amber-l);border-color:var(--amber-b);color:var(--amber);}
 .sp-chip.warn.on{background:var(--amber-b);border-color:var(--amber-b);color:#fff;}
 .sp-rail-list{flex:1;overflow-y:auto;border-right:1px solid var(--border);}
-.sp-row{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;
-  align-items:flex-start;cursor:pointer;}
+.sp-row{height:68px;padding:0 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;
+  align-items:center;cursor:pointer;box-sizing:border-box;}
 .sp-row{transition:background .12s;}
 .sp-row:hover{background:var(--surface3);}
 /* A short rise on the band when the student changes, so the eye follows the
@@ -157,26 +157,21 @@ button,input,select,textarea{font-family:inherit;}
    above, and the sliver is simply absent. */
 .sp-peek{height:30px;overflow:hidden;background:var(--surface2);cursor:pointer;
   border-bottom:1px solid var(--border);display:flex;align-items:flex-end;
-  padding:0 14px 5px 62px;gap:7px;color:var(--text3);}
-.sp-peek:hover{background:var(--surface3);color:var(--text2);}
+  padding:0 14px 5px 58px;gap:7px;color:var(--blue);background:var(--blue-l);}
+.sp-peek:hover{color:var(--text);}
 .sp-peek b{font-size:14px;font-weight:600;line-height:1;}
 .sp-peek span{font-size:12px;line-height:1;}
-.sp-row.sel{position:sticky;top:0;z-index:2;background:var(--blue-b);
-  min-height:96px;align-items:center;box-shadow:none;}
-.sp-row.sel:hover{background:var(--blue-b);}
+.sp-row.sel,.sp-row.sel:hover{background:var(--blue-b);box-shadow:none;}
 .sp-row.sel .sp-av{background:var(--surface);width:38px;height:38px;font-size:14px;}
 .sp-row.sel .sp-nm{font-size:19px;letter-spacing:-.01em;line-height:1.25;}
 .sp-row.sel .sp-nm em{font-size:14px;}
 .sp-row.sel .sp-meta{font-size:14px;color:var(--blue);}
-.sp-em{display:none;font-size:14px;color:var(--blue);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sp-row.sel .sp-em{display:block;}
 
 .sp-detail{display:flex;flex-direction:column;min-width:0;background:var(--bg);}
 .sp-empty{flex:1;display:flex;align-items:center;justify-content:center;
   color:var(--text3);font-size:15px;padding:40px;text-align:center;}
 .sp-head{padding:13px 20px;border-bottom:1px solid var(--border);background:var(--blue-l);
-  display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-height:96px;}
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-height:98px;}
 .sp-head .sp-facts{flex:1;margin-top:0;}
 .sp-head .sp-you{background:var(--surface);}
 .sp-head-av{width:42px;height:42px;font-size:15px;}
@@ -2816,7 +2811,6 @@ function renderStudRail(){
       <div style="min-width:0;flex:1;">
         <div class="sp-nm">${esc(st.name)}${kr}</div>
         <div class="sp-meta">${esc(st.id)} · ${esc(shortCohort(st.cohort))}</div>
-        <div class="sp-em" title="${esc(st.email)}">${esc(st.email)}</div>
       </div>
     </div>`;
   }).join('') || `<div class="sp-empty" style="min-height:120px;">No students match this filter.</div>`;
@@ -2854,17 +2848,18 @@ function studFieldTags(st){
 // The roster reads like a reel: the order never changes, the list winds round
 // until the student you asked for sits in the window at the top. Landing there
 // is what makes the selection legible from anywhere in a roster of sixty.
-function windRailTo(id){
+function windRailTo(id, done){
+  const finish = () => { if(done) done(); };
   const listEl = document.getElementById('sp-rail-list');
   const row = listEl?.querySelector(`.sp-row[data-id="${CSS.escape(id)}"]`);
-  if(!listEl || !row) return;
+  if(!listEl || !row){ finish(); return; }
 
   const from = listEl.scrollTop;
   const to   = Math.max(0, Math.min(row.offsetTop, listEl.scrollHeight - listEl.clientHeight));
-  if(Math.abs(to - from) < 2) return;
+  if(Math.abs(to - from) < 2){ finish(); return; }
 
   if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-    listEl.scrollTop = to; return;
+    listEl.scrollTop = to; finish(); return;
   }
 
   // Longer travel earns a little more time, but never enough to wait on.
@@ -2876,14 +2871,18 @@ function windRailTo(id){
     const t = Math.min(1, (now - t0) / ms);
     listEl.scrollTop = from + (to - from) * ease(t);
     if(t < 1) requestAnimationFrame(step);
-    else listEl.scrollTop = to;
+    else { listEl.scrollTop = to; finish(); }
   })(t0);
 }
 
 function selectStud(id){
   if(openStudId !== id){ openStudId = id; showFormFor = null; }
-  renderStudBody();
-  windRailTo(id);
+  // The right-hand side answers at once; the highlight waits until the name has
+  // actually reached the window. Painting it blue first and scrolling
+  // afterwards is what made the movement invisible - the student was already
+  // at the top before anything moved.
+  renderStudDetail();
+  windRailTo(id, renderStudRail);
   document.getElementById('sp-detail')?.scrollTo({top:0});
   if(window.scrollY > 0){
     const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2920,6 +2919,8 @@ function renderStudDetail(){
     <div class="sp-facts">
       <span><i>Cohort</i><b>${esc(shortCohort(st.cohort))}</b></span>
       <span><i>Track</i><b>${esc(st.track||'—')}</b></span>
+      <em class="sp-sep"></em>
+      <span><i>Email</i><b>${esc(st.email||'—')}</b></span>
       <em class="sp-sep"></em>
       <span class="sp-pair">
         <span><i>1st major</i><b>${esc(shortMajor(st.major1))}</b></span>
