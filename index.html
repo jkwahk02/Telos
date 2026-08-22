@@ -103,7 +103,7 @@ button,input,select,textarea{font-family:inherit;}
 .sp-split{display:grid;grid-template-columns:300px minmax(0,1fr);
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
   overflow:hidden;min-height:calc(100vh - 150px);}
-.sp-rail{border-right:1px solid var(--border);background:var(--surface2);
+.sp-rail{background:var(--surface2);
   display:flex;flex-direction:column;min-width:0;}
 .sp-rail-top{padding:12px 14px;border-bottom:1px solid var(--border);
   display:flex;flex-direction:column;gap:9px;}
@@ -116,7 +116,7 @@ button,input,select,textarea{font-family:inherit;}
 .sp-chip.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:500;}
 .sp-chip.warn{background:var(--amber-l);border-color:var(--amber-b);color:var(--amber);}
 .sp-chip.warn.on{background:var(--amber-b);border-color:var(--amber-b);color:#fff;}
-.sp-rail-list{flex:1;overflow-y:auto;}
+.sp-rail-list{flex:1;overflow-y:auto;border-right:1px solid var(--border);}
 .sp-row{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;
   align-items:flex-start;cursor:pointer;}
 .sp-row:hover{background:var(--surface3);}
@@ -136,17 +136,33 @@ button,input,select,textarea{font-family:inherit;}
 .sp-und{font-size:13px;background:var(--amber-l);color:var(--amber);border:1px solid var(--amber-b);
   padding:0 8px;border-radius:20px;font-weight:600;}
 .sp-rail-foot{padding:9px 14px;border-top:1px solid var(--border);font-size:13px;color:var(--text3);}
+/* The roster controls lift out of the rail into a bar of their own, and the
+   selected student takes the rail's first slot - tinted, and running straight
+   on into the detail header. The two panes then read as one frame with a band
+   across the top rather than as a list beside a page. */
+.sp-topbar{display:flex;align-items:center;gap:11px;flex-wrap:wrap;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r-lg);padding:11px 14px;margin-bottom:12px;}
+.sp-topbar .sp-search{flex:1;min-width:200px;width:auto;}
+.sp-count{font-size:13px;color:var(--text3);white-space:nowrap;}
+.sp-pin{display:flex;gap:10px;align-items:center;padding:13px 14px;min-height:88px;
+  background:var(--blue-b);border-bottom:1px solid var(--border);}
+.sp-pin .sp-av{background:var(--surface);}
+.sp-pin .sp-meta{color:var(--blue);}
+.sp-em{font-size:13px;color:var(--blue);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 .sp-detail{display:flex;flex-direction:column;min-width:0;background:var(--bg);}
 .sp-empty{flex:1;display:flex;align-items:center;justify-content:center;
   color:var(--text3);font-size:15px;padding:40px;text-align:center;}
-.sp-head{padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surface);
-  display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;}
+.sp-head{padding:13px 20px;border-bottom:1px solid var(--border);background:var(--blue-l);
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-height:88px;}
+.sp-head .sp-facts{flex:1;margin-top:0;}
+.sp-head .sp-you{background:var(--surface);}
 .sp-head-av{width:42px;height:42px;font-size:15px;}
 .sp-name{font-size:21px;font-weight:600;letter-spacing:-.01em;}
 .sp-name em{font-style:normal;font-weight:400;font-size:15px;color:var(--text3);margin-left:7px;}
 .sp-facts{display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-top:7px;}
 .sp-facts>span{display:flex;flex-direction:column;gap:1px;}
+.sp-facts>span.sp-pair{flex-direction:row;gap:13px;}
 .sp-facts i{font-style:normal;font-size:11px;font-weight:600;text-transform:uppercase;
   letter-spacing:.05em;color:var(--text3);}
 .sp-facts b{font-size:14px;font-weight:500;}
@@ -695,7 +711,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
   <div class="nav-logo">Telos <span class="role-badge">Faculty</span></div>
   <div class="nav-tabs">
     <button class="nav-tab active" data-page="overview">Overview</button>
-    <button class="nav-tab" data-page="students">My Students</button>
+    <button class="nav-tab" data-page="students">Students</button>
     <button class="nav-tab" data-page="meetings">Meetings</button>
     <button class="nav-tab" data-page="log">Session Log</button>
     <button class="nav-tab" data-page="codebook">Help & Guide</button>
@@ -1930,7 +1946,7 @@ return `
           </button>
         </div>
         <div style="font-size:12px;color:var(--text3);margin-top:7px;">
-          Session log can be added later from My Students.
+          Session log can be added later from Students.
           Rescheduling releases this time and asks ${esc(st?.name?.split(' ')[0] || 'the student')} to propose new ones.
         </div>
       </div>
@@ -1982,7 +1998,7 @@ function buildCompletedExpand(m, st) {
 }
 
 async function markMeetingCompleted(meetingId) {
-  if (!confirm('Mark this meeting as completed?\nYou can add a session log later from My Students.')) return;
+  if (!confirm('Mark this meeting as completed?\nYou can add a session log later from Students.')) return;
   try {
     await sbUpdate(TBL_MEETING, 'id', meetingId, { status: 'completed' });
     const m = meetings.find(x => x.id === meetingId);
@@ -2718,16 +2734,17 @@ function renderStudents() {
     openStudId = null;
   }
   document.getElementById('page-students').innerHTML = `
+    <div class="sp-topbar">
+      <div class="sp-chips" id="sp-chips1"></div>
+      <div class="sp-chips" id="sp-chips2"></div>
+      <span class="sp-count" id="sp-rail-foot"></span>
+      <input class="sp-search" id="sp-search" placeholder="Search name or ID…"
+        value="${esc(studSearch)}" oninput="studSearch=this.value;renderStudRail()">
+    </div>
     <div class="sp-split">
       <div class="sp-rail">
-        <div class="sp-rail-top">
-          <input class="sp-search" id="sp-search" placeholder="Search name or ID…"
-            value="${esc(studSearch)}" oninput="studSearch=this.value;renderStudRail()">
-          <div class="sp-chips" id="sp-chips1"></div>
-          <div class="sp-chips" id="sp-chips2"></div>
-        </div>
+        <div id="sp-pin"></div>
         <div class="sp-rail-list" id="sp-rail-list"></div>
-        <div class="sp-rail-foot" id="sp-rail-foot"></div>
       </div>
       <div class="sp-detail" id="sp-detail"></div>
     </div>`;
@@ -2759,18 +2776,34 @@ function renderStudRail(){
     `<span class="sp-chip warn ${studExtra==='fu'?'on':''}" onclick="setStudExtra('fu')">Follow-up ${fp}</span>
      <span class="sp-chip warn ${studExtra==='ns'?'on':''}" onclick="setStudExtra('ns')">No sessions ${ns}</span>`;
 
+  // The student being read sits at the head of the rail rather than in the list,
+  // so it stays put however far down the roster they were, and the detail
+  // header no longer has to repeat their name.
+  const chosen = students.find(s => s.id === openStudId);
+  const pinEl = document.getElementById('sp-pin');
+  if(pinEl) pinEl.innerHTML = chosen ? `
+    <div class="sp-pin">
+      <div class="sp-av">${esc(initials(chosen.name))}</div>
+      <div style="min-width:0;flex:1;">
+        <div class="sp-nm">${esc(chosen.name)}${chosen.nameKr?`<em>${esc(chosen.nameKr)}</em>`:''}</div>
+        <div class="sp-meta">${esc(chosen.id)} · ${esc(shortCohort(chosen.cohort))}</div>
+        <div class="sp-em" title="${esc(chosen.email)}">${esc(chosen.email)}</div>
+      </div>
+    </div>` : '';
+
   const list = filteredStudents();
-  listEl.innerHTML = list.map(st => {
+  // Programmes moved into the header with the rest of the student, so a row is
+  // two lines again and the roster stays short.
+  listEl.innerHTML = list.filter(st => st.id !== openStudId).map(st => {
     const kr = st.nameKr ? `<em>${esc(st.nameKr)}</em>` : '';
-    return `<div class="sp-row ${openStudId===st.id?'sel':''}" onclick="selectStud('${esc(st.id)}')">
+    return `<div class="sp-row" onclick="selectStud('${esc(st.id)}')">
       <div class="sp-av">${esc(initials(st.name))}</div>
       <div style="min-width:0;flex:1;">
         <div class="sp-nm">${esc(st.name)}${kr}</div>
         <div class="sp-meta">${esc(st.id)} · ${esc(shortCohort(st.cohort))}</div>
-        <div class="sp-tags">${studFieldTags(st)}</div>
       </div>
     </div>`;
-  }).join('') || `<div class="sp-empty" style="min-height:120px;">No students match this filter.</div>`;
+  }).join('') || `<div class="sp-empty" style="min-height:120px;">${chosen?'No other students match this filter.':'No students match this filter.'}</div>`;
 
   const foot = document.getElementById('sp-rail-foot');
   if(foot) foot.textContent = `${list.length} student${list.length!==1?'s':''}`;
@@ -2821,15 +2854,18 @@ function renderStudDetail(){
 
   const facts = `
     <div class="sp-facts">
-      <span><i>Student ID</i><b>${esc(st.id)}</b></span>
       <span><i>Cohort</i><b>${esc(shortCohort(st.cohort))}</b></span>
       <span><i>Track</i><b>${esc(st.track||'—')}</b></span>
       <em class="sp-sep"></em>
-      <span><i>1st major</i><b>${esc(shortMajor(st.major1))}</b></span>
-      <span><i>Advisor 1</i><b>${esc(adv1)}${me(st.advisor1_email)}</b></span>
+      <span class="sp-pair">
+        <span><i>1st major</i><b>${esc(shortMajor(st.major1))}</b></span>
+        <span><i>Advisor 1</i><b>${esc(adv1)}${me(st.advisor1_email)}</b></span>
+      </span>
       ${sec2label ? `<em class="sp-sep"></em>
-      <span><i>${esc(sec2label)}</i><b>${esc(sec2value)}</b></span>
-      <span><i>Advisor 2</i><b>${esc(adv2)}${me(st.advisor2_email)}</b></span>` : ''}
+      <span class="sp-pair">
+        <span><i>${esc(sec2label)}</i><b>${esc(sec2value)}</b></span>
+        <span><i>Advisor 2</i><b>${esc(adv2)}${me(st.advisor2_email)}</b></span>
+      </span>` : ''}
     </div>`;
 
   const tabs = SP_TABS.map(t =>
@@ -2838,11 +2874,7 @@ function renderStudDetail(){
 
   el.innerHTML = `
     <div class="sp-head">
-      <div class="sp-av sp-head-av">${esc(initials(st.name))}</div>
-      <div style="flex:1;min-width:0;">
-        <div class="sp-name">${esc(st.name)}${st.nameKr?`<em>${esc(st.nameKr)}</em>`:''}</div>
-        ${facts}
-      </div>
+      ${facts}
       <button class="sp-btn" onclick="openCheckin('${esc(st.id)}')"><i class="sp-ico">\u{1F44B}</i>Check in</button>
     </div>
     <div class="sp-tabs">${tabs}</div>
@@ -4356,7 +4388,7 @@ function renderCodebook(){
           <div class="help-card-icon green">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="#3B6D11" stroke-width="1.5"/><path d="M4 17c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="#3B6D11" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
-          <div class="help-card-title">My Students</div>
+          <div class="help-card-title">Students</div>
           <div class="help-card-body">A list of all students assigned to you as Advisor 1 or Advisor 2. Click any row to expand the student's full session timeline. Use the "+ Log session" button to record a new advising session for that student.</div>
         </div>
         <div class="help-card">
@@ -4447,8 +4479,8 @@ function renderCodebook(){
           <div class="help-step">
             <div class="help-step-num">1</div>
             <div class="help-step-content">
-              <div class="help-step-title">Go to My Students</div>
-              <div class="help-step-body">Click the <strong>My Students</strong> tab in the top navigation. You will see a list of all students assigned to you.</div>
+              <div class="help-step-title">Go to Students</div>
+              <div class="help-step-body">Click the <strong>Students</strong> tab in the top navigation. You will see a list of all students assigned to you.</div>
             </div>
           </div>
           <div class="help-step">
