@@ -23,12 +23,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 button,input,select,textarea{font-family:inherit;}
 
 /* NAV */
-.topnav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;height:52px;position:sticky;top:0;z-index:100;gap:0;}
-.nav-logo{font-size:17px;font-weight:600;color:var(--text);letter-spacing:-0.02em;margin-right:28px;white-space:nowrap;display:flex;align-items:center;gap:9px;}
+.topnav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;height:58px;position:sticky;top:0;z-index:100;gap:0;}
+.nav-logo{font-size:18.5px;font-weight:600;color:var(--text);letter-spacing:-0.02em;margin-right:28px;white-space:nowrap;display:flex;align-items:center;gap:9px;}
 .nav-logo .role-badge{font-size:10px;font-weight:600;background:var(--blue-l);color:var(--blue);padding:2px 7px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;}
 .nav-tabs{display:flex;height:100%;}
-.nav-tab{font-size:17px;font-weight:400;color:var(--text2);padding:0 15px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;transition:color .15s;white-space:nowrap;}
+.nav-tab{font-size:18.5px;font-weight:400;color:var(--text2);padding:0 17px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;transition:color .15s;white-space:nowrap;}
 .nav-tab:hover{color:var(--text);}
+.nav-tab:disabled{opacity:.34;cursor:default;}
+.nav-tab:disabled:hover{color:var(--text2);}
 .nav-tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500;}
 .nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
 .nav-avatar{width:32px;height:32px;border-radius:50%;background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
@@ -49,6 +51,91 @@ button,input,select,textarea{font-family:inherit;}
 .src-dot.error{background:var(--red);}
 .src-dot.authed{background:var(--green);}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── OVERVIEW (analytics) ─────────────────────────────────── */
+.ov-split{display:grid;grid-template-columns:284px 1fr;align-items:start;gap:0;}
+.ov-menu{border-right:1px solid var(--border);background:var(--surface2);
+  padding:14px 0 18px;position:sticky;top:70px;border-radius:var(--r-lg) 0 0 var(--r-lg);}
+.ov-mgrp{padding:18px 18px 8px;font-size:12.5px;font-weight:600;letter-spacing:.02em;color:var(--text3);}
+.ov-mi{display:flex;align-items:center;gap:13px;margin:2px 9px;padding:13px 15px;
+  font-size:18px;color:var(--text2);line-height:1.3;border-radius:var(--r);
+  cursor:pointer;transition:background .12s,color .12s;}
+.ov-mi:hover{background:var(--surface3);color:var(--text);}
+.ov-mi.on{background:var(--surface);color:var(--blue);font-weight:600;
+  box-shadow:0 1px 3px rgba(0,0,0,.06), inset 0 0 0 1px var(--border);}
+.ov-mi:focus-visible{outline:2px solid var(--blue-m);outline-offset:-2px;}
+.ov-mi.off{color:var(--text3);opacity:.5;cursor:default;}
+.ov-mi.off:hover{background:none;color:var(--text3);}
+.ov-mi svg{width:22px;height:22px;flex:0 0 22px;opacity:.72;}
+.ov-mi.on svg{opacity:1;}
+.ov-mi .ov-n{margin-left:auto;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;
+  background:var(--red-l);color:var(--red);padding:2px 8px;border-radius:20px;}
+.ov-body{min-width:0;padding:0 0 0 28px;}
+.ov-wait{padding:48px 0;color:var(--text3);font-size:17px;}
+.ov-scope{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:18px;}
+.ov-sb{font-family:inherit;font-size:17.5px;padding:11px 22px;border-radius:24px;
+  border:1px solid var(--border-em);background:var(--surface);color:var(--text2);cursor:pointer;}
+.ov-sb.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600;}
+.ov-sb:disabled{opacity:.4;cursor:default;}
+.ov-arrow{color:var(--text3);font-size:14px;}
+.ov-sel{font-family:inherit;font-size:17px;padding:10px 14px;border-radius:var(--r);
+  border:1px solid var(--border-em);background:var(--surface);color:var(--text2);}
+.ov-chip{font-family:'DM Mono',monospace;font-size:14px;padding:8px 15px;border-radius:24px;
+  border:1px dashed var(--border-em);color:var(--text2);}
+.ov-meta{margin-left:auto;font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);}
+.ov-h1{font-size:31px;font-weight:600;letter-spacing:-.022em;margin:0 0 8px;}
+.ov-sub{font-size:18px;color:var(--text2);max-width:74ch;margin:0 0 16px;line-height:1.6;}
+.ov-warn{padding:11px 15px;background:var(--amber-l);border:1px solid var(--amber-b);
+  border-radius:var(--r);font-size:15.5px;color:var(--amber);margin-bottom:18px;}
+.ov-ctl{display:flex;gap:13px;flex-wrap:wrap;margin-bottom:18px;}
+.ov-grp{display:inline-flex;border:1px solid var(--border-em);border-radius:var(--r);overflow:hidden;}
+.ov-b{font-family:inherit;font-size:17.5px;padding:12px 22px;border:none;background:var(--surface);
+  color:var(--text2);cursor:pointer;border-right:1px solid var(--border);}
+.ov-b:last-child{border-right:none;}
+.ov-b:hover{background:var(--surface2);}
+.ov-b.on{background:var(--blue);color:#fff;font-weight:600;}
+.ov-hero{display:flex;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;
+  flex-wrap:wrap;background:var(--surface);margin-bottom:12px;}
+.ov-hs{flex:1 1 110px;padding:12px 17px;border-right:1px solid var(--border);display:flex;flex-direction:column;}
+.ov-hs:last-child{border-right:none;}
+.ov-hs i{font-style:normal;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--text3);margin-bottom:2px;}
+.ov-hs b{font-family:'DM Mono',monospace;font-size:27px;font-weight:500;color:var(--text);}
+.ov-hs.bad b{color:var(--red);}
+.ov-cw{overflow-x:auto;}
+.ov-cw svg{display:block;width:100%;min-width:620px;height:auto;}
+.ov-lg{display:flex;gap:20px;flex-wrap:wrap;font-size:15.5px;color:var(--text2);margin:12px 0;}
+.ov-i{display:inline-flex;align-items:center;}
+.ov-sw{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:7px;}
+.ov-sw.none{border:1.4px dashed var(--text3);background:var(--surface2);}
+.ov-note{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);line-height:1.75;margin:10px 0 0;}
+.ov-selp{border:1px solid var(--blue-b);border-radius:var(--r);background:var(--blue-l);
+  padding:10px 12px;display:flex;flex-direction:column;gap:8px;margin:8px 0;}
+.ov-selh{display:flex;align-items:center;gap:10px;font-size:15.5px;color:var(--text);}
+.ov-x{margin-left:auto;font-family:inherit;font-size:15px;padding:8px 17px;border-radius:20px;
+  border:1px solid var(--border-em);background:var(--surface);color:var(--text2);cursor:pointer;}
+.ov-h2{font-size:23px;font-weight:600;letter-spacing:-.015em;margin:42px 0 6px;color:var(--text);}
+.ov-sub2{font-size:17px;color:var(--text2);margin:0 0 18px;max-width:74ch;line-height:1.6;}
+.ov-sw{display:inline-block;width:13px;height:13px;border-radius:3px;margin-right:8px;vertical-align:-1px;}
+.sw-met{background:var(--green);}
+.sw-mid{background:var(--amber-b);}
+.sw-none{background:var(--text3);opacity:.26;}
+.ov-chips{display:flex;flex-wrap:wrap;gap:8px;max-height:220px;overflow-y:auto;}
+.ov-chip2{display:inline-flex;align-items:center;gap:8px;background:var(--surface);
+  border:1px solid var(--border);border-radius:22px;padding:7px 15px;font-size:15px;color:var(--text2);}
+.ov-chip2{cursor:pointer;}
+.ov-chip2:hover{border-color:var(--blue-b);background:var(--blue-l);}
+.ov-chip2 u{text-decoration:none;color:var(--text);font-weight:600;}
+.ov-chip2 b{font-family:'DM Mono',monospace;color:var(--text);}
+.ov-chip2 em{font-style:normal;font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);}
+@media (max-width:900px){
+  .ov-split{grid-template-columns:1fr;}
+  .ov-body{padding-left:0;padding-top:14px;}
+  .ov-menu{border-right:none;border-bottom:1px solid var(--border);position:static;
+    border-radius:var(--r-lg) var(--r-lg) 0 0;display:flex;flex-wrap:wrap;gap:2px;padding:8px;}
+  .ov-mgrp{display:none;}
+  .ov-mi{margin:0;}
+}
 
 /* MAIN */
 .main{padding:24px clamp(16px,3vw,44px);max-width:1680px;margin:0 auto;width:100%;}
@@ -111,9 +198,11 @@ button,input,select,textarea{font-family:inherit;}
   padding:7px 11px;font-size:15px;color:var(--text);width:100%;}
 .sp-search:focus{outline:none;border-color:var(--blue-m);}
 .sp-chips{display:flex;gap:5px;flex-wrap:wrap;}
-.sp-chip{font-size:14px;padding:4px 11px;border-radius:20px;border:1px solid var(--border-em);
+.sp-chip{font-size:16px;padding:8px 16px;border-radius:22px;border:1px solid var(--border-em);
   background:var(--surface);color:var(--text2);cursor:pointer;white-space:nowrap;}
 .sp-chip.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:500;}
+.sp-chip.off{opacity:.4;cursor:default;}
+.sp-chip.off:hover{background:none;border-color:var(--border-em);}
 .sp-chip.warn{background:var(--amber-l);border-color:var(--amber-b);color:var(--amber);}
 .sp-chip.warn.on{background:var(--amber-b);border-color:var(--amber-b);color:#fff;}
 .sp-rail-list{flex:1;min-height:0;overflow-y:auto;border-right:1px solid var(--border);
@@ -905,6 +994,15 @@ let helpHeroOpen = false;
 // ── AUTH STATE ──
 let supabaseUser = null;
 let IS_CHAIR = false;  // set from faculty_profiles.is_chair after login
+// faculty_profiles.role: 'advisor', 'visiting', 'OAA_dean'. Visiting faculty
+// do not advise for now, and Academic Affairs never did, so the roles that
+// advise are listed rather than inferred — a value missing from the list gets
+// no advising home, and a role added later starts with no access rather than
+// inheriting it. Add 'visiting' here if that changes.
+// Falls back to 'advisor' when the row or column is absent, which keeps an
+// unregistered account on the home it had before this list existed.
+const ADVISING_ROLES = ['advisor'];
+let FACULTY_ROLE = 'advisor';
 
 let studFilter = 'my', studExtra = '', studSearch = '', studSort = {col:'name',dir:1};
 let openStudId = null, showFormFor = null, selTopics = [], selVisibility = 'private';
@@ -1172,7 +1270,7 @@ let loginLocked = false;
 async function hydrateFacultyProfile(email, token, user){
   // Step 2: Look up faculty name + first-login flag from faculty_profiles
   const profRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}&select=name_en,email,school,is_chair,must_change_password`,
+    `${SUPABASE_URL}/rest/v1/faculty_profiles?email=eq.${encodeURIComponent(email)}&select=*`,
     { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` } }
   );
   const profData = await profRes.json();
@@ -1181,6 +1279,7 @@ async function hydrateFacultyProfile(email, token, user){
     FACULTY        = profData[0].name_en;
     FACULTY_EMAIL  = profData[0].email;        // ← 추가
     IS_CHAIR       = profData[0].is_chair === true;
+    FACULTY_ROLE   = profData[0].role || 'advisor';
     FACULTY_SCHOOL = profData[0].school || '';
     FACULTY_TIMEZONE = profData[0].timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     
@@ -1197,6 +1296,7 @@ async function hydrateFacultyProfile(email, token, user){
     FACULTY        = user?.user_metadata?.full_name || email.split('@')[0];
     FACULTY_EMAIL  = email;                    // ← 추가 (fallback: 로그인 email 그대로)
     IS_CHAIR       = false;
+    FACULTY_ROLE   = 'advisor';
     FACULTY_SCHOOL = '';
     FACULTY_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone; // ← 추가
   }
@@ -1426,7 +1526,7 @@ async function handleSignOut() {
   supabaseUser = null;
   FACULTY = '';
   FACULTY_INITIALS = '';
-  IS_CHAIR = false;
+  IS_CHAIR = false; FACULTY_ROLE = 'advisor';
   FACULTY_SCHOOL = '';
   FACULTY_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
   SCHOOL_FACULTY_NAMES = [];
@@ -1655,9 +1755,33 @@ async function insertSession(row) {
 // ── ROUTING ──
 let currentPage = 'overview';
 
+// Meetings and Session Log record advising that only an advisor does; an
+// account without that role gets them switched off rather than shown empty.
+// Students stays open — every faculty member may look a student up — and so
+// do Help and Settings. Overview handles its own left menu in ovEnabled.
+const ADVISING_PAGES = ['meetings', 'log'];
+function pageEnabled(pg){
+  return !ADVISING_PAGES.includes(pg) || ADVISING_ROLES.includes(FACULTY_ROLE);
+}
+// True only when this account actually has advisees, which is a different
+// question from the role: an advisor between assignments has none.
+function hasAdvisees(){ return myStudents().length > 0; }
+
+function applyRoleAccess(){
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    const ok = pageEnabled(t.dataset.page);
+    t.disabled = !ok;
+    t.title = ok ? '' : 'This account is not registered for advising.';
+  });
+  // 'My advisees' is the default scope, so an account with none has to be
+  // moved off it before the list renders empty and looks broken.
+  if(!hasAdvisees()) studFilter = 'all';
+}
+
 document.querySelectorAll('.nav-tab').forEach(t => {
   t.addEventListener('click', () => {
     const pg = t.dataset.page;
+    if(!pageEnabled(pg)) return;
     document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1667,8 +1791,19 @@ document.querySelectorAll('.nav-tab').forEach(t => {
   });
 });
 
+function goPage(pg){
+  document.querySelectorAll('.nav-tab').forEach(x =>
+    x.classList.toggle('active', x.dataset.page === pg));
+  document.querySelectorAll('.page').forEach(p =>
+    p.classList.toggle('active', p.id === 'page-'+pg));
+  currentPage = pg;
+  renderCurrent();
+}
+
 function renderCurrent() {
   if (!dataLoaded) return;
+  applyRoleAccess();
+  if (!pageEnabled(currentPage)) { goPage('overview'); return; }
   sweepStaleEvents();   // a slot released elsewhere is still in this calendar
   const measured = currentPage === 'codebook' || currentPage === 'settings';
   document.querySelector('.main')?.classList.toggle('narrow', measured);
@@ -2349,7 +2484,7 @@ async function sendProposal(meetingId) {
 }
   
 // ── OVERVIEW ──
-function renderOverview() {
+function ovAdviseeHome() {
   const mine = myStudents();
   const mySess = sessions.filter(s=>s.faculty===FACULTY_EMAIL);
   const confirmedMeetingIds = new Set(
@@ -2383,9 +2518,9 @@ function renderOverview() {
     .sort((a,b) => (a.meetingDate || '').localeCompare(b.meetingDate || ''));
   const recent = [...mySess].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
 
-  document.getElementById('page-overview').innerHTML = `
+  return `
     <div class="overview-stats">
-      <div class="stat-card"><div class="stat-val">${mine.length}</div><div class="stat-lbl">My students</div></div>
+      <div class="stat-card"><div class="stat-val">${mine.length}</div><div class="stat-lbl">My advisees</div></div>
       <div class="stat-card"><div class="stat-val ok">${mySess.length}</div><div class="stat-lbl">Total sessions</div></div>
       <div class="stat-card"><div class="stat-val ${zeroSess>0?'bad':'ok'}">${zeroSess}</div><div class="stat-lbl">0-session students</div></div>
       <div class="stat-card"><div class="stat-val ${pendingRequests.length>0?'warn':'ok'}">${pendingRequests.length}</div><div class="stat-lbl">Pending requests</div></div>
@@ -2450,7 +2585,628 @@ function renderOverview() {
         </div>`).join('') : '<div class="ov-item"><div class="text-muted">No sessions recorded yet</div></div>'}
       </div>
     </div>
-    ${IS_CHAIR ? renderProgramSummary() : ''}`;
+`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// OVERVIEW — left menu + analytics pages backed by the registry import
+//
+// Data sources (see pg_stat_user_tables: the registrar load of 2026-08-21):
+//   v_student_credit_progress     one row per student — earned / registered / graded terms.
+//                                 Aggregates import_totals + import_enrolments, which stay
+//                                 locked (RLS on, no policies); the view checks the caller
+//                                 is in faculty_profiles.
+//   student_requirement_category  per student per requirement area (view, security_invoker)
+//   student_requirement_summary   per student totals incl. credits_required
+//   students                      cohort / school / declarations — still being loaded
+//
+// The roster is incomplete, so every page is driven from import_* and joins
+// students only for enrichment. Anything the join cannot supply is shown as
+// unknown rather than dropped.
+// ══════════════════════════════════════════════════════════════
+
+let OV = { page:'advisees', loaded:false, loading:false, err:null,
+           credits:[], cats:[], reqs:[], summary:[],
+           scope:'university', prog:null, cohort:'all', basis:0, sel:null };
+
+const OV_PAGES = [
+  { k:'advisees', label:'My Advising', needsAdvisor:true, icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="6.5" r="2.8"/><path d="M2.6 16.6c0-2.8 2.2-4.4 4.9-4.4s4.9 1.6 4.9 4.4"/><path d="M13.6 4.9a2.6 2.6 0 0 1 0 5.1M15.1 16.6c0-2.1-.8-3.5-2.1-4.2"/></svg>` },
+  { k:'chair',    label:'Program Chair', needsChair:true, icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7.4" y="2.2" width="5.2" height="4" rx="1.2"/><rect x="1.8" y="13.8" width="5" height="4" rx="1.2"/><rect x="13.2" y="13.8" width="5" height="4" rx="1.2"/><path d="M10 6.2v3.6M4.3 13.8v-2.2a1.8 1.8 0 0 1 1.8-1.8h7.8a1.8 1.8 0 0 1 1.8 1.8v2.2"/></svg>` },
+  { k:'credits',  label:'Credit Progress', icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16.5V11M7.7 16.5V6.5M12.3 16.5v-4M17 16.5v-13"/></svg>` },
+  { k:'program',  label:'Program Requirements',      icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.6l1.6 1.6 2.6-2.9M3.5 11.2l1.6 1.6 2.6-2.9M3.5 16.6l1.6 1.6 2.6-2.9"/><path d="M11 5h5.5M11 10.5h5.5M11 16h5.5"/></svg>` },
+];
+
+// PostgREST caps at 1000 rows unless asked otherwise.
+const OV_LIMIT = 'limit=20000';
+
+// Column names differ between the import tables and the app's own tables, and
+// the import schema may change with the next upload. Rather than hard-coding,
+// read the first key that exists.
+function ovPick(row, names, dflt){
+  for(const n of names) if(row && row[n] !== undefined && row[n] !== null) return row[n];
+  return dflt;
+}
+function ovNum(row, names, dflt){ const v = ovPick(row, names, dflt); const n = Number(v); return isNaN(n) ? dflt : n; }
+function ovKeys(rows){ return rows && rows.length ? Object.keys(rows[0]) : []; }
+
+async function ovLoad(){
+  if(OV.loaded || OV.loading) return;
+  OV.loading = true; OV.err = null;
+  try {
+    // v_student_credit_progress is the security boundary: it aggregates the
+    // locked import_* tables and returns rows only to a signed-in faculty member.
+    const [credits, cats, reqs, summary] = await Promise.all([
+      sbGet('v_student_credit_progress',    `select=*&${OV_LIMIT}`)
+        .catch(e => { throw new Error('v_student_credit_progress: ' + e.message); }),
+      sbGet('student_requirement_category', `select=*&${OV_LIMIT}`).catch(()=>[]),
+      sbGet('requirement_items',            `select=*&${OV_LIMIT}`).catch(()=>[]),
+      sbGet('student_requirement_summary',  `select=*&${OV_LIMIT}`).catch(()=>[]),
+    ]);
+    OV.credits = credits || []; OV.cats = cats || [];
+    OV.reqs = reqs || []; OV.summary = summary || [];
+    if(!OV.credits.length)
+      OV.err = 'v_student_credit_progress returned no rows. The view filters on '
+             + 'faculty_profiles.email — check that this account is listed there.';
+    OV.loaded = true;
+  } catch(e) {
+    OV.err = e.message;
+  } finally {
+    OV.loading = false;
+    if(currentPage === 'overview') renderOverview();
+  }
+}
+
+// ── one row per student ──────────────────────────────────────────
+// The view already did the aggregation; students is joined only for
+// program and declarations, and is still being loaded, so anything it
+// cannot supply is shown as Unknown rather than dropping the student.
+function ovStudents(){
+  const sIdx = {};
+  students.forEach(st => { sIdx[String(st.id)] = st; });
+  const req = {};
+  OV.summary.forEach(r => {
+    req[String(ovPick(r, ['student_id','student_no'], ''))] = ovNum(r, ['credits_required'], null);
+  });
+
+  return OV.credits.map(r => {
+    const no      = String(ovPick(r, ['student_no','student_id'], ''));
+    const st      = sIdx[no];
+    const earned  = ovNum(r, ['credits_earned','total_credits'], 0);
+    const reg     = ovNum(r, ['credits_registered'], 0);
+    const terms   = ovNum(r, ['graded_terms'], 0);
+    return {
+      no,
+      name:       String(ovPick(r, ['name_en','name'], '') || (st && st.name) || ''),
+      cohort:     String(ovPick(r, ['cohort'], no.slice(0,4))),
+      earned, registered: reg, terms,
+      projected:  earned + reg,
+      year:       ovNum(r, ['year_level'], Math.ceil((terms + 1) / 2)),
+      required:   req[no] != null ? req[no] : null,
+      program:    (st && (st.school || st.major1)) || 'Unknown',
+      status:     st ? (st.status || null) : null,
+      major1:     st ? (st.major1 || null) : null,
+      major2:     st ? (st.major2 || null) : null,
+      minor:      st ? (st.minor  || null) : null,
+    };
+  });
+}
+
+function ovScoped(list){
+  // An account can land here with the advisee scope still set — from a saved
+  // state, or after an assignment is removed — so it falls back rather than
+  // rendering every chart empty.
+  if(OV.scope === 'advisees' && !hasAdvisees()) OV.scope = 'university';
+  if(OV.scope === 'program' && OV.prog) return list.filter(s => s.program === OV.prog);
+  if(OV.scope === 'advisees'){
+    const mine = new Set(myStudents().map(s => String(s.id)));
+    return list.filter(s => mine.has(s.no));
+  }
+  return list;
+}
+
+function ovStats(vals){
+  if(!vals.length) return null;
+  const a = vals.slice().sort((x,y)=>x-y);
+  const mean = a.reduce((p,c)=>p+c,0)/a.length;
+  const sd = Math.sqrt(a.reduce((p,c)=>p+(c-mean)*(c-mean),0)/a.length);
+  return { n:a.length, mean, sd, min:a[0], max:a[a.length-1] };
+}
+
+// ── SVG helper ───────────────────────────────────────────────────
+const OV_NS = 'http://www.w3.org/2000/svg';
+function ovEl(t, a, x){
+  const e = document.createElementNS(OV_NS, t);
+  for(const k in a) e.setAttribute(k, a[k]);
+  if(x != null) e.textContent = x;
+  return e;
+}
+function ovVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+// Validated with the dataviz palette checker against the light surface: all
+// seven pass the lightness band, chroma floor and CVD separation. The teal was
+// #0F6E56, which fell under the chroma floor and read as gray. The last two
+// were added when splitting Second Major and Minor out of General Electives
+// took the requirement areas past five, which had made the palette cycle.
+const OV_SERIES = ['#3B6D11', '#185FA5', '#EF9F27', '#0B8A6B', '#A34D9E',
+                   '#B4531F', '#5C6BC7'];
+function ovColor(i){ return OV_SERIES[i % OV_SERIES.length]; }
+
+// The two role pages appear only for the faculty they belong to, and both read
+// faculty_profiles rather than counting rows: an advisor keeps the advising home
+// with no advisees yet assigned. Each test names the role it admits, so a role
+// added later starts with neither page rather than inheriting advisor access.
+// An account that matches neither — Academic Affairs — falls through to Credit
+// Progress, which is why the order of OV_PAGES matters.
+function ovEnabled(p){
+  if(p.needsAdvisor) return ADVISING_ROLES.includes(FACULTY_ROLE);
+  if(p.needsChair)   return IS_CHAIR === true;
+  return true;
+}
+
+// ── shell ────────────────────────────────────────────────────────
+function renderOverview(){
+  const el = document.getElementById('page-overview');
+  if(!el) return;
+  if(!OV.loaded && !OV.loading) ovLoad();
+
+  const open = OV_PAGES.filter(ovEnabled);
+  if(!open.some(p => p.k === OV.page)) OV.page = (open[0] || OV_PAGES[0]).k;
+
+  const item = p => ovEnabled(p)
+    ? `<div class="ov-mi${OV.page===p.k?' on':''}" onclick="ovGo('${p.k}')"
+        role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ovGo('${p.k}')}">
+        ${p.icon}<span>${p.label}</span></div>`
+    : `<div class="ov-mi off" aria-disabled="true" title="${p.needsChair
+          ? 'This account is not registered as a program chair.'
+          : 'This account is not registered as an advisor.'}">
+        ${p.icon}<span>${p.label}</span></div>`;
+
+  el.innerHTML = `
+    <div class="ov-split">
+      <nav class="ov-menu">
+        ${OV_PAGES.map(item).join('')}
+      </nav>
+      <div class="ov-body" id="ov-body"></div>
+    </div>`;
+  ovRenderBody();
+}
+function ovGo(k){
+  const p = OV_PAGES.find(x => x.k === k);
+  if(p && !ovEnabled(p)) return;
+  OV.page = k; OV.sel = null; renderOverview();
+}
+
+function ovRenderBody(){
+  const b = document.getElementById('ov-body');
+  if(!b) return;
+  if(OV.page === 'advisees'){ b.innerHTML = ovAdviseeHome();       return; }
+  if(OV.page === 'chair'   ){ b.innerHTML = renderProgramSummary(); return; }
+  if(OV.err){
+    b.innerHTML = `<div class="error-banner"><strong>Could not load registry data.</strong> ${esc(OV.err)}</div>`;
+    return;
+  }
+  if(!OV.loaded){ b.innerHTML = `<div class="ov-wait">Loading registry data…</div>`; return; }
+  if(OV.page === 'credits') ovCredits(b); else ovProgram(b);
+}
+
+// ── scope bar, shared by both analytics pages ────────────────────
+function ovScopeBar(list, scoped){
+  const progs = [...new Set(list.map(s => s.program))].sort();
+  const opts = progs.map(p => `<option value="${esc(p)}"${OV.prog===p?' selected':''}>${esc(p)}</option>`).join('');
+  const noreg = scoped.filter(s => s.registered === 0).length;
+  return `<div class="ov-scope">
+      <button class="ov-sb${OV.scope==='university'?' on':''}" onclick="ovScope('university')">University ${list.length}</button>
+      <span class="ov-arrow">›</span>
+      <button class="ov-sb${OV.scope==='program'?' on':''}" onclick="ovScope('program')">Program</button>
+      <select class="ov-sel" onchange="OV.prog=this.value;ovScope('program')">${opts}</select>
+      <span class="ov-arrow">›</span>
+      <button class="ov-sb${OV.scope==='advisees'?' on':''}" onclick="ovScope('advisees')"
+        ${hasAdvisees() ? '' : 'disabled title="No advisees are assigned to this account."'}>My advisees</button>
+      ${noreg ? `<span class="ov-chip">⊘ ${noreg} not registered</span>` : ''}
+      <span class="ov-meta">registry load 2026-08-21 · ${scoped.length} students in scope</span>
+    </div>`;
+}
+function ovScope(s){
+  if(s === 'advisees' && !hasAdvisees()) return;
+  OV.scope = s; OV.sel = null;
+  if(s === 'program' && !OV.prog){
+    const p = [...new Set(ovStudents().map(x => x.program))].sort();
+    OV.prog = p[0] || null;
+  }
+  ovRenderBody();
+}
+function ovSet(k, v){ OV[k] = (k==='basis') ? Number(v) : v; OV.sel = null; ovRenderBody(); }
+
+// ── page: Credits Toward Graduation ──────────────────────────────
+function ovCredits(box){
+  const all = ovStudents(), list = ovScoped(all);
+  const REQ = 120, BW = 10, NB = 16, XMAX = 160;
+  const groupBy = OV.groupBy || 'cohort';
+  const keyOf = s => groupBy === 'cohort' ? s.cohort : ('Year ' + s.year);
+  const keys = [...new Set(list.map(keyOf))].sort();
+  const cohorts = [...new Set(all.map(s => s.cohort))].sort();
+
+  const shown = list.filter(s => OV.cohort === 'all' || keyOf(s) === OV.cohort);
+  const S = ovStats(shown.map(s => OV.basis ? s.projected : s.earned));
+
+  box.innerHTML = `
+    ${ovScopeBar(all, list)}
+    <h2 class="ov-h1">Credits Toward Graduation</h2>
+    <p class="ov-sub">Where students stand against the ${REQ} credits the degree requires.
+      Completed means a grade is on record — advisor confirmation is not part of this count.</p>
+    <div class="ov-warn">Totals exclude credits earned at partner universities on rotation — read them as a lower bound.</div>
+    <div class="ov-ctl">
+      <div class="ov-grp">
+        <button class="ov-b${groupBy==='cohort'?' on':''}" onclick="OV.groupBy='cohort';OV.cohort='all';ovRenderBody()">By cohort</button>
+        <button class="ov-b${groupBy==='year'?' on':''}"   onclick="OV.groupBy='year';OV.cohort='all';ovRenderBody()">By year level</button>
+      </div>
+      <div class="ov-grp">
+        <button class="ov-b${OV.cohort==='all'?' on':''}" onclick="ovSet('cohort','all')">All</button>
+        ${keys.map(k => `<button class="ov-b${OV.cohort===k?' on':''}" onclick="ovSet('cohort','${k}')">${k}</button>`).join('')}
+      </div>
+      <div class="ov-grp">
+        <button class="ov-b${OV.basis===0?' on':''}" onclick="ovSet('basis',0)">Completed</button>
+        <button class="ov-b${OV.basis===1?' on':''}" onclick="ovSet('basis',1)">Incl. registered</button>
+      </div>
+    </div>
+    <div class="ov-hero">${!S ? '' :
+      [['students',S.n],['mean',S.mean.toFixed(1)],['std dev',S.sd.toFixed(1)],
+       ['min',S.min],['max',S.max],['at 120+',shown.filter(s=>(OV.basis?s.projected:s.earned)>=REQ).length]]
+      .map((z,i)=>`<div class="ov-hs${i===5&&!shown.filter(s=>(OV.basis?s.projected:s.earned)>=REQ).length?' bad':''}"><i>${z[0]}</i><b>${z[1]}</b></div>`).join('')}
+    </div>
+    <div class="ov-cw"><svg id="ov-svg" viewBox="0 0 900 340"></svg></div>
+    <div class="ov-lg" id="ov-lg"></div>
+    <div class="ov-selp" id="ov-selp"${OV.sel===null?' hidden':''}></div>
+    <p class="ov-note">10-credit bins · click a bar to list the students in it · hatched = position depends on
+      Fall 2026 registrations · dashed = no registration this term.</p>`;
+
+  // ── bars ──
+  const svg = document.getElementById('ov-svg');
+  const M = {l:52,r:20,t:44,b:44}, W=900, H=340, PW=W-M.l-M.r, PH=H-M.t-M.b;
+  const X = v => M.l + (v/XMAX)*PW;
+  const bins = {};
+  keys.forEach(k => bins[k] = {solid:new Array(NB).fill(0), plan:new Array(NB).fill(0), none:new Array(NB).fill(0)});
+  shown.forEach(s => {
+    const k = keyOf(s), v = OV.basis ? s.projected : s.earned;
+    const i = Math.min(Math.floor(v/BW), NB-1);
+    if(s.registered === 0) bins[k].none[i] += 1;
+    else if(OV.basis) bins[k].plan[i] += 1;
+    else bins[k].solid[i] += 1;
+  });
+  let top = 0;
+  for(let i=0;i<NB;i++){ let t=0; keys.forEach(k=>t+=bins[k].solid[i]+bins[k].plan[i]+bins[k].none[i]); if(t>top) top=t; }
+  const yT = Math.max(5, Math.ceil(top/5)*5), Y = v => M.t+PH-(v/yT)*PH;
+  const ink=ovVar('--text'), ink2=ovVar('--text2'), ink3=ovVar('--text3'), line=ovVar('--border-em');
+
+  const defs = ovEl('defs',{});
+  keys.forEach((k,ki)=>{
+    const p = ovEl('pattern',{id:'ovh'+ki,width:'6',height:'6',patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'});
+    p.appendChild(ovEl('rect',{width:'6',height:'6',fill:ovColor(ki),opacity:'0.22'}));
+    p.appendChild(ovEl('line',{x1:'0',y1:'0',x2:'0',y2:'6',stroke:ovColor(ki),'stroke-width':'2.6'}));
+    defs.appendChild(p);
+  });
+  svg.appendChild(defs);
+  svg.appendChild(ovEl('rect',{x:X(REQ),y:M.t,width:M.l+PW-X(REQ),height:PH,fill:ovVar('--green-l')}));
+  svg.appendChild(ovEl('text',{x:X(REQ)+9,y:M.t+15,'font-size':'10',fill:ovVar('--green')},'120+ · requirement met'));
+  const step = yT>40?20:yT>20?10:5;
+  for(let g=0; g<=yT; g+=step){
+    svg.appendChild(ovEl('line',{x1:M.l,x2:M.l+PW,y1:Y(g),y2:Y(g),stroke:line,'stroke-width':'1',opacity:g?'0.35':'1'}));
+    svg.appendChild(ovEl('text',{x:M.l-9,y:Y(g)+4,'text-anchor':'end','font-size':'10',fill:ink3}, g));
+  }
+  const slot = PW/NB, bw = slot-4;
+  for(let i=0;i<NB;i++){
+    const parts = [];
+    keys.forEach((k,ki)=>{ if(bins[k].solid[i]) parts.push([ki,bins[k].solid[i],0]); if(bins[k].plan[i]) parts.push([ki,bins[k].plan[i],1]); });
+    keys.forEach((k,ki)=>{ if(bins[k].none[i]) parts.push([ki,bins[k].none[i],2]); });
+    const tot = parts.reduce((a,p)=>a+p[1],0);
+    if(!tot) continue;
+    const x = M.l + i*slot + 2;
+    let acc = 0;
+    parts.forEach((p,pi)=>{
+      const isTop = pi===parts.length-1;
+      const h = (p[1]/yT)*PH - (isTop?0:2), y = Y(acc+p[1]);
+      const d = isTop ? `M${x},${y+4} q0,-4 4,-4 h${bw-8} q4,0 4,4 v${h-4} h${-bw} Z`
+                      : `M${x},${y} h${bw} v${h} h${-bw} Z`;
+      const r = ovEl('path',{d, fill: p[2]===2 ? ovVar('--surface2') : p[2]===1 ? `url(#ovh${p[0]})` : ovColor(p[0])});
+      if(p[2]===1){ r.setAttribute('stroke', ovColor(p[0])); r.setAttribute('stroke-width','1'); }
+      if(p[2]===2){ r.setAttribute('stroke', ink3); r.setAttribute('stroke-width','1.4'); r.setAttribute('stroke-dasharray','3 2'); }
+      r.style.cursor='pointer';
+      if(OV.sel !== null) r.setAttribute('opacity', OV.sel===i ? '1' : '0.32');
+      r.addEventListener('click', ()=>{ OV.sel = (OV.sel===i? null : i); ovRenderBody(); });
+      svg.appendChild(r); acc += p[1];
+    });
+    svg.appendChild(ovEl('text',{x:x+bw/2,y:Y(tot)-6,'text-anchor':'middle','font-size':'10',fill:ink2}, tot));
+  }
+  if(S){
+    const lo = Math.max(0,S.mean-S.sd), hi = Math.min(XMAX,S.mean+S.sd);
+    svg.appendChild(ovEl('rect',{x:X(lo),y:M.t+PH+6,width:X(hi)-X(lo),height:6,fill:ink3,opacity:'0.3',rx:'2'}));
+    svg.appendChild(ovEl('line',{x1:X(S.mean),x2:X(S.mean),y1:M.t,y2:M.t+PH+13,stroke:ink,'stroke-width':'1.5','stroke-dasharray':'5 3'}));
+    svg.appendChild(ovEl('text',{x:X(S.mean),y:M.t-22,'text-anchor':'middle','font-size':'10',fill:ink},'mean '+S.mean.toFixed(1)));
+  }
+  svg.appendChild(ovEl('line',{x1:X(REQ),x2:X(REQ),y1:M.t-10,y2:M.t+PH,stroke:ovVar('--red'),'stroke-width':'2'}));
+  svg.appendChild(ovEl('text',{x:X(REQ),y:M.t-16,'text-anchor':'middle','font-size':'10','font-weight':'600',fill:ovVar('--red')},'120'));
+  for(let q=0;q<=XMAX;q+=20)
+    svg.appendChild(ovEl('text',{x:X(q),y:M.t+PH+16,'text-anchor':'middle','font-size':'10',fill:ink3}, q));
+  svg.appendChild(ovEl('text',{x:M.l+PW,y:H-6,'text-anchor':'end','font-size':'9.5',fill:ink3},'cumulative credits'));
+
+  document.getElementById('ov-lg').innerHTML = keys.map((k,ki)=>
+    `<span class="ov-i"><span class="ov-sw" style="background:${ovColor(ki)}"></span>${esc(k)}</span>`).join('') +
+    `<span class="ov-i"><span class="ov-sw none"></span>not registered</span>`;
+
+  const sp = document.getElementById('ov-selp');
+  if(OV.sel !== null && sp){
+    const inBin = shown.filter(s => Math.min(Math.floor((OV.basis?s.projected:s.earned)/BW),NB-1) === OV.sel)
+                       .sort((a,b)=>a.earned-b.earned);
+    sp.hidden = false;
+    sp.innerHTML = `<div class="ov-selh"><b>${OV.sel*BW}–${OV.sel*BW+BW-1} credits</b> · ${inBin.length} students
+        <button class="ov-x" onclick="OV.sel=null;ovRenderBody()">Clear</button></div>
+      <div class="ov-chips">${inBin.map(s=>`<span class="ov-chip2" onclick="goToStudent('${esc(s.no)}')">
+        <u>${esc(s.name || s.no)}</u><b>${s.earned}</b><em>${esc(s.no)} · ${esc(s.program)} · ${s.terms}t${s.registered ? ' · +'+s.registered+' cr' : ' · not registered'}</em></span>`).join('')}</div>`;
+  }
+}
+
+// ── page: Program Requirements ───────────────────────────────────
+function ovProgram(box){
+  const all = ovStudents(), list = ovScoped(all);
+
+  // Areas and their credit values come from student_requirement_category.
+  // Nothing about the degree is hard-coded here — if the registrar adds an
+  // area, it appears on both charts without a code change.
+  // Ordered by the requirement table's own sort_order, so the areas appear in
+  // the sequence the checklist lists them rather than by size. Areas worth no
+  // credits are kept — Capstone is a graduation requirement judged by
+  // completion, and dropping it would hide it entirely.
+  const areas = {};
+  OV.cats.forEach(r => {
+    const cat = String(ovPick(r, ['category','requirement_category','area','name'], '')).trim();
+    if(!cat) return;
+    if(!areas[cat]) areas[cat] = { key:cat, req:0, ord:1e9 };
+    areas[cat].req = Math.max(areas[cat].req, ovNum(r, ['required_credits'], 0));
+    areas[cat].ord = Math.min(areas[cat].ord, ovNum(r, ['sort_order'], 1e9));
+  });
+  const cols = Object.values(areas).sort((a,b) => a.ord - b.ord || b.req - a.req);
+
+  if(!OV.cats.length || !cols.length){
+    box.innerHTML = `${ovScopeBar(all, list)}
+      <h2 class="ov-h1">Program Requirements</h2>
+      <div class="error-banner"><strong>No requirement rows returned.</strong>
+        student_requirement_category came back with ${OV.cats.length} rows.
+        Columns seen: ${esc(ovKeys(OV.cats).join(', ') || 'none')}.</div>`;
+    return;
+  }
+
+  // Credit Progress can add registered credits because the view reports one
+  // registered total per student. Per area it depends on the requirement table
+  // carrying an in-progress column, which it may not — so the control appears
+  // only when a matching column is actually present.
+  const REGKEY = ['registered_credits','in_progress_credits','credits_registered',
+                  'planned_credits','credits_in_progress','inprogress_credits']
+                 .find(k => ovKeys(OV.cats).includes(k));
+  const basis = REGKEY && OV.basis ? 1 : 0;
+
+  // student_no → area → { earned, reg, req }
+  const per = {};
+  OV.cats.forEach(r => {
+    const no  = String(ovPick(r, ['student_id','student_no'], ''));
+    const cat = String(ovPick(r, ['category','requirement_category','area','name'], '')).trim();
+    if(!no || !cat) return;
+    (per[no] = per[no] || {})[cat] = {
+      earned: ovNum(r, ['earned_credits'], 0),
+      reg:    REGKEY ? ovNum(r, [REGKEY], 0) : 0,
+      req:    ovNum(r, ['required_credits'], 0),
+      met:    ovPick(r, ['is_met'], null),
+    };
+  });
+  const val = v => v.earned + (basis ? v.reg : 0);
+
+  // Same grouping controls as Credit Progress, so the two pages filter alike.
+  const groupBy = OV.groupBy || 'cohort';
+  const keyOf = s => groupBy === 'cohort' ? s.cohort : ('Year ' + s.year);
+  const keys = [...new Set(list.map(keyOf))].sort();
+  const shown = list.filter(s => OV.cohort === 'all' || keyOf(s) === OV.cohort);
+
+  const inScope = new Set(shown.map(s => s.no));
+  const missing = [...inScope].filter(n => !per[n]).length;
+
+  // Three states, because that is the decision: finished, moving, untouched.
+  // is_met is the registrar's own verdict and can account for substitutions or
+  // waivers that a credit comparison cannot see, so it wins where it exists.
+  // Adding registered credits is a projection the database does not make, so
+  // that basis falls back to comparing the projected total against the
+  // requirement.
+  const isMet = v => v.met === true || v.met === 'true';
+  const statOf = v => {
+    if(!v) return null;
+    // No credits attached — Capstone — so completion is the only measure and
+    // there is no partial state to be in.
+    if(v.req <= 0) return (v.met === null || v.met === undefined) ? null
+                        : isMet(v) ? 'met' : 'none';
+    const done = (!basis && v.met !== null && v.met !== undefined) ? isMet(v) : val(v) >= v.req;
+    return done ? 'met' : val(v) > 0 ? 'mid' : 'none';
+  };
+  const frac = v => v.req > 0 ? Math.min(val(v) / v.req, 1) : (isMet(v) ? 1 : 0);
+  const ST = [
+    { k:'met',  label: basis ? 'Met incl. registered' : 'Met' },
+    { k:'mid',  label:'In progress' },
+    { k:'none', label:'Not started' },
+  ];
+
+  // Requirements differ by catalog year — free electives run 44 credits for the
+  // 2023 entrants and 37 for 2026 — so every judgement below compares a student
+  // against their own required_credits, and the row label states the range that
+  // actually applies to the students in view rather than one number for all.
+  const mix = cols.map(c => {
+    const by = { met:[], mid:[], none:[] }, reqs = [];
+    shown.forEach(s => {
+      const v = per[s.no] && per[s.no][c.key], st = statOf(v);
+      if(st){ by[st].push(s); reqs.push(v.req); }
+    });
+    const n = by.met.length + by.mid.length + by.none.length;
+    const lo = n ? Math.min(...reqs) : 0, hi = n ? Math.max(...reqs) : 0;
+    return { key:c.key, lo, hi, n, by };
+  }).filter(m => m.n > 0);
+
+  // Mean completion per area per year level — the sequence the curriculum
+  // actually runs in, which the per-student view cannot show.
+  const years = [...new Set(shown.map(s => s.year))].filter(y => y >= 1 && y <= 4).sort((a,b) => a-b);
+  const seq = cols.map(c => ({
+    key: c.key,
+    pts: years.map(y => {
+      const pool = shown.filter(s => s.year === y)
+                        .map(s => per[s.no] && per[s.no][c.key])
+                        .filter(v => v && statOf(v));
+      return { y, n: pool.length,
+        pct: pool.length ? pool.reduce((a,v) => a + frac(v), 0) / pool.length * 100 : null };
+    }),
+  }));
+
+  box.innerHTML = `
+    ${ovScopeBar(all, list)}
+    <h2 class="ov-h1">Program Requirements</h2>
+    <p class="ov-sub">Areas and their credit values come from
+      <code>student_requirement_category</code>. Programs are set by the scope bar above,
+      so both charts redraw for whichever programs are in view.</p>
+    <div class="ov-ctl">
+      <div class="ov-grp">
+        <button class="ov-b${groupBy==='cohort'?' on':''}" onclick="OV.groupBy='cohort';OV.cohort='all';ovRenderBody()">By cohort</button>
+        <button class="ov-b${groupBy==='year'?' on':''}"   onclick="OV.groupBy='year';OV.cohort='all';ovRenderBody()">By year level</button>
+      </div>
+      <div class="ov-grp">
+        <button class="ov-b${OV.cohort==='all'?' on':''}" onclick="ovSet('cohort','all')">All</button>
+        ${keys.map(k => `<button class="ov-b${OV.cohort===k?' on':''}" onclick="ovSet('cohort','${k}')">${k}</button>`).join('')}
+      </div>
+      ${REGKEY ? `<div class="ov-grp">
+        <button class="ov-b${basis===0?' on':''}" onclick="ovSet('basis',0)">Completed</button>
+        <button class="ov-b${basis===1?' on':''}" onclick="ovSet('basis',1)">Incl. registered</button>
+      </div>` : ''}
+    </div>
+    ${REGKEY ? '' : `<p class="ov-note">student_requirement_category reports earned credits only, with no
+      in-progress column, so registered courses cannot be added per area here. Credit Progress can add them
+      because the view carries one registered total per student.</p>`}
+    ${missing ? `<div class="ov-warn">${missing} of ${inScope.size} students in scope have no requirement rows yet —
+      the roster is still being loaded, so these charts cover a subset.</div>` : ''}
+
+    <h3 class="ov-h2">Where each area stands</h3>
+    <p class="ov-sub2">Every student in scope, split by whether the area is finished, under way, or untouched.
+      Each student is judged against their own requirement, which varies by catalog year — the credit figure
+      beside each area is the range that applies to the students in view. Click a segment for the names.</p>
+    <div class="ov-cw"><svg id="ov-svg2" viewBox="0 0 900 ${44 + Math.max(mix.length,1)*54}"></svg></div>
+    <div class="ov-lg">${ST.map(s => `<span class="ov-i"><i class="ov-sw sw-${s.k}"></i>${s.label}</span>`).join('')}</div>
+    <div class="ov-selp" id="ov-selp"${OV.sel === null ? ' hidden' : ''}></div>
+
+    <h3 class="ov-h2">When each area gets done</h3>
+    <p class="ov-sub2">Mean completion of each area by year level, as a share of each student's own requirement —
+      the order the curriculum runs in. A line that stays flat is an area nobody is advancing.</p>
+    <div class="ov-cw"><svg id="ov-svg3" viewBox="0 0 900 300"></svg></div>
+    <p class="ov-note">Requirement definitions live in requirement_items; earned credits are the registry load of
+      2026-08-21 mapped through student_requirement_courses. Year level is derived from graded terms.</p>`;
+
+  const ink = ovVar('--text'), ink2 = ovVar('--text2'), ink3 = ovVar('--text3');
+  const ln = ovVar('--border'), sf = ovVar('--surface');
+  const FILL = { met: ovVar('--green'), mid: ovVar('--amber-b'), none: ink3 };
+  const OPAC = { met: '1', mid: '1', none: '0.26' };
+
+  // ── 1. status mix ───────────────────────────────────────────────
+  const s2 = document.getElementById('ov-svg2');
+  const A = { l:196, r:74, t:22 }, AW = 900 - A.l - A.r, RH = 54, BH = 24;
+
+  if(!mix.length)
+    s2.appendChild(ovEl('text', {x:450, y:40, 'text-anchor':'middle', 'font-size':'13', fill:ink3},
+      'No requirement rows for this selection.'));
+
+  mix.forEach((m, ri) => {
+    const y = A.t + ri*RH;
+    s2.appendChild(ovEl('text', {x:A.l-16, y:y+15, 'text-anchor':'end', 'font-size':'14',
+      'font-weight':'500', fill:ink}, m.key));
+    s2.appendChild(ovEl('text', {x:A.l-16, y:y+29, 'text-anchor':'end', 'font-size':'10',
+      'font-family':"'DM Mono',monospace", fill:ink3},
+      m.hi === 0 ? 'by completion'
+                 : (m.lo === m.hi ? m.lo : m.lo + '–' + m.hi) + ' cr required'));
+
+    let x = A.l;
+    ST.forEach(st => {
+      const grp = m.by[st.k], w = grp.length / m.n * AW;
+      if(w <= 0) return;
+      const key = m.key + '|' + st.k, on = OV.sel === key;
+      const seg = ovEl('rect', {x:x, y:y, width:Math.max(w-2, 1), height:BH, rx:'3',
+        fill:FILL[st.k], opacity: OV.sel && !on ? '0.3' : OPAC[st.k], cursor:'pointer'});
+      seg.appendChild(ovEl('title', {}, `${m.key} — ${st.label}: ${grp.length} of ${m.n}`));
+      seg.addEventListener('click', () => { OV.sel = on ? null : key; ovRenderBody(); });
+      s2.appendChild(seg);
+      if(w > 46)
+        s2.appendChild(ovEl('text', {x:x+10, y:y+16.5, 'font-size':'12',
+          'font-family':"'DM Mono',monospace", 'font-weight':'500',
+          fill: st.k === 'none' ? ink2 : sf, 'pointer-events':'none'}, grp.length));
+      x += w;
+    });
+    s2.appendChild(ovEl('text', {x:900-A.r+12, y:y+16.5, 'font-size':'11',
+      'font-family':"'DM Mono',monospace", fill:ink3}, 'n ' + m.n));
+  });
+
+  // ── 2. sequence by year ─────────────────────────────────────────
+  const s3 = document.getElementById('ov-svg3');
+  const B = { l:52, r:214, t:22, b:52 }, BW2 = 900-B.l-B.r, BPH = 300-B.t-B.b;
+  const yp = p => B.t + BPH - p/100*BPH;
+  const xp = i => years.length < 2 ? B.l + BW2/2 : B.l + i*BW2/(years.length-1);
+
+  [0,25,50,75,100].forEach(p => {
+    s3.appendChild(ovEl('line', {x1:B.l, x2:B.l+BW2, y1:yp(p), y2:yp(p),
+      stroke:ln, 'stroke-width':'1'}));
+    s3.appendChild(ovEl('text', {x:B.l-10, y:yp(p)+4, 'text-anchor':'end', 'font-size':'11',
+      'font-family':"'DM Mono',monospace", fill:ink3}, p + '%'));
+  });
+  years.forEach((y, i) => {
+    s3.appendChild(ovEl('text', {x:xp(i), y:300-B.b+24, 'text-anchor':'middle', 'font-size':'12',
+      'font-family':"'DM Mono',monospace", fill:ink2}, 'Year ' + y));
+    s3.appendChild(ovEl('text', {x:xp(i), y:300-B.b+38, 'text-anchor':'middle', 'font-size':'10',
+      'font-family':"'DM Mono',monospace", fill:ink3}, 'n ' + shown.filter(s => s.year === y).length));
+  });
+  if(!years.length)
+    s3.appendChild(ovEl('text', {x:450, y:140, 'text-anchor':'middle', 'font-size':'13', fill:ink3},
+      'No year levels in this selection.'));
+
+  // Labels are stacked apart where lines converge — two areas both at 100%
+  // in the final year would otherwise print on top of each other.
+  const ends = [];
+  seq.forEach((s, si) => {
+    const col = ovColor(si);
+    const pts = s.pts.map((p, i) => ({...p, x:xp(i)})).filter(p => p.pct !== null);
+    if(!pts.length) return;
+    if(pts.length > 1)
+      s3.appendChild(ovEl('polyline', {points: pts.map(p => p.x+','+yp(p.pct)).join(' '),
+        fill:'none', stroke:col, 'stroke-width':'2.5', 'stroke-linecap':'round',
+        'stroke-linejoin':'round'}));
+    pts.forEach(p => {
+      const c = ovEl('circle', {cx:p.x, cy:yp(p.pct), r:'4.5', fill:col, stroke:sf, 'stroke-width':'2'});
+      c.appendChild(ovEl('title', {}, `${s.key} — Year ${p.y}: ${Math.round(p.pct)}% of ${p.n} students`));
+      s3.appendChild(c);
+    });
+    const last = pts[pts.length-1];
+    ends.push({ key:s.key, col, x:last.x, y:yp(last.pct) });
+  });
+  ends.sort((a,b) => a.y - b.y).forEach((e, i, arr) => {
+    if(i && e.y - arr[i-1].y < 17) e.y = arr[i-1].y + 17;
+    s3.appendChild(ovEl('text', {x:e.x+13, y:e.y+4, 'font-size':'12.5',
+      'font-weight':'600', fill:e.col}, e.key));
+  });
+
+  // ── selection panel ─────────────────────────────────────────────
+  const sp = document.getElementById('ov-selp');
+  if(OV.sel !== null && sp && String(OV.sel).indexOf('|') > 0){
+    const [ak, sk] = String(OV.sel).split('|');
+    const m = mix.find(x => x.key === ak);
+    const grp = m ? m.by[sk] : [];
+    const label = (ST.find(s => s.k === sk) || {}).label || sk;
+    sp.innerHTML = `<div class="ov-selh"><b>${esc(ak)} · ${esc(label)}</b> · ${grp.length} students
+        <button class="ov-x" onclick="OV.sel=null;ovRenderBody()">Clear</button></div>
+      <div class="ov-chips">${grp.map(s => {
+        const v = per[s.no][ak];
+        return `<span class="ov-chip2" onclick="goToStudent('${esc(s.no)}')">
+          <u>${esc(s.name || s.no)}</u><b>${val(v)}/${v.req}</b>
+          <em>${esc(s.no)} · ${esc(s.program)} · Y${s.year}${
+            basis && v.reg ? ' · +'+v.reg+' reg' : ''}</em></span>`;
+      }).join('')}</div>`;
+  }
 }
 
 
@@ -2785,7 +3541,9 @@ function renderStudRail(){
   // old selection highlighted while the list below it changed.
   const scope = document.getElementById('sp-chips1');
   if(scope) scope.innerHTML =
-    `<span class="sp-chip ${studFilter==='my'?'on':''}" onclick="setStudFilter('my')">My students</span>
+    `<span class="sp-chip ${hasAdvisees() ? (studFilter==='my'?'on':'') : 'off'}"
+        ${hasAdvisees() ? `onclick="setStudFilter('my')"`
+                        : `title="No advisees are assigned to this account."`}>My advisees</span>
      <span class="sp-chip ${studFilter==='all'?'on':''}" onclick="setStudFilter('all')">All</span>`;
 
   const chips = document.getElementById('sp-chips2');
@@ -3698,7 +4456,7 @@ async function sendCheckin(sid){
 
 function thCls(col){return studSort.col===col?('sort-'+(studSort.dir===1?'asc':'desc')):'';}
 // Narrowing the roster can leave you reading someone who is no longer on it -
-// switch from All to My students while looking at somebody else's advisee and
+// switch from All to My advisees while looking at somebody else's advisee and
 // the list says one thing while the page says another. Whoever is left at the
 // top of the new list takes over. Widening never triggers it: the student you
 // were reading is still there.
@@ -3709,7 +4467,7 @@ function studKeepSelectionInList(){
   renderStudBody();
   if(openStudId) windRailTo(openStudId);
 }
-function setStudFilter(v){studFilter=v;studExtra='';studKeepSelectionInList();}
+function setStudFilter(v){if(v==='my'&&!hasAdvisees())return;studFilter=v;studExtra='';studKeepSelectionInList();}
 function setStudExtra(v){studExtra=studExtra===v?'':v;studKeepSelectionInList();}
 function sortStud(col){
   if(studSort.col===col)studSort.dir*=-1;else{studSort.col=col;studSort.dir=1;}
