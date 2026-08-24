@@ -1011,7 +1011,7 @@ let IS_CHAIR = false;  // set from faculty_profiles.is_chair after login
 const ADVISING_ROLES = ['advisor'];
 let FACULTY_ROLE = 'advisor';
 
-let studFilter = 'my', studExtra = '', studSearch = '', studSort = {col:'name',dir:1};
+let studFilter = 'my', studSearch = '', studSort = {col:'name',dir:1};
 // Cohort and programme narrow the roster the same way the Overview charts are
 // scoped, so a list built here and a chart read there describe one population.
 // Cohort comes off the student number rather than students.cohort, which is a
@@ -1027,6 +1027,10 @@ function studProgsOf(s){
   const v = [s.school, s.major1, s.major2, s.minor]
     .flatMap(x => String(x || '').split(','))
     .map(x => x.trim()).filter(Boolean);
+  // A student with no first major carries 'Not declared' as well as their
+  // school, which is the only way to pick them out: the school is filled in
+  // for everyone, so on its own it hides who has yet to declare.
+  if(!String(s.major1 || '').trim()) v.push('Not declared');
   return v.length ? [...new Set(v)] : ['Not declared'];
 }
 
@@ -2749,6 +2753,12 @@ function ovStudents(){
       year:       ovNum(r, ['year_level'], Math.ceil((terms + 1) / 2)),
       required:   req[no] != null ? req[no] : null,
       program:    (st && (st.school || st.major1)) || 'Unknown',
+      // Every programme the student has declared, so scoping to one reaches
+      // the students who read it as a second major or a minor. program above
+      // stays the single label shown beside a name.
+      programs:   st ? studProgsOf({ school:st.school, major1:st.major1,
+                                     major2:st.major2, minor:st.minor })
+                     : ['Unknown'],
       status:     st ? (st.status || null) : null,
       major1:     st ? (st.major1 || null) : null,
       major2:     st ? (st.major2 || null) : null,
@@ -2762,7 +2772,7 @@ function ovScoped(list){
   // state, or after an assignment is removed — so it falls back rather than
   // rendering every chart empty.
   if(OV.scope === 'advisees' && !hasAdvisees()) OV.scope = 'university';
-  if(OV.scope === 'program' && OV.prog) return list.filter(s => s.program === OV.prog);
+  if(OV.scope === 'program' && OV.prog) return list.filter(s => (s.programs || [s.program]).includes(OV.prog));
   if(OV.scope === 'advisees'){
     const mine = new Set(myStudents().map(s => String(s.id)));
     return list.filter(s => mine.has(s.no));
@@ -2866,7 +2876,7 @@ function ovRenderBody(){
 
 // ── scope bar, shared by both analytics pages ────────────────────
 function ovScopeBar(list, scoped){
-  const progs = [...new Set(list.map(s => s.program))].sort();
+  const progs = [...new Set(list.flatMap(s => s.programs || [s.program]))].sort();
   const opts = progs.map(p => `<option value="${esc(p)}"${OV.prog===p?' selected':''}>${esc(p)}</option>`).join('');
   const noreg = scoped.filter(s => s.registered === 0).length;
   return `<div class="ov-scope">
@@ -2885,7 +2895,7 @@ function ovScope(s){
   if(s === 'advisees' && !hasAdvisees()) return;
   OV.scope = s; OV.sel = null;
   if(s === 'program' && !OV.prog){
-    const p = [...new Set(ovStudents().map(x => x.program))].sort();
+    const p = [...new Set(ovStudents().flatMap(x => x.programs || [x.program]))].sort();
     OV.prog = p[0] || null;
   }
   ovRenderBody();
@@ -3581,7 +3591,6 @@ function renderStudents() {
   document.getElementById('page-students').innerHTML = `
     <div class="sp-topbar">
       <div class="sp-chips" id="sp-chips1"></div>
-      <div class="sp-chips" id="sp-chips2"></div>
       <div class="sp-chips" id="sp-chips3"></div>
       <span class="sp-count" id="sp-rail-foot"></span>
       <input class="sp-search" id="sp-search" placeholder="Search name or ID…"
@@ -3609,10 +3618,6 @@ function renderStudRail(){
   const listEl = document.getElementById('sp-rail-list');
   if(!listEl) return;
 
-  const base = studFilter === 'all' ? students : myStudents();
-  const fp = sessions.filter(s => s.followUp === 'Y' &&
-    (studFilter === 'all' ? true : s.faculty === FACULTY_EMAIL)).length;
-  const ns = base.filter(s => s.sessions === 0).length;
   // The scope chips are redrawn here too. setStudFilter only calls this
   // function, so a chip left behind by the page-level render would keep the
   // old selection highlighted while the list below it changed.
@@ -3623,17 +3628,15 @@ function renderStudRail(){
                         : `title="No advisees are assigned to this account."`}>My advisees</span>
      <span class="sp-chip ${studFilter==='all'?'on':''}" onclick="setStudFilter('all')">All</span>`;
 
-  const chips = document.getElementById('sp-chips2');
-  if(chips) chips.innerHTML =
-    `<span class="sp-chip warn ${studExtra==='fu'?'on':''}" onclick="setStudExtra('fu')">Follow-up ${fp}</span>
-     <span class="sp-chip warn ${studExtra==='ns'?'on':''}" onclick="setStudExtra('ns')">No sessions ${ns}</span>`;
-
   // Both lists are drawn from the students in scope, so a cohort or programme
   // with nobody in it never offers itself as a filter.
   const dims = document.getElementById('sp-chips3');
   if(dims){
-    const cohorts = [...new Set(base.map(studCohortOf))].filter(Boolean).sort();
-    const progs   = [...new Set(base.flatMap(studProgsOf))].sort();
+    // Built from the whole roster, not the current scope: options that vanish
+    // as the list narrows cannot be undone, and the reader cannot tell an empty
+    // result from a filter that was never offered.
+    const cohorts = [...new Set(students.map(studCohortOf))].filter(Boolean).sort();
+    const progs   = [...new Set(students.flatMap(studProgsOf))].sort();
     const opt = (v, cur) => `<option value="${esc(v)}"${cur===v?' selected':''}>${esc(v)}</option>`;
     dims.innerHTML =
       `<select class="sp-sel" onchange="setStudDim('cohort', this.value)">
@@ -3645,7 +3648,7 @@ function renderStudRail(){
          ${progs.map(p => opt(p, studProg)).join('')}
        </select>
        ${(() => {
-         const ys = [...new Set(base.map(studYearOf))].filter(y => y != null).sort((a,b)=>a-b);
+         const ys = [...new Set(students.map(studYearOf))].filter(y => y != null).sort((a,b)=>a-b);
          return ys.length ? `<select class="sp-sel" onchange="setStudDim('year', this.value)">
            <option value="all"${studYear==='all'?' selected':''}>All year levels</option>
            ${ys.map(y => `<option value="${y}"${studYear===String(y)?' selected':''}>Year ${y}</option>`).join('')}
@@ -4571,8 +4574,7 @@ function studKeepSelectionInList(){
   renderStudBody();
   if(openStudId) windRailTo(openStudId);
 }
-function setStudFilter(v){if(v==='my'&&!hasAdvisees())return;studFilter=v;studExtra='';studCohort='all';studProg='all';studYear='all';studKeepSelectionInList();}
-function setStudExtra(v){studExtra=studExtra===v?'':v;studKeepSelectionInList();}
+function setStudFilter(v){if(v==='my'&&!hasAdvisees())return;studFilter=v;studCohort='all';studProg='all';studYear='all';studKeepSelectionInList();}
 function setStudDim(k,v){
   if(k==='reset'){ studCohort='all'; studProg='all'; studYear='all'; }
   else if(k==='cohort') studCohort=v;
@@ -4590,11 +4592,6 @@ function filteredStudents(){
   if(studCohort!=='all') list=list.filter(s=>studCohortOf(s)===studCohort);
   if(studProg  !=='all') list=list.filter(s=>studProgsOf(s).includes(studProg));
   if(studYear  !=='all') list=list.filter(s=>String(studYearOf(s))===studYear);
-  if(studExtra==='fu'){
-    const ids=new Set(sessions.filter(s=>s.followUp==='Y').map(s=>s.studentId));
-    list=list.filter(s=>ids.has(s.id));
-  }
-  if(studExtra==='ns') list=list.filter(s=>s.sessions===0);
   if(studSearch){
     const q=studSearch.toLowerCase();
     list=list.filter(s=>s.name.toLowerCase().includes(q)||s.id.includes(q)||(s.nameKr&&s.nameKr.includes(q)));
