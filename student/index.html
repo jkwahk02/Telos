@@ -1781,9 +1781,33 @@ function reqCourseCode(p){ return (p.code || '') + (p.num || ''); }
 // required_credits still comes from the view — it is the one figure the app
 // cannot work out on its own (the Free-electives remainder depends on what the
 // student has declared).
+// Within a lineage family the registrar's dated record wins. A renumbered
+// rotation keeps both codes in the pool, so ticking the new code for a visit
+// already credited under the old one would count it twice — the old scheme's
+// two one-credit halves are the new scheme's single two-credit course. A tick
+// carries no term, so an undated row is dropped whenever a dated row covers the
+// same family. Where the registrar is silent the tick is the only record and
+// survives.
+function reqFamilyOf(id){
+  let cur = id;
+  const seen = new Set([id]);
+  for(;;){
+    const nxt = reqSuccessorOf(cur);
+    if(!nxt || seen.has(nxt)) return cur;
+    seen.add(nxt); cur = nxt;
+  }
+}
+
+function reqDedupeLineage(rows){
+  if(!courseLineage.length) return rows;
+  const dated = new Set();
+  rows.forEach(p => { if(p.term) dated.add(reqFamilyOf(p.course_id)); });
+  return rows.filter(p => p.term || !dated.has(reqFamilyOf(p.course_id)));
+}
+
 function reqCredits(r){
   const need = Number(r.required_credits) || 0;
-  const rows = reqPlan.filter(p => p.item_id === r.item_id);
+  const rows = reqDedupeLineage(reqPlan.filter(p => p.item_id === r.item_id));
   const sum  = f => rows.filter(f).reduce((a,p)=>a + (Number(p.credits)||0), 0);
 
   if (r.parent_id != null) return { earned:0, planned:0, need, done:!!r.is_completed };
@@ -1829,16 +1853,22 @@ function reqCredits(r){
 }
 
 function reqTotals(){
-  // Gap and unplanned are accumulated requirement by requirement. Taking
+  // Gap and unplanned are accumulated category by category: a source with no
+  // requirement of its own — partner-university transfer, MOOC — feeds the same
+  // category and must reduce its gap, while a surplus never travels to another. Taking
   // required minus earned minus planned across the whole degree instead lets
   // credits planned against an already-satisfied requirement cancel a genuine
   // shortfall elsewhere, so the card would report nothing outstanding while a
   // requirement sat unmet.
   const t = { earned:0, planned:0, required:0, gap:0, unplanned:0 };
-  reqTop().forEach(r => { const c = reqCredits(r);
-    t.earned += c.earned; t.planned += c.planned; t.required += c.need;
-    t.gap += Math.max(0, c.need - c.earned);
-    t.unplanned += Math.max(0, c.need - c.earned - c.planned); });
+  const by = {};
+  reqTop().forEach(r => { const c = reqCredits(r), k = r.category || '';
+    by[k] = by[k] || {required:0, earned:0, planned:0};
+    by[k].required += c.need; by[k].earned += c.earned; by[k].planned += c.planned;
+    t.earned += c.earned; t.planned += c.planned; t.required += c.need; });
+  Object.values(by).forEach(c => {
+    t.gap       += Math.max(0, c.required - c.earned);
+    t.unplanned += Math.max(0, c.required - c.earned - c.planned); });
   t.eligible = reqTop().every(r => reqCredits(r).done || !r.is_required);
   return t;
 }
@@ -2057,10 +2087,10 @@ function renderRequirements(){
 
   const body = cats.map(c => {
     const t = c.items.reduce((a,r) => { const x = reqCredits(r);
-      a.earned += x.earned; a.planned += x.planned; a.required += x.need;
-      a.gap  += Math.max(0, x.need - x.earned);
-      a.unpl += Math.max(0, x.need - x.earned - x.planned); return a; },
-      {earned:0, planned:0, required:0, gap:0, unpl:0});
+      a.earned += x.earned; a.planned += x.planned; a.required += x.need; return a; },
+      {earned:0, planned:0, required:0});
+    t.gap  = Math.max(0, t.required - t.earned);
+    t.unpl = Math.max(0, t.required - t.earned - t.planned);
     const onTrack = t.unpl === 0;
     const head = `<tr class="req-cat ${onTrack?'':'miss'}">
       <td colspan="2">${esc(c.name)}</td>
@@ -2093,8 +2123,8 @@ function renderRequirements(){
       </tr></thead>
       <tbody>${body}${total}
       <tr><td colspan="7" class="req-foot">Gap is what each requirement still needs; Not planned is the part of that gap
-        no course covers yet. Credits planned against a requirement you have already met do not reduce another one.
-        Changes save automatically.</td></tr>
+        no course covers yet. Credits earned or planned against a requirement you have already met do not reduce another
+        one, so Required minus Earned need not equal Gap. Changes save automatically.</td></tr>
       </tbody></table></div>`
     + reqPickerHtml();
   reqBindDrag();
