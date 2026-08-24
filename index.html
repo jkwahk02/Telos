@@ -325,6 +325,10 @@ button,input,select,textarea{font-family:inherit;}
 .rq-n{text-align:right;font-variant-numeric:tabular-nums;}
 .rq-n.last{padding-right:16px !important;}
 .rq-n.plan{color:var(--blue);}
+.rq-n.gap{color:var(--text2);}
+.rq-n.miss{color:var(--red);font-weight:600;}
+.rq-tbl th.gap{color:var(--text2);}
+.rq-legend b.miss{color:var(--red);}
 .rq-n.ok{color:var(--teal);font-weight:600;}
 .rq-n.part{color:var(--amber);font-weight:600;}
 .rq-n.none{color:var(--text3);}
@@ -3938,6 +3942,17 @@ function fReqCredits(r, plan){
   if (r.course_filter){
     const done = sum(p=>p.is_completed), todo = sum(p=>!p.is_completed);
     if (!need) return { earned:done, planned:todo, need:0, done:done>0, isOptional:true };
+    // An autoplan item seeds its whole pool into the plan so the student only
+    // ticks off what they have done. For the six required Innovation Foundation
+    // courses the pool is the requirement, but a country rotation is a choice
+    // from a larger set — eight Global Study offerings worth fifteen credits
+    // against a requirement of ten — so summing the unticked rows counts
+    // credits nobody will take. On a compulsory set what is outstanding is the
+    // requirement itself, less what is already earned. This restores the
+    // spreading the fixed-set design always intended, for planned only;
+    // earned still comes from credits_awarded.
+    if (r.autoplan)
+      return { earned: done, planned: Math.max(0, need - done), need, done: done >= need };
     return { earned: done,
              planned: todo, need, done: done >= need };
   }
@@ -3955,8 +3970,21 @@ function buildReqPane(st){
   if(!d.items.length) return `<div class="sp-empty">No requirement checklist for this student's catalog year.</div>`;
 
   const s = d.summary || {credits_earned:0,credits_required:0,credits_planned:0,credits_unplanned:0};
-  const pct  = s.credits_required ? Math.min(100, 100*s.credits_earned/s.credits_required) : 0;
-  const pPct = s.credits_required ? Math.min(100-pct, 100*s.credits_planned/s.credits_required) : 0;
+
+  // Totals are summed requirement by requirement. Deriving them from the grand
+  // totals instead lets a surplus in a satisfied requirement cancel a shortfall
+  // in another, which is why this card reported nothing outstanding while two
+  // requirements were unmet.
+  const G = d.items.filter(r => r.parent_id == null).reduce((a, r) => {
+    const x = fReqCredits(r, d.plan);
+    a.required += x.need; a.earned += x.earned; a.planned += x.planned;
+    a.gap  += Math.max(0, x.need - x.earned);
+    a.unpl += Math.max(0, x.need - x.earned - x.planned);
+    return a;
+  }, {required:0, earned:0, planned:0, gap:0, unpl:0});
+
+  const pct  = G.required ? Math.min(100, 100*G.earned/G.required) : 0;
+  const pPct = G.required ? Math.min(100-pct, 100*G.planned/G.required) : 0;
 
   const tops = d.items.filter(r => r.parent_id == null);
   const cats = [];
@@ -3971,8 +3999,10 @@ function buildReqPane(st){
 
   const body = cats.map(c => {
     const t = c.items.reduce((a,r) => { const x = fReqCredits(r, d.plan);
-      a.earned += x.earned; a.planned += x.planned; a.required += x.need; return a; },
-      {earned:0, planned:0, required:0});
+      a.earned += x.earned; a.planned += x.planned; a.required += x.need;
+      a.gap  += Math.max(0, x.need - x.earned);
+      a.unpl += Math.max(0, x.need - x.earned - x.planned); return a; },
+      {earned:0, planned:0, required:0, gap:0, unpl:0});
     const met     = t.earned >= t.required && t.required > 0;
     const onTrack = t.earned + t.planned >= t.required;
     const conf    = d.confirms.find(x => x.category === c.name);
@@ -3983,41 +4013,47 @@ function buildReqPane(st){
       : met && isAdvisor
         ? `<button class="sp-btn solid rq-cbtn" onclick="event.stopPropagation();confirmCategory('${esc(st.id)}','${esc(c.name)}',${t.earned})">Confirm category</button>`
         : !onTrack
-          ? `<span class="rq-short">${t.required - t.earned - t.planned} credit${(t.required-t.earned-t.planned)!==1?'s':''} short</span>`
+          ? `<span class="rq-short">${t.unpl} credit${t.unpl!==1?'s':''} short</span>`
           : '';
 
     const head = `<tr class="rq-cat ${met?'ok':onTrack?'':'miss'} ${isOpen?'open':''}"
         onclick="toggleReqCat('${esc(st.id)}','${esc(c.name)}')">
       <td colspan="2"><div class="rq-cat-l"><span class="rq-car">${isOpen?'▾':'▸'}</span>
         <span>${esc(c.name)}</span><span class="rq-right">${right}</span></div></td>
+      <td class="rq-n">${t.required}</td>
       <td class="rq-n">${t.earned}</td>
+      <td class="rq-n gap">${t.gap||''}</td>
       <td class="rq-n plan">${t.planned||''}</td>
-      <td class="rq-n last">${t.required}</td></tr>`;
+      <td class="rq-n last ${t.unpl?'miss':''}">${t.unpl||''}</td></tr>`;
 
     return head + (isOpen ? c.items.map(r => reqRowFor(r, d)).join('') : '');
   }).join('');
 
   return `<div class="sp-card">
     <div class="sp-chd"><span>Requirements</span>
-      <span class="bdg bdg-teal">${s.credits_earned} / ${s.credits_required} credits</span>
+      <span class="bdg bdg-teal">${G.earned} / ${G.required} credits</span>
       <span class="bdg ${s.is_eligible?'bdg-green':'bdg-amber'}">${s.is_eligible?'Eligible':'Not yet eligible'}</span>
     </div>
     <div class="rq-hero">
       <div class="rq-bar"><span style="width:${pct}%;"></span><em style="width:${pPct}%;"></em></div>
-      <div class="rq-legend"><b>${s.credits_earned}</b> earned<span class="rq-sep">·</span>
-        <b class="plan">${s.credits_planned}</b> planned<span class="rq-sep">·</span>
-        ${s.credits_unplanned} not yet planned</div>
+      <div class="rq-legend"><b>${G.earned}</b> earned<span class="rq-sep">·</span>
+        <b class="plan">${G.planned}</b> planned<span class="rq-sep">·</span>
+        <b class="${G.unpl?'miss':''}">${G.unpl}</b> not yet planned</div>
     </div>
     <table class="rq-tbl">
-      <colgroup><col style="width:34px;"><col><col style="width:66px;"><col style="width:70px;"><col style="width:78px;"></colgroup>
+      <colgroup><col style="width:34px;"><col><col style="width:74px;"><col style="width:66px;">
+        <col style="width:56px;"><col style="width:70px;"><col style="width:92px;"></colgroup>
       <thead><tr><th></th><th class="l">Requirement</th>
-        <th>Earned</th><th class="plan">Planned</th><th class="last">Required</th></tr></thead>
+        <th>Required</th><th>Earned</th><th class="gap">Gap</th>
+        <th class="plan">Planned</th><th class="last">Not planned</th></tr></thead>
       <tbody>${body}
         <tr class="rq-tot"><td colspan="2">Total</td>
-          <td class="rq-n">${s.credits_earned}</td>
-          <td class="rq-n plan">${s.credits_planned}</td>
-          <td class="rq-n last">${s.credits_required}</td></tr>
-        <tr><td colspan="5" class="rq-foot">The same table the student sees.
+          <td class="rq-n">${G.required}</td>
+          <td class="rq-n">${G.earned}</td>
+          <td class="rq-n gap">${G.gap||''}</td>
+          <td class="rq-n plan">${G.planned||''}</td>
+          <td class="rq-n last ${G.unpl?'miss':''}">${G.unpl||''}</td></tr>
+        <tr><td colspan="7" class="rq-foot">The same table the student sees.
           You can read it and confirm a completed category; only the student ticks their own courses.</td></tr>
       </tbody></table>
   </div>`;
@@ -4054,9 +4090,11 @@ function reqRowFor(r, d){
     <td><span class="rq-lbl">${esc(r.label)}</span>
       ${r.detail?`<div class="rq-hint">${esc(r.detail)}</div>`:''}
       ${plan}${line}${inlineMsgs(r.student_id || openStudId, 'item', r.item_id)}</td>
+    <td class="rq-n">${c.need===0?'—':c.need}</td>
     <td class="rq-n ${earnCls}">${c.earned || (c.isOptional?'—':0)}</td>
+    <td class="rq-n gap">${Math.max(0, c.need - c.earned)||''}</td>
     <td class="rq-n plan">${c.planned||''}</td>
-    <td class="rq-n last">${c.need===0?'—':c.need}</td></tr>`;
+    <td class="rq-n last">${Math.max(0, c.need - c.earned - c.planned)||''}</td></tr>`;
 }
 
 // Read in place, write in one place: the thread renders here without a box to
