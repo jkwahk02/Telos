@@ -787,6 +787,8 @@ tr.req-cant>td{opacity:.4;}
 .req-bar>em{display:block;height:100%;
   background:repeating-linear-gradient(115deg,var(--blue-b),var(--blue-b) 4px,var(--blue-l) 4px,var(--blue-l) 8px);}
 .req-tbl th.plan,.req-num.plan{color:var(--blue);}
+.req-tbl th.gap,.req-num.gap{color:var(--text2);}
+.req-num.short{color:var(--amber);font-weight:600;}
 .req-num.ok{color:var(--accent);font-weight:600;}
 .req-num.part{color:var(--amber);font-weight:600;}
 .req-num.none{color:var(--text3);}
@@ -1816,10 +1818,16 @@ function reqCredits(r){
 }
 
 function reqTotals(){
-  const t = { earned:0, planned:0, required:0 };
+  // Gap and unplanned are accumulated requirement by requirement. Taking
+  // required minus earned minus planned across the whole degree instead lets
+  // credits planned against an already-satisfied requirement cancel a genuine
+  // shortfall elsewhere, so the card would report nothing outstanding while a
+  // requirement sat unmet.
+  const t = { earned:0, planned:0, required:0, gap:0, unplanned:0 };
   reqTop().forEach(r => { const c = reqCredits(r);
-    t.earned += c.earned; t.planned += c.planned; t.required += c.need; });
-  t.unplanned = Math.max(0, t.required - t.earned - t.planned);
+    t.earned += c.earned; t.planned += c.planned; t.required += c.need;
+    t.gap += Math.max(0, c.need - c.earned);
+    t.unplanned += Math.max(0, c.need - c.earned - c.planned); });
   t.eligible = reqTop().every(r => reqCredits(r).done || !r.is_required);
   return t;
 }
@@ -1860,6 +1868,7 @@ function reqSummaryOrCompute(){
     credits_earned: t.earned,
     credits_planned: t.planned,
     credits_required: t.required,
+    credits_gap: t.gap,
     credits_unplanned: t.unplanned,
     is_eligible: t.eligible,
   };
@@ -1895,6 +1904,7 @@ function buildOverviewReqCard(){
   const flag = outstanding
     ? `<span style="font-size:13px;color:var(--amber);">${esc(outstanding.label.replace(/^Complete (your |the )?/,''))} still outstanding</span>`
     : `<span style="font-size:13px;color:var(--blue);">${s.credits_planned} planned · ${s.credits_unplanned} not yet planned</span>`;
+  // (unplanned is now the sum of each requirement's own shortfall)
 
   return `<div class="ovreq">
     <div class="ovreq-top">
@@ -2036,34 +2046,44 @@ function renderRequirements(){
 
   const body = cats.map(c => {
     const t = c.items.reduce((a,r) => { const x = reqCredits(r);
-      a.earned += x.earned; a.planned += x.planned; a.required += x.need; return a; },
-      {earned:0, planned:0, required:0});
-    const onTrack = t.earned + t.planned >= t.required;
+      a.earned += x.earned; a.planned += x.planned; a.required += x.need;
+      a.gap  += Math.max(0, x.need - x.earned);
+      a.unpl += Math.max(0, x.need - x.earned - x.planned); return a; },
+      {earned:0, planned:0, required:0, gap:0, unpl:0});
+    const onTrack = t.unpl === 0;
     const head = `<tr class="req-cat ${onTrack?'':'miss'}">
       <td colspan="2">${esc(c.name)}</td>
+      <td class="req-num">${t.required}</td>
       <td class="req-num">${t.earned}</td>
+      <td class="req-num gap">${t.gap||''}</td>
       <td class="req-num plan">${t.planned||''}</td>
-      <td class="req-num last">${t.required}</td></tr>`;
+      <td class="req-num last ${t.unpl?'short':''}">${t.unpl||''}</td></tr>`;
     return head + c.items.map(reqRowHtml).join('');
   }).join('');
 
   const total = `<tr class="req-tot">
     <td colspan="2">Total</td>
+    <td class="req-num">${s.credits_required}</td>
     <td class="req-num">${s.credits_earned}</td>
-    <td class="req-num plan">${s.credits_planned}</td>
-    <td class="req-num last">${s.credits_required}</td></tr>`;
+    <td class="req-num gap">${s.credits_gap||''}</td>
+    <td class="req-num plan">${s.credits_planned||''}</td>
+    <td class="req-num last ${s.credits_unplanned?'short':''}">${s.credits_unplanned||''}</td></tr>`;
 
   el.innerHTML = hero + `<div class="req-wrap"><table class="req-tbl">
       <colgroup>
         <col style="width:38px;"><col>
-        <col style="width:70px;"><col style="width:74px;"><col style="width:82px;">
+        <col style="width:78px;"><col style="width:70px;"><col style="width:58px;">
+        <col style="width:74px;"><col style="width:96px;">
       </colgroup>
       <thead><tr>
         <th class="l"></th><th class="l">Requirement</th>
-        <th>Earned</th><th class="plan">Planned</th><th class="last">Required</th>
+        <th>Required</th><th>Earned</th><th class="gap">Gap</th>
+        <th class="plan">Planned</th><th class="last">Not planned</th>
       </tr></thead>
       <tbody>${body}${total}
-      <tr><td colspan="5" class="req-foot">Graduation is based on total credits earned, not the number of courses completed. Changes save automatically.</td></tr>
+      <tr><td colspan="7" class="req-foot">Gap is what each requirement still needs; Not planned is the part of that gap
+        no course covers yet. Credits planned against a requirement you have already met do not reduce another one.
+        Changes save automatically.</td></tr>
       </tbody></table></div>`
     + reqPickerHtml();
   reqBindDrag();
@@ -2172,16 +2192,19 @@ function reqRowHtml(r){
   const kids = reqChildrenOf(r.item_id).map(k => `<tr class="req-sub">
       <td class="req-chk"><div class="req-box ${k.is_completed?'on':''}" onclick="reqToggleItem(${k.item_id})"></div></td>
       <td>${esc(k.label)}${k.detail?`<div class="req-hint">${esc(k.detail)}</div>`:''}</td>
-      <td class="req-num">—</td><td class="req-num plan"></td><td class="req-num last">—</td></tr>`).join('');
+      <td class="req-num">—</td><td class="req-num">—</td><td class="req-num gap"></td>
+      <td class="req-num plan"></td><td class="req-num last">—</td></tr>`).join('');
 
   const earnCls = done ? 'ok' : earn ? 'part' : 'none';
   return `<tr${isCourseBased?` data-item="${r.item_id}"`:''}>
       <td class="req-chk">${box}</td>
       <td><span class="req-lbl">${esc(r.label)}</span> ${confirmed}
         ${detail}${plan_html}${action}${note}</td>
+      <td class="req-num">${need===0 ? '—' : need}</td>
       <td class="req-num ${earnCls}">${earn||(c.isOptional?'—':earn)}</td>
+      <td class="req-num gap">${Math.max(0, need - earn)||''}</td>
       <td class="req-num plan">${plan||''}</td>
-      <td class="req-num last">${need===0 ? '—' : need}</td>
+      <td class="req-num last">${Math.max(0, need - earn - plan)||''}</td>
     </tr>` + kids;
 }
 
