@@ -3618,6 +3618,7 @@ function renderStudRail(){
   const listEl = document.getElementById('sp-rail-list');
   if(!listEl) return;
 
+  const base = studFilter === 'all' ? students : myStudents();
   // The scope chips are redrawn here too. setStudFilter only calls this
   // function, so a chip left behind by the page-level render would keep the
   // old selection highlighted while the list below it changed.
@@ -3632,11 +3633,12 @@ function renderStudRail(){
   // with nobody in it never offers itself as a filter.
   const dims = document.getElementById('sp-chips3');
   if(dims){
-    // Built from the whole roster, not the current scope: options that vanish
-    // as the list narrows cannot be undone, and the reader cannot tell an empty
-    // result from a filter that was never offered.
-    const cohorts = [...new Set(students.map(studCohortOf))].filter(Boolean).sort();
-    const progs   = [...new Set(students.flatMap(studProgsOf))].sort();
+    // Drawn from the students the scope admits, so the options describe the
+    // list actually in front of the reader. Only the scope chips rebuild these,
+    // and switching scope clears the selections, so no combination can strand
+    // the reader on an option that is no longer offered.
+    const cohorts = [...new Set(base.map(studCohortOf))].filter(Boolean).sort();
+    const progs   = [...new Set(base.flatMap(studProgsOf))].sort();
     const opt = (v, cur) => `<option value="${esc(v)}"${cur===v?' selected':''}>${esc(v)}</option>`;
     dims.innerHTML =
       `<select class="sp-sel" onchange="setStudDim('cohort', this.value)">
@@ -3648,7 +3650,7 @@ function renderStudRail(){
          ${progs.map(p => opt(p, studProg)).join('')}
        </select>
        ${(() => {
-         const ys = [...new Set(students.map(studYearOf))].filter(y => y != null).sort((a,b)=>a-b);
+         const ys = [...new Set(base.map(studYearOf))].filter(y => y != null).sort((a,b)=>a-b);
          return ys.length ? `<select class="sp-sel" onchange="setStudDim('year', this.value)">
            <option value="all"${studYear==='all'?' selected':''}>All year levels</option>
            ${ys.map(y => `<option value="${y}"${studYear===String(y)?' selected':''}>Year ${y}</option>`).join('')}
