@@ -1803,6 +1803,17 @@ function reqCredits(r){
     // course belongs to exactly one requirement, this is the only place that
     // credit can be counted.
     if (!need) return { earned: done, planned: todo, need:0, done: done > 0, isOptional:true };
+    // An autoplan item seeds its whole pool into the plan so you only tick off
+    // what you have done. For the six required Innovation Foundation courses
+    // the pool is the requirement, but a country rotation is a choice from a
+    // larger set — eight Global Study offerings worth fifteen credits against a
+    // requirement of ten — so summing the unticked rows counts credits nobody
+    // will take. On a compulsory set what is outstanding is the requirement
+    // itself, less what is already earned. This restores the spreading the
+    // fixed-set design always intended, for planned only; earned still comes
+    // from credits_awarded.
+    if (r.autoplan)
+      return { earned: done, planned: Math.max(0, need - done), need, done: done >= need };
     return { earned: done,
              planned: todo, need,
              done: done >= need };
