@@ -72,7 +72,7 @@ button,input,select,textarea{font-family:inherit;}
 .ov-mi.on svg{opacity:1;}
 .ov-mi .ov-n{margin-left:auto;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;
   background:var(--red-l);color:var(--red);padding:2px 8px;border-radius:20px;}
-.ov-body{min-width:0;padding:0 0 0 28px;}
+.ov-body{min-width:0;padding:32px 0 0 28px;}
 .ov-wait{padding:48px 0;color:var(--text3);font-size:17px;}
 .ov-scope{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:18px;}
 .ov-sb{font-family:inherit;font-size:17.5px;padding:11px 22px;border-radius:24px;
@@ -96,13 +96,13 @@ button,input,select,textarea{font-family:inherit;}
 .ov-b:last-child{border-right:none;}
 .ov-b:hover{background:var(--surface2);}
 .ov-b.on{background:var(--blue);color:#fff;font-weight:600;}
-.ov-hero{display:flex;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;
-  flex-wrap:wrap;background:var(--surface);margin-bottom:12px;}
-.ov-hs{flex:1 1 110px;padding:12px 17px;border-right:1px solid var(--border);display:flex;flex-direction:column;}
-.ov-hs:last-child{border-right:none;}
-.ov-hs i{font-style:normal;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.09em;
-  text-transform:uppercase;color:var(--text3);margin-bottom:2px;}
-.ov-hs b{font-family:'DM Mono',monospace;font-size:27px;font-weight:500;color:var(--text);}
+.ov-hero{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.ov-hs{flex:1 1 110px;background:var(--surface2);border-radius:var(--r);padding:16px;
+  display:flex;flex-direction:column-reverse;justify-content:flex-end;}
+.ov-hs i{font-style:normal;font-size:17px;color:var(--text3);font-weight:500;
+  text-transform:uppercase;letter-spacing:.05em;}
+.ov-hs b{font-size:30px;font-weight:600;letter-spacing:-.03em;line-height:1;
+  color:var(--text);margin-bottom:4px;}
 .ov-hs.bad b{color:var(--red);}
 .ov-cw{overflow-x:auto;}
 .ov-cw svg{display:block;width:100%;min-width:620px;height:auto;}
@@ -154,8 +154,10 @@ button,input,select,textarea{font-family:inherit;}
 .error-banner strong{display:block;margin-bottom:4px;font-weight:600;}
 
 /* OVERVIEW */
-.overview-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;}
+/* One KPI tile across the app, taken from the chair board: a tinted panel with
+   no border, so a row of them reads as one band instead of five cards. */
+.overview-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;}
+.stat-card{background:var(--surface2);border-radius:var(--r);padding:16px;}
 .stat-val{font-size:30px;font-weight:600;letter-spacing:-0.03em;line-height:1;margin-bottom:4px;}
 .stat-val.ok{color:var(--green);}
 .stat-val.warn{color:var(--amber);}
@@ -3487,7 +3489,7 @@ function renderProgramSummary() {
   }).join('') + (neverMet.length > 8 ? `<div class="db-item"><div class="db-detail">+${neverMet.length-8} more</div></div>` : '');
 
   return `
-    <div style="margin:32px 0 20px;">
+    <div style="margin:0 0 20px;">
       <div style="border-top:2px solid var(--blue);padding-top:16px;display:flex;align-items:center;justify-content:space-between;">
         <div>
           <div style="font-size:13px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Program Summary</div>
