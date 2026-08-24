@@ -3895,14 +3895,18 @@ async function loadReqFor(sid){
   if(reqDetail[sid] || reqBusy[sid]) return;
   reqBusy[sid] = true;
   try{
-    const [items, sum, plan, confirms] = await Promise.all([
+    const [items, sum, plan, confirms, lineage] = await Promise.all([
       sbGet(VW_REQ_STATUS,  `student_id=eq.${sid}&order=sort_order.asc`).catch(()=>[]),
       sbGet(VW_REQ_SUMMARY, `student_id=eq.${sid}`).catch(()=>[]),
       sbGet(TBL_REQ_COURSE,
         `student_id=eq.${sid}&select=id,item_id,course_id,is_completed,term,credits_awarded,`
         + `courses(course_id,code,num,title,credits,discontinued)`).catch(()=>[]),
       sbGet(TBL_CAT_CONFIRM, `student_id=eq.${sid}`).catch(()=>[]),
+      COURSE_LINEAGE.length ? Promise.resolve(COURSE_LINEAGE)
+        : sbGet('course_lineage',
+                'select=predecessor_course_id,successor_course_id').catch(()=>[]),
     ]);
+    COURSE_LINEAGE = lineage || [];
     reqDetail[sid] = {
       items: items || [],
       summary: (sum && sum[0]) || null,
@@ -3920,13 +3924,43 @@ async function loadReqFor(sid){
   }
 }
 
+// ── lineage ──────────────────────────────────────────────────────
+// A renumbered rotation keeps both codes in the pool, so a student can tick the
+// new code for a visit the registrar already credited under the old one:
+// Global Society & Me: Korea and Global Study and Engagement: Korea are one
+// journey, and the old scheme's two one-credit halves are the new scheme's
+// single two-credit course. Counting both doubles the credit.
+//
+// The registrar dates what it records; a tick carries no term. So within a
+// lineage family a dated row wins and undated rows are dropped. Where the
+// registrar is silent — the students reconciled by hand — the tick is the only
+// record and survives.
+let COURSE_LINEAGE = [];
+
+function fReqFamilyOf(id){
+  let cur = id;
+  const seen = new Set([id]);
+  for(;;){
+    const nxt = COURSE_LINEAGE.find(l => l.predecessor_course_id === cur)?.successor_course_id;
+    if(!nxt || seen.has(nxt)) return cur;
+    seen.add(nxt); cur = nxt;
+  }
+}
+
+function fReqDedupe(rows){
+  if(!COURSE_LINEAGE.length) return rows;
+  const dated = new Set();
+  rows.forEach(p => { if(p.term) dated.add(fReqFamilyOf(p.course_id)); });
+  return rows.filter(p => p.term || !dated.has(fReqFamilyOf(p.course_id)));
+}
+
 // Lifted from the student app so both sides show one number. A fixed set —
 // the six required IF courses, the country rotations — is spread evenly rather
 // than summed, which is the only way the Civic Project reconciles: each CV
 // course reads 2 credits while the requirement is 5/8/9/10 by cohort.
 function fReqCredits(r, plan){
   const need = Number(r.required_credits) || 0;
-  const rows = plan.filter(p => p.item_id === r.item_id);
+  const rows = fReqDedupe(plan.filter(p => p.item_id === r.item_id));
   const sum  = f => rows.filter(f).reduce((a,p)=>a + (Number(p.credits)||0), 0);
 
   if (r.parent_id != null) return { earned:0, planned:0, need, done:!!r.is_completed };
@@ -3975,13 +4009,25 @@ function buildReqPane(st){
   // totals instead lets a surplus in a satisfied requirement cancel a shortfall
   // in another, which is why this card reported nothing outstanding while two
   // requirements were unmet.
-  const G = d.items.filter(r => r.parent_id == null).reduce((a, r) => {
-    const x = fReqCredits(r, d.plan);
-    a.required += x.need; a.earned += x.earned; a.planned += x.planned;
-    a.gap  += Math.max(0, x.need - x.earned);
-    a.unpl += Math.max(0, x.need - x.earned - x.planned);
-    return a;
-  }, {required:0, earned:0, planned:0, gap:0, unpl:0});
+  // Clipped at the category, not at the item. A source carrying no requirement
+  // of its own — partner-university transfer, MOOC, the Computer Language
+  // certificate — feeds the same category as the remainder item beside it, so
+  // its credits must reduce that category's gap. Only when a surplus would
+  // travel to a different requirement does it stop.
+  const G = (() => {
+    const by = {};
+    d.items.filter(r => r.parent_id == null).forEach(r => {
+      const x = fReqCredits(r, d.plan), k = r.category || '';
+      by[k] = by[k] || {required:0, earned:0, planned:0};
+      by[k].required += x.need; by[k].earned += x.earned; by[k].planned += x.planned;
+    });
+    return Object.values(by).reduce((a, c) => {
+      a.required += c.required; a.earned += c.earned; a.planned += c.planned;
+      a.gap  += Math.max(0, c.required - c.earned);
+      a.unpl += Math.max(0, c.required - c.earned - c.planned);
+      return a;
+    }, {required:0, earned:0, planned:0, gap:0, unpl:0});
+  })();
 
   const pct  = G.required ? Math.min(100, 100*G.earned/G.required) : 0;
   const pPct = G.required ? Math.min(100-pct, 100*G.planned/G.required) : 0;
@@ -3999,10 +4045,10 @@ function buildReqPane(st){
 
   const body = cats.map(c => {
     const t = c.items.reduce((a,r) => { const x = fReqCredits(r, d.plan);
-      a.earned += x.earned; a.planned += x.planned; a.required += x.need;
-      a.gap  += Math.max(0, x.need - x.earned);
-      a.unpl += Math.max(0, x.need - x.earned - x.planned); return a; },
-      {earned:0, planned:0, required:0, gap:0, unpl:0});
+      a.earned += x.earned; a.planned += x.planned; a.required += x.need; return a; },
+      {earned:0, planned:0, required:0});
+    t.gap  = Math.max(0, t.required - t.earned);
+    t.unpl = Math.max(0, t.required - t.earned - t.planned);
     const met     = t.earned >= t.required && t.required > 0;
     const onTrack = t.earned + t.planned >= t.required;
     const conf    = d.confirms.find(x => x.category === c.name);
@@ -4054,7 +4100,10 @@ function buildReqPane(st){
           <td class="rq-n plan">${G.planned||''}</td>
           <td class="rq-n last ${G.unpl?'miss':''}">${G.unpl||''}</td></tr>
         <tr><td colspan="7" class="rq-foot">The same table the student sees.
-          You can read it and confirm a completed category; only the student ticks their own courses.</td></tr>
+          You can read it and confirm a completed category; only the student ticks their own courses.
+          Gap is summed requirement by requirement, so credits earned beyond one requirement — transferred
+          partner-university credit, for instance — do not reduce another, and Required minus Earned need
+          not equal Gap.</td></tr>
       </tbody></table>
   </div>`;
 }
