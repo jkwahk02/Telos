@@ -2256,11 +2256,15 @@ async function markMeetingCompleted(meetingId) {
   
 function buildPendingExpand(m, st) {
   const hasSlots    = m.proposedSlots && m.proposedSlots.length > 0;
+  // A request the advisor started is waiting on the student, not on us. The
+  // confirm panel below belongs to the other case; shown here it would let an
+  // advisor fix a time the student has never answered.
+  const advisorOffered = hasSlots && m.createdBy === 'advisor' && !m.advisorConfirmed;
   const sel         = pendingSelSlot[m.id] ?? null;
   const isProposeMode = pendingPropMode[m.id] || false;
   const picked      = pendingPropose[m.id] || new Set();
 
-  const studentSlotsHtml = hasSlots ? `
+  const studentSlotsHtml = hasSlots && !advisorOffered ? `
     <div style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Select a slot to confirm</div>
     ${m.proposedSlots.map((sl, i) => `
       <label style="display:flex;align-items:center;gap:12px;padding:9px 13px;border:1px solid var(--border-em);border-radius:var(--r);background:${sel===i?'var(--blue-l)':'var(--surface2)'};cursor:pointer;margin-bottom:6px;transition:all .12s;${sel===i?'border-color:var(--blue-m);':''}"
@@ -2288,10 +2292,28 @@ function buildPendingExpand(m, st) {
         </div>
       </label>`).join('')}` : '';
 
+  // What was offered, read-only: the date resolved, the appointment length
+  // named, so it is plain what the student was actually asked.
+  const offeredHtml = advisorOffered ? `
+    <div style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">
+      Waiting for ${esc(st?.name?.split(' ')[0] || 'the student')} to choose
+    </div>
+    ${m.proposedSlots.map(sl => `
+      <div style="display:flex;align-items:center;gap:12px;padding:9px 13px;border:1px solid var(--border-em);border-radius:var(--r);background:var(--surface2);margin-bottom:6px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--amber-b);flex-shrink:0;"></div>
+        <div style="flex:1;font-size:15px;">
+          <b style="font-weight:600;">${esc(sl.dateLabel || fmtShortDateFac(sl.dateStr) || dayNameFac(sl.day_of_week))}</b>
+          <span style="margin-left:7px;font-weight:500;">${esc(sl.start)} &ndash; ${esc(sl.end)}</span>
+          <span class="tz-pill" style="margin-left:4px;">${tzAbbrFac(FACULTY_TIMEZONE)}</span>
+          <span style="color:var(--text3);margin-left:7px;font-size:13px;">${sl.duration || m.meetingDuration} min appointments</span>
+        </div>
+      </div>`).join('')}` : '';
+
   const proposePanelHtml = isProposeMode ? `
     <div style="border:1px solid var(--border-em);border-radius:var(--r);overflow:hidden;margin-bottom:14px;">
       <div style="padding:8px 13px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:13px;font-weight:500;color:var(--text2);">
-        Your availability — select slots to propose to ${esc(st?.name?.split(' ')[0] || 'student')}
+        Your availability — select blocks to offer ${esc(st?.name?.split(' ')[0] || 'student')}.
+        They choose a start time inside one, ${m.meetingDuration || 30} minutes long.
       </div>
       ${availSlots.filter(a => a.is_active).map((a, ai) => {
         const isPicked = picked.has(ai);
@@ -2306,7 +2328,7 @@ function buildPendingExpand(m, st) {
             ${days[a.day_of_week]}
           </div>
           <div style="flex:1;">
-            <div style="font-size:13px;font-weight:500;${isPicked?'color:#0C447C;':''}">${a.start_time.slice(0,5)} – ${a.end_time.slice(0,5)} <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>
+            <div style="font-size:13px;font-weight:500;${isPicked?'color:#0C447C;':''}">${fmtShortDateFac(offerDate(a))} · ${a.start_time.slice(0,5)} – ${a.end_time.slice(0,5)} <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>
             ${a.note?`<div style="font-size:11px;color:var(--text3);">${esc(a.note)}</div>`:''}
           </div>
         </div>`; 
@@ -2314,7 +2336,21 @@ function buildPendingExpand(m, st) {
     </div>` : '';
 
   let actionHtml = '';
-  if (hasSlots) {
+  if (isProposeMode) {
+    actionHtml = `
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <button class="btn-log" onclick="sendProposal(${m.id})" ${picked.size===0?'disabled style="opacity:.4;cursor:default;"':''}>
+          ${advisorOffered ? 'Send new times' : 'Send proposal'}${picked.size>0?' ('+picked.size+')':''}
+        </button>
+        <button class="btn-cancel" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border-em);" onclick="pendingPropMode[${m.id}]=false;if(pendingPropose[${m.id}])pendingPropose[${m.id}].clear();renderOverview();renderMeetings();">Cancel</button>
+      </div>`;
+  } else if (advisorOffered) {
+    actionHtml = `
+      <div style="border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="flex:1;min-width:200px;font-size:13px;color:var(--text3);">Nothing is booked until they pick one.</span>
+        <button class="btn-cancel" style="background:var(--surface);color:var(--text2);border:1px solid var(--border-em);" onclick="pendingPropMode[${m.id}]=true;renderOverview();renderMeetings();">Offer different times</button>
+      </div>`;
+  } else if (hasSlots) {
     actionHtml = `
       <div style="border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2);">
         <div style="display:flex;align-items:center;gap:8px;">
@@ -2322,14 +2358,6 @@ function buildPendingExpand(m, st) {
           <button class="btn-log" onclick="confirmMeetingRequest(${m.id})" ${sel===null?'disabled style="opacity:.4;cursor:default;"':''}>✓ Confirm</button>
           <button class="btn-cancel" style="background:var(--surface);color:var(--text2);border:1px solid var(--border-em);" onclick="rescheduleMeetingRequest(${m.id})">Ask to reschedule</button>
         </div>
-      </div>`;
-  } else if (isProposeMode) {
-    actionHtml = `
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <button class="btn-log" onclick="sendProposal(${m.id})" ${picked.size===0?'disabled style="opacity:.4;cursor:default;"':''}>
-          Send proposal${picked.size>0?' ('+picked.size+')':''}
-        </button>
-        <button class="btn-cancel" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border-em);" onclick="pendingPropMode[${m.id}]=false;if(pendingPropose[${m.id}])pendingPropose[${m.id}].clear();renderOverview();renderMeetings();">Cancel</button>
       </div>`;
   } else {
     actionHtml = `
@@ -2350,6 +2378,7 @@ function buildPendingExpand(m, st) {
           <div style="font-size:15px;color:#0C447C;">${esc(m.studentAgenda)}</div>
         </div>` : ''}
       ${studentSlotsHtml}
+      ${offeredHtml}
       ${proposePanelHtml}
     </div>
     ${actionHtml}`;
@@ -2556,23 +2585,98 @@ async function rescheduleMeetingRequest(meetingId) {
   }
 }
 
+// ── ADVISOR-PROPOSED SLOTS ──
+// An availability entry is a weekly rule: a weekday and a window. What the
+// student has to answer is a date. Resolving it here, at the moment the offer
+// is made, is what lets their side name a day and a time at all — a slot sent
+// as "Tue 14:00–16:00" arrives with no date to confirm and no appointment
+// inside it.
+function ymdLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+// Today as the advisor's own calendar has it, not the browser's.
+function facTodayDate() {
+  const t = new Date().toLocaleDateString('en-CA', { timeZone: FACULTY_TIMEZONE || 'UTC' });
+  return new Date(t + 'T12:00:00');
+}
+// The next occurrence of a weekday, today included, weeksAhead weeks later.
+function nextOccurrence(dow, weeksAhead = 0) {
+  const t = facTodayDate();
+  const d = new Date(t);
+  d.setDate(t.getDate() + ((dow - t.getDay() + 7) % 7) + weeksAhead * 7);
+  return ymdLocal(d);
+}
+function fmtShortDateFac(iso) {
+  if (!iso) return '';
+  return new Date(iso + 'T12:00:00')
+    .toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+}
+// Now, on the advisor's own clock.
+function facNowHM() {
+  return new Date().toLocaleTimeString('en-GB',
+    { timeZone: FACULTY_TIMEZONE || 'UTC', hour:'2-digit', minute:'2-digit', hour12:false });
+}
+// The date a block is actually offered for. The next occurrence of its weekday
+// unless that is today and the window has already closed, in which case it is
+// a week later — an office hour that ended at noon is not a time to offer.
+function offerDate(a, weeksAhead = 0) {
+  const d = nextOccurrence(a.day_of_week, weeksAhead);
+  if (d === ymdLocal(facTodayDate()) && a.end_time.slice(0,5) <= facNowHM()) {
+    return nextOccurrence(a.day_of_week, weeksAhead + 1);
+  }
+  return d;
+}
+function dayNameFac(dow) {
+  return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dow] || '';
+}
+// How many appointments of this length the block holds.
+function blockFit(a, dur) {
+  const toM = t => { const [h, mm] = String(t).split(':').map(Number); return h*60 + mm; };
+  return Math.max(0, Math.floor((toM(a.end_time) - toM(a.start_time)) / dur));
+}
+// The offer itself. Times are the advisor's own timezone throughout — the
+// student app converts them for display and writes the confirmed time back in
+// the advisor's timezone, which is the convention the rest of the app reads by.
+function advisorSlot(a, dur, weeksAhead = 0) {
+  const dateStr = offerDate(a, weeksAhead);
+  const start = a.start_time.slice(0,5), end = a.end_time.slice(0,5);
+  return {
+    block: true,
+    duration: dur,
+    day_of_week: a.day_of_week,
+    dateStr, dateLabel: fmtShortDateFac(dateStr),
+    facDateStr: dateStr, facStart: start, facEnd: end,
+    start, end,
+    tz: FACULTY_TIMEZONE || '',
+    note: a.note || '',
+  };
+}
+
 async function sendProposal(meetingId) {
   const m = meetings.find(x => x.id === meetingId);
   const picked = pendingPropose[meetingId];
   if (!picked || picked.size === 0) { showToast('Select at least one slot.'); return; }
 
-  const proposedByAdvisor = Array.from(picked).map(ai => {
-    const a = availSlots[ai];
-    return { day_of_week: a.day_of_week, start: a.start_time.slice(0,5), end: a.end_time.slice(0,5) };
-  });
+  const dur = m?.meetingDuration || 30;
+  const proposedByAdvisor = Array.from(picked)
+    .map(ai => advisorSlot(availSlots[ai], dur))
+    .sort((x, y) => (x.dateStr + x.start).localeCompare(y.dateStr + y.start));
 
   try {
     await sbUpdate(TBL_MEETING, 'id', meetingId, {
-      status:          'scheduled',
-      proposed_slots:  JSON.stringify(proposedByAdvisor),
-      created_by:      'advisor',
+      status:           'scheduled',
+      meeting_date:     proposedByAdvisor[0].dateStr,
+      meeting_duration: dur,
+      proposed_slots:   JSON.stringify(proposedByAdvisor),
+      created_by:       'advisor',
     });
-    if (m) { m.status = 'scheduled'; m.createdBy = 'advisor'; }
+    if (m) {
+      m.status          = 'scheduled';
+      m.createdBy       = 'advisor';
+      m.meetingDate     = proposedByAdvisor[0].dateStr;
+      m.meetingDuration = dur;
+      m.proposedSlots   = proposedByAdvisor;
+    }
     delete pendingPropMode[meetingId];
     delete pendingPropose[meetingId];
     showToast(`Proposal sent — ${picked.size} slot${picked.size>1?'s':''} proposed to student`);
@@ -2821,6 +2925,33 @@ function ovStudents(){
   });
 }
 
+// PROVENANCE. Two different registrar files, both received 2026-08-20, and the
+// page states each one's time so they cannot be mistaken for one delivery:
+//   10:36  TAEJAE 수강·성적 조회.xlsx        -> import_*   (this note)
+//   17:28  (수정)전공변경 내역 및 현황표      -> students   (Major Declarations)
+// When a newer file arrives, change only the note that names it.
+//
+// Both Academic Insights pages read v_student_credit_progress, and that view is
+// built on the one-time registrar extract rather than on the students table. A
+// student added to Telos after the extract has no row in it and simply does not
+// appear here - no error, just a smaller number. Cohort 4 is the current case:
+// their first term is Fall 2026, so the registrar has no coursework for them.
+// Saying so on the page is better than a silent undercount.
+function ovSourceNote(){
+  const inView = ovStudents().length;
+  const roster = students.filter(s => !/\(test\)/i.test(s.name || '')
+                                   && String(s.id).slice(0,4) >= '2023').length;
+  const missing = roster - inView;
+  return `<div class="ov-warn"><strong>Source: coursework and grades</strong> — the transcript
+    extract the registrar shared at 10:36 on 20 August 2026. Not Telos's own roster, and not the
+    same file as the major declarations: those came separately at 17:28 the same day and drive
+    the Major Declarations page only. The two are different deliveries with different coverage,
+    so a student can appear on one page and not the other.<br><br>
+    This extract covers ${inView} students.${
+    missing > 0 ? ` ${missing} of the ${roster} students now in Telos are not in it and are absent
+    from every chart on this page - Cohort 4 (2026) among them, whose first term is Fall 2026.` : ''}</div>`;
+}
+
 function ovScoped(list){
   // An account can land here with the advisee scope still set — from a saved
   // state, or after an assignment is removed — so it falls back rather than
@@ -2976,6 +3107,7 @@ function ovCredits(box){
     <h2 class="ov-h1">Credit Progress</h2>
     <p class="ov-sub">Where students stand against the ${REQ} credits the degree requires.
       Completed means a grade is on record — advisor confirmation is not part of this count.</p>
+    ${ovSourceNote()}
     <div class="ov-warn">Totals exclude credits earned at partner universities on rotation — read them as a lower bound.</div>
     <div class="ov-ctl">
       <div class="ov-grp">
@@ -3235,6 +3367,13 @@ function ovMajors(box){
       apart. <strong>Which program</strong> is the first chart and the last. <strong>What form the declaration
       takes</strong> — single, double, or a major with a minor — is the one in between. A self-designed major
       belongs to the programs: it answers which, not what form.</p>
+    <div class="ov-warn"><strong>Source: major declarations</strong> — the official major-status file the
+      registrar shared at 17:28 on 20 August 2026, which they mark as still in progress. This is a different
+      file from the coursework and grade extract that arrived at 10:36 the same day; that one drives Credit
+      Progress and Program Requirements and has no bearing on what is shown here.<br><br>
+      ${nodec} students have no declaration on record — most of them Cohort 4 (2026), who have not reached the
+      declaration stage, and a few in Cohort 3 whose forms had not arrived. Anything decided after the file was
+      shared is not here yet.</div>
 
     <div class="ov-hero">
       ${tile('', 'declared', declared, '/ ' + total)}
@@ -3675,6 +3814,7 @@ function ovProgram(box){
     <p class="ov-sub">Areas and their credit values come from
       <code>student_requirement_category</code>. Programs are set by the scope bar above,
       so both charts redraw for whichever programs are in view.</p>
+    ${ovSourceNote()}
     <div class="ov-ctl">
       <div class="ov-grp">
         <button class="ov-b${groupBy==='cohort'?' on':''}" onclick="OV.groupBy='cohort';OV.cohort='all';ovRenderBody()">By cohort</button>
@@ -4358,6 +4498,7 @@ function renderStudDetail(){
     <div class="sp-head${spJustChanged?' sp-enter':''}">
       ${facts}
       <button class="sp-btn" onclick="openCheckin('${esc(st.id)}')"><i class="sp-ico">\u{1F44B}</i>Check in</button>
+      <button class="sp-btn" onclick="openMeetingRequest('${esc(st.id)}')"><i class="sp-ico">\u{1F4C5}</i>Request meeting</button>
     </div>
     <div class="sp-tabs">${tabs}</div>
     <div class="sp-body" id="sp-pane"></div>`;
@@ -5194,6 +5335,202 @@ async function sendCheckin(sid){
   showCheckinFallback(sid, body, why);
 }
 
+
+// ── REQUEST A MEETING ──
+// The student's request form seen from the other side. The advisor offers
+// blocks out of their own availability and the student picks a start time
+// inside one, so nothing is ever offered that the advisor has not already
+// declared free, and no time is fixed without the student answering. For the
+// student who never books - the case this exists for - it is the advisor who
+// opens the conversation, and the asking is on the record either way.
+let mrPick = new Set();   // indices into availSlots
+let mrDur  = 30;
+let mrWeek = 0;           // 0 = the coming week, 1 = the one after
+let mrNote = '';
+
+function openMeetingRequest(sid){
+  const st = students.find(s => s.id === sid);
+  if(!st) return;
+  mrPick = new Set(); mrDur = 30; mrWeek = 0; mrNote = '';
+  const m = document.getElementById('ci-modal');
+  m.innerHTML = `<div class="ci-box">
+    <div class="ci-hd">Request a meeting with ${esc(st.name)}
+      <button class="ci-x" onclick="closeCheckin()">×</button></div>
+    <div class="ci-bd" id="mr-bd" style="max-height:72vh;overflow:auto;"></div></div>`;
+  m.classList.add('on');
+  renderMeetingRequest(sid);
+}
+
+function mrSet(key, val, sid){
+  if(key === 'dur'){ mrDur = val; mrPick.clear(); }
+  if(key === 'week'){ mrWeek = val; }
+  renderMeetingRequest(sid);
+}
+function mrToggle(i, sid){
+  if(mrPick.has(i)) mrPick.delete(i); else mrPick.add(i);
+  renderMeetingRequest(sid);
+}
+
+function renderMeetingRequest(sid){
+  const st = students.find(s => s.id === sid);
+  const bd = document.getElementById('mr-bd');
+  if(!st || !bd) return;
+
+  const active = availSlots.map((a, i) => ({a, i})).filter(x => x.a.is_active);
+
+  const durChips = [20, 30, 45, 60, 90].map(d => `
+    <button class="sp-btn" style="padding:5px 12px;font-size:14px;${mrDur===d?'border-color:var(--teal);color:var(--teal);font-weight:600;background:var(--teal-l);':''}"
+      onclick="mrSet('dur',${d},'${esc(sid)}')">${d} min</button>`).join('');
+
+  const weekChips = [0, 1].map(w => `
+    <button class="sp-btn" style="padding:5px 12px;font-size:14px;${mrWeek===w?'border-color:var(--teal);color:var(--teal);font-weight:600;background:var(--teal-l);':''}"
+      onclick="mrSet('week',${w},'${esc(sid)}')">${w===0?'This coming week':'The week after'}</button>`).join('');
+
+  const rows = active.length ? active.map(({a, i}) => {
+    const on   = mrPick.has(i);
+    const date = offerDate(a, mrWeek);
+    const fit  = blockFit(a, mrDur);
+    return `
+    <div onclick="mrToggle(${i},'${esc(sid)}')"
+      style="display:flex;align-items:center;gap:12px;padding:9px 12px;border:1px solid ${on?'var(--teal)':'var(--border-em)'};
+        border-radius:var(--r);background:${on?'var(--teal-l)':'var(--surface)'};margin-bottom:6px;cursor:pointer;${fit===0?'opacity:.45;':''}">
+      <div style="width:16px;height:16px;border-radius:3px;flex-shrink:0;border:1.5px solid ${on?'var(--teal)':'var(--border-em)'};
+        background:${on?'var(--teal)':'transparent'};display:flex;align-items:center;justify-content:center;">
+        ${on?`<svg width="9" height="9" viewBox="0 0 10 10"><polyline points="1.5,5 3.5,7.5 8.5,2.5" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`:''}
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:15px;font-weight:500;">${fmtShortDateFac(date)} · ${a.start_time.slice(0,5)} – ${a.end_time.slice(0,5)}
+          <span class="tz-pill" style="margin-left:3px;">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">
+          ${fit ? `${fit} appointment${fit>1?'s':''} of ${mrDur} min` : `Too short for a ${mrDur} min meeting`}${a.note?` · ${esc(a.note)}`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('') : `
+    <div class="mg-hint" style="margin:0;">You have no availability registered yet. Add it under
+      Meetings → Availability, and it will be offered here.</div>`;
+
+  const fits = Array.from(mrPick).filter(i => blockFit(availSlots[i], mrDur) > 0).length;
+
+  bd.innerHTML = `
+    <div class="mg-vislabel" style="margin-top:0;">How long</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">${durChips}</div>
+    <div class="mg-vislabel">Which week</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">${weekChips}</div>
+    <div class="mg-vislabel">Offer these blocks</div>
+    ${rows}
+    <div class="mg-vislabel">A line to go with it</div>
+    <textarea id="mr-note" rows="2" oninput="mrNote=this.value"
+      placeholder="I would like to catch up before the add/drop deadline.">${esc(mrNote)}</textarea>
+    <div class="mg-hint" style="margin-top:6px;">They pick one start time inside one block. Nothing is
+      booked until they do, and the request is logged in their advising history either way.</div>
+    <div class="ci-ft">
+      <span class="mg-hint" style="margin:0;">${st.email ? esc(st.email) : 'No email on file'}</span>
+      <button class="sp-btn" onclick="closeCheckin()">Cancel</button>
+      <button class="sp-btn solid" id="mr-send" ${fits===0?'disabled style="opacity:.45;cursor:default;"':''}
+        onclick="sendMeetingRequest('${esc(sid)}')">Send request${fits?` (${fits})`:''}</button>
+    </div>`;
+}
+
+function meetingRequestMailto(st, slots, note){
+  const first = String(st.name||'').split(' ')[0];
+  const lines = [
+    `Hi ${first},`, '',
+    'I would like to meet. I have offered these times in Telos:',
+    ...slots.map(sl => `  · ${sl.dateLabel} ${sl.start}–${sl.end} (${tzAbbrFac(FACULTY_TIMEZONE)}) — ${sl.duration} min appointments`),
+    '',
+    'Open Telos and pick a start time inside one of them:',
+    'https://jkwahk02.github.io/Telos/student/',
+    ...(note ? ['', note] : []),
+    '',
+    FACULTY,
+  ].join('\r\n');
+  return `mailto:${(st.email||'').trim()}`
+    + `?subject=${encodeURIComponent('A meeting time, if you can')}`
+    + `&body=${encodeURIComponent(lines)}`;
+}
+
+function showMeetingRequestFallback(st, slots, note, why){
+  const box = document.querySelector('#ci-modal .ci-bd');
+  if(!box){ showToast('Request created, but the email did not go out.'); return; }
+  box.innerHTML = `
+    <div style="background:var(--amber-l);border:1px solid var(--amber-b);border-radius:var(--r);
+      padding:12px 14px;font-size:15px;color:var(--amber-d);line-height:1.55;">
+      <b>The times are offered in Telos, but the email did not go out.</b><br>
+      ${esc(st.name)} will see the request next time they sign in. Telos cannot send from an
+      unverified domain yet, so the draft is written for you to send.
+    </div>
+    ${why?`<div class="mg-hint" style="margin-top:8px;">Provider said: ${esc(String(why).slice(0,240))}</div>`:''}
+    <div class="ci-ft">
+      <span class="mg-hint" style="margin:0;">${st.email?esc(st.email):'No email on file for this student'}</span>
+      <button class="sp-btn" onclick="closeCheckin()">Not now</button>
+      ${st.email?`<a class="sp-btn solid" style="text-decoration:none;" href="${meetingRequestMailto(st, slots, note)}"
+        onclick="setTimeout(closeCheckin,300)">Open email draft</a>`:''}
+    </div>`;
+}
+
+async function sendMeetingRequest(sid){
+  const st = students.find(s => s.id === sid);
+  if(!st) return;
+  const slots = Array.from(mrPick)
+    .filter(i => blockFit(availSlots[i], mrDur) > 0)
+    .map(i => advisorSlot(availSlots[i], mrDur, mrWeek))
+    .sort((x, y) => (x.dateStr + x.start).localeCompare(y.dateStr + y.start));
+  if(!slots.length){ showToast('Choose a block first.'); return; }
+
+  const btn = document.getElementById('mr-send');
+  if(btn){ btn.disabled = true; btn.textContent = 'Sending…'; }
+  const note = (mrNote || '').trim();
+
+  let row = null;
+  try{
+    const rows = await sbInsert(TBL_MEETING, {
+      student_id:        sid,
+      faculty_email:     FACULTY_EMAIL,
+      meeting_date:      slots[0].dateStr,
+      meeting_format:    'Zoom',
+      meeting_type:      'Regular',
+      meeting_duration:  mrDur,
+      proposed_slots:    JSON.stringify(slots),
+      status:            'scheduled',
+      advisor_confirmed: false,
+      created_by:        'advisor',
+      student_agenda:    '',
+    });
+    row = (rows && rows[0]) || null;
+    if(row) meetings.push(mapMeeting(row));
+  }catch(e){
+    if(btn){ btn.disabled = false; btn.textContent = 'Send request'; }
+    showToast(`Could not create the request: ${e.message}`);
+    return;
+  }
+
+  // The asking goes on the record whether or not the student ever answers —
+  // which for the student who does not answer is the whole point.
+  const logged = [
+    'I have asked for a meeting and offered these times:',
+    ...slots.map(sl => `· ${sl.dateLabel} ${sl.start}–${sl.end} (${sl.duration} min appointments)`),
+    ...(note ? ['', note] : []),
+  ].join('\n');
+  msgDraft[sid] = logged;
+  msgVis[sid] = msgVis[sid] || 'advisors';
+  await postMsg(sid, 'checkin');
+
+  let mailed = true, why = '';
+  try{
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/notify-student-checkin`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${supabaseUser.access_token}`},
+      body: JSON.stringify({ studentId: sid, message: logged
+        + '\n\nOpen Telos to pick a start time: https://jkwahk02.github.io/Telos/student/' }),
+    });
+    if(!r.ok){ mailed = false; why = await r.text(); console.warn('Meeting request mail failed:', why); }
+  }catch(e){ mailed = false; why = e.message; console.warn('Meeting request mail failed:', e); }
+
+  renderCurrent();
+  if(mailed){ closeCheckin(); showToast(`✓ Request sent — ${slots.length} block${slots.length>1?'s':''} offered`); return; }
+  showMeetingRequestFallback(st, slots, note, why);
+}
 
 function thCls(col){return studSort.col===col?('sort-'+(studSort.dir===1?'asc':'desc')):'';}
 // Narrowing the roster can leave you reading someone who is no longer on it -
