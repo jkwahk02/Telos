@@ -1029,6 +1029,7 @@ const TBL_REQ_COURSE  = 'student_requirement_courses';
 const TBL_REQ_NOTE    = 'student_requirement_notes';
 const TBL_CAT_CONFIRM = 'student_category_confirmations';
 const TBL_COURSES     = 'courses';
+const TBL_SELF_DESIGN = 'student_self_designed_courses';
 const VW_COURSE_PROG  = 'course_programs';
 const VW_REQ_STATUS   = 'student_requirement_status';
 const VW_REQ_CATEGORY = 'student_requirement_category';
@@ -1074,6 +1075,7 @@ let scheduledMeetings = [];  // status='scheduled' 전체
 let allMeetings   = [];      // 히스토리용
 let allFaculty    = [];      // faculty_profiles 전체
 let availMap      = {};      // { faculty_email: [slots] }
+let selfDesigned  = [];      // 자기설계전공의 승인 교과목록 (course_id 배열)
 let reqItems      = [];      // student_requirement_status (본인)
 let reqCats       = [];      // student_requirement_category (본인)
 let reqSummary    = null;    // student_requirement_summary (본인, 1행)
@@ -1362,7 +1364,8 @@ async function loadData(){
 
     // 2. 병렬 로드
     const [meetingRows,histRows,facultyRows,studentLogRows,
-           reqRows,reqSumRows,reqCatRows,reqPlanRows,lineageRows,reqNoteRows,reqConfirmRows] = await Promise.all([
+           reqRows,reqSumRows,reqCatRows,reqPlanRows,lineageRows,reqNoteRows,reqConfirmRows,
+           selfDesignRows] = await Promise.all([
       sbGet(TBL_MEETING,`student_id=eq.${sid}&status=in.(scheduled,rescheduling)&order=meeting_date.asc`),
       sbGet(
         TBL_MEETING,
@@ -1384,7 +1387,11 @@ async function loadData(){
       // a student count the same course twice
       sbGet('course_lineage',
         `select=predecessor_course_id,successor_course_id,satisfies_successor,`
-        + `relation,effective_catalog_year`).catch(()=>[])
+        + `relation,effective_catalog_year`).catch(()=>[]),
+      // 자기설계전공의 승인 교과목록. 이 학생의 주전공이 자기설계일 때, 그
+      // 전공으로 셀 수 있는 과목은 여기 있는 것뿐이다. 다른 학생에게는 빈 배열.
+      sbGet(TBL_SELF_DESIGN, `student_id=eq.${sid}&select=course_id&order=sort_order.asc`)
+        .catch(e=>{console.warn('self-designed subject list unavailable:',e.message);return[];})
     ]);
 
     const studentLogMap = {};
@@ -1396,6 +1403,9 @@ async function loadData(){
       m.student_log = studentLogMap[m.id] || null;
     });
         
+    // 요건 자격 계산보다 먼저 들어가야 한다 - 자기설계전공 항목이 무엇을
+    // 담을 수 있는지가 이 목록으로 정해진다.
+    selfDesigned  = (selfDesignRows || []).map(r => r.course_id);
     reqItems      = reqRows || [];
     reqBuildEligibility().then(() => {
       if(currentPage === 'requirements') renderRequirements();
@@ -2269,9 +2279,17 @@ function reqResolveFilter(f){
     const map = { '$major1': studentData?.major1, '$major2': studentData?.major2,
                   '$minor': studentData?.minor };
     const v = f.program.startsWith('$') ? map[f.program] : f.program;
-    // A self-designed major has no matching programme; fall back to no filter
-    // rather than showing an empty list.
-    if(v && v !== 'Self-designed') out.program = v;
+    // A self-designed major names no programme in the catalogue. It used to
+    // fall through to no filter, which offered the entire catalogue - the
+    // opposite of the rule. What counts towards a self-designed major is the
+    // subject list the student had approved in advance, and nothing else, so
+    // the programme filter becomes that list.
+    //
+    // An empty list is left empty on purpose. It means no approved subject
+    // list is on file for this student, and an empty picker says so; offering
+    // everything would hide it.
+    if(v === 'Self-designed') out.course_ids = selfDesigned;
+    else if(v) out.program = v;
   }
   return out;
 }
@@ -2315,7 +2333,11 @@ async function reqFetchPool(item){
   if(!f) return [];
   const sel = 'course_id,code,num,title,credits,classification,program,lead_program,discontinued';
 
-  if(f.course_ids?.length){
+  if(f.course_ids){
+    // An empty named list is a list with nothing on it, not the absence of a
+    // filter. Falling through would reach the catch-all below and offer the
+    // whole catalogue — which is what a self-designed major used to get.
+    if(!f.course_ids.length) return [];
     const list = f.course_ids.map(c=>`"${c}"`).join(',');
     return sbGet(TBL_COURSES, `course_id=in.(${list})&select=${sel}&order=course_id.asc`);
   }
@@ -3132,8 +3154,11 @@ function renderProfile(){
     ['Cohort',shortCohort(s.cohort||'')],
     ['Status',`<span class="bdg ${s.status==='Leave of Absence'?'bdg-amber':'bdg-teal'}">${esc(s.status||'—')}</span>`],
     ['School',esc(s.school||'—')],
-    ['1st Major',esc(shortMajor(s.major1||''))],
-    ...(s.major2?[['2nd Major',esc(shortMajor(s.major2))]]:[]),
+    // A self-designed major is not one major but as many as there are students
+    // who designed one. 'Self' names the kind; the title names the thing.
+    ['Primary major',esc(shortMajor(s.major1||''))
+      + (s.self_designed_title?` · ${esc(s.self_designed_title)}`:'')],
+    ...(s.major2?[['Second major',esc(shortMajor(s.major2))]]:[]),
     ...(s.minor?[['Minor',esc(shortMajor(s.minor))]]:[]),
   ].map(([l,v])=>`<div class="ir"><div class="ir-l">${l}</div><div class="ir-v">${v}</div></div>`).join('');
 
@@ -3525,29 +3550,46 @@ const pendingHtml = pending.length ? `
           </div>`).join('')
           :'<div style="font-size:13px;color:var(--text3);font-style:italic;">No slots proposed</div>';
 
+        const facTz=getFacTz(m.faculty_email);
         const advSlotHtml=isAdvProposed&&slots.length?`
           <div style="background:var(--teal-l);border-radius:var(--r);padding:9px 12px;margin-bottom:10px;font-size:13px;color:var(--teal);display:flex;align-items:center;gap:8px;">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".6" fill="currentColor"/></svg>
-            Advisor proposed new times. Select one to accept.
+            Your advisor offered these times. Pick a start time to accept.
           </div>
-          ${slots.map((sl,i)=>`
-          <div style="display:flex;align-items:center;gap:10px;padding:8px 11px;border:1px solid var(--teal-b);border-radius:var(--r);background:var(--teal-l);margin-bottom:5px;cursor:pointer;"
-            onclick="acceptAdvisorSlot(${m.id},${i})">
-            <div style="width:5px;height:5px;border-radius:50%;background:var(--teal);flex-shrink:0;"></div>
-            <div style="flex:1;">
-              <div class="spop-tz" style="text-align:left;">
-                <div class="spop-tz-line" style="justify-content:flex-start;font-size:12px;font-weight:500;color:#085041;">
-                  <span class="tz-pill">${tzAbbr(STUDENT_TIMEZONE)||'local'}</span>
-                  ${esc(sl.dateLabel||sl.dateStr||sl.day_of_week)} · ${convertTime(sl.start,getFacTz(m.faculty_email),STUDENT_TIMEZONE)||sl.start}–${convertTime(sl.end,getFacTz(m.faculty_email),STUDENT_TIMEZONE)||sl.end}
-                </div>
-                <div class="spop-tz-line" style="justify-content:flex-start;">
-                  <span class="tz-pill">${tzAbbr(getFacTz(m.faculty_email))}</span>
-                  ${esc(sl.dateLabel||sl.dateStr||sl.day_of_week)} · ${esc(sl.start)}–${esc(sl.end)}
-                </div>
+          ${slots.map((raw,i)=>{
+            const sl=resolveAdvisorSlot(raw,facTz);
+            if(!sl||!sl.dateStr) return '';
+            const opts=advisorBlockOpts(sl);
+            const mine=convertDateTime(sl.dateStr,sl.start,facTz,STUDENT_TIMEZONE);
+            const mineEnd=convertDateTime(sl.dateStr,sl.end,facTz,STUDENT_TIMEZONE);
+            return `
+          <div style="padding:9px 11px;border:1px solid var(--teal-b);border-radius:var(--r);background:var(--teal-l);margin-bottom:6px;">
+            <div class="spop-tz" style="text-align:left;">
+              <div class="spop-tz-line" style="justify-content:flex-start;font-size:12px;font-weight:600;color:#085041;">
+                <span class="tz-pill">${tzAbbr(STUDENT_TIMEZONE)||'local'}</span>
+                ${formatShortDate(mine.date||sl.dateStr)} · ${mine.time||sl.start}–${mineEnd.time||sl.end}
               </div>
+              ${facTz&&facTz!==STUDENT_TIMEZONE?`<div class="spop-tz-line" style="justify-content:flex-start;">
+                <span class="tz-pill">${tzAbbr(facTz)}</span>
+                ${formatShortDate(sl.dateStr)} · ${esc(sl.start)}–${esc(sl.end)}
+              </div>`:''}
             </div>
-            <div class="btn-sm-teal" style="font-size:11px;padding:3px 9px;">Accept</div>
-          </div>`).join('')}`:'';
+            ${opts.length?`
+              <div style="font-size:11px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:.04em;margin:8px 0 5px;">
+                Start time · ${sl.duration} min
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:5px;">
+                ${opts.map(o=>{
+                  const c=convertDateTime(sl.dateStr,o.start,facTz,STUDENT_TIMEZONE);
+                  return `<button class="btn-sm-teal" style="font-size:12px;padding:4px 10px;"
+                    onclick="acceptAdvisorSlot(${m.id},${i},'${o.start}','${o.end}')">${c.time||o.start}</button>`;
+                }).join('')}
+              </div>`
+            :`<div style="margin-top:7px;">
+                <button class="btn-sm-teal" style="font-size:12px;padding:4px 10px;"
+                  onclick="acceptAdvisorSlot(${m.id},${i})">Accept</button>
+              </div>`}
+          </div>`;}).join('')}`:'';
 
         const accentColor=isAdvProposed?'var(--teal-b)':'var(--blue-b)';
         const hdrBg=isAdvProposed?'var(--teal-l)':'var(--blue-l)';
@@ -4502,26 +4544,68 @@ async function saveEditRequest(meetingId) {
   }
 }
 
-async function acceptAdvisorSlot(meetingId, slotIdx) {
+// What the advisor offers is a window, not an appointment. Older proposals
+// carry only a weekday, with no date at all — resolved here to the next
+// occurrence so that even those can be answered.
+function resolveAdvisorSlot(sl, facTz) {
+  if (!sl) return null;
+  const out = { ...sl };
+  out.duration = sl.duration || 30;
+  if (!out.dateStr && typeof sl.day_of_week === 'number') {
+    const today = new Date(new Date().toLocaleDateString('en-CA', { timeZone: facTz || 'UTC' }) + 'T12:00:00');
+    const d = new Date(today);
+    d.setDate(today.getDate() + ((sl.day_of_week - today.getDay() + 7) % 7));
+    out.dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  if (!out.dateLabel && out.dateStr) out.dateLabel = formatShortDate(out.dateStr);
+  return out;
+}
+
+// Office hours run back to back: a 20 minute meeting inside a two hour window
+// is six appointments, not six with idle time between them.
+function advisorBlockOpts(sl) {
+  const toM = t => { const [h, mm] = String(t).split(':').map(Number); return h*60 + mm; };
+  const toT = v => `${String(Math.floor(v/60)).padStart(2,'0')}:${String(v%60).padStart(2,'0')}`;
+  const dur = sl.duration || 30;
+  const s = toM(sl.start), e = toM(sl.end), out = [];
+  for (let t = s; t + dur <= e; t += dur) out.push({ start: toT(t), end: toT(t + dur) });
+  return out;
+}
+
+async function acceptAdvisorSlot(meetingId, slotIdx, pickStart, pickEnd) {
   const m = scheduledMeetings.find(x => x.id === meetingId);
   if (!m) return;
   const slots = m.proposed_slots
     ? (typeof m.proposed_slots === 'string' ? JSON.parse(m.proposed_slots) : m.proposed_slots)
     : [];
-  const sl = slots[slotIdx];
-  if (!sl) return;
-  if (!confirm(`Accept meeting on ${sl.dateLabel || sl.dateStr} ${sl.start}–${sl.end}?`)) return;
+  const facTz = getFacTz(m.faculty_email);
+  const sl = resolveAdvisorSlot(slots[slotIdx], facTz);
+  if (!sl || !sl.dateStr) { showToast('That time has no date on it — please email your advisor.'); return; }
+
+  const start = pickStart || sl.start, end = pickEnd || sl.end;
+  const mine    = convertDateTime(sl.dateStr, start, facTz, STUDENT_TIMEZONE);
+  const mineEnd = convertDateTime(sl.dateStr, end,   facTz, STUDENT_TIMEZONE);
+  const mineLine = `${formatShortDate(mine.date || sl.dateStr)} · ${mine.time || start}–${mineEnd.time || end} ${tzAbbr(STUDENT_TIMEZONE) || ''}`.trim();
+  const facLine  = facTz && facTz !== STUDENT_TIMEZONE
+    ? `\n${formatShortDate(sl.dateStr)} · ${start}–${end} ${tzAbbr(facTz)} — your advisor's time`
+    : '';
+
+  if (!confirm(`Accept this meeting?\n\n${mineLine}${facLine}`)) return;
   try {
     await sbPatch(TBL_MEETING, 'id', meetingId, {
-      advisor_confirmed: true,
-      meeting_date:      sl.dateStr,
-      status:            'scheduled',
+      advisor_confirmed:    true,
+      meeting_date:         sl.dateStr,
+      confirmed_start_time: start + ':00',
+      confirmed_end_time:   end + ':00',
+      status:               'scheduled',
     });
-    m.advisor_confirmed = true;
-    m.meeting_date = sl.dateStr;
+    m.advisor_confirmed    = true;
+    m.meeting_date         = sl.dateStr;
+    m.confirmed_start_time = start + ':00';
+    m.confirmed_end_time   = end + ':00';
     renderMeetings();
     renderOverview();
-    showToast(`✓ Meeting confirmed — ${sl.dateLabel || sl.dateStr} ${sl.start}`);
+    showToast(`✓ Meeting confirmed — ${mineLine}`);
   } catch(e) {
     showToast(`Failed: ${e.message}`);
   }
