@@ -485,6 +485,22 @@ button,input,select,textarea{font-family:inherit;}
 .ci-modal.on{display:flex;}
 .ci-box{background:var(--surface);border-radius:var(--r-lg);width:100%;max-width:620px;
   overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+/* Offering times is a wide job: a week of start times wraps into three lines at
+   620px and into one at 960, and one line per day is what makes the week
+   readable at a glance. */
+.ci-box.wide{max-width:960px;}
+.mr-day{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:8px;}
+.mr-day-hd{display:flex;align-items:center;gap:9px;padding:7px 12px;background:var(--surface2);
+  border-bottom:1px solid var(--border);font-size:14px;font-weight:600;}
+.mr-day-bd{display:flex;flex-wrap:wrap;gap:5px;padding:9px 12px;}
+.mr-t{font-size:13px;font-family:'DM Mono',monospace;padding:5px 11px;border-radius:var(--r);
+  border:1px solid var(--border-em);background:var(--surface);color:var(--text);cursor:pointer;
+  transition:all .1s;}
+.mr-t:hover{border-color:var(--teal);color:var(--teal);}
+.mr-t.on{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600;}
+.mr-all{margin-left:auto;font-size:12px;padding:3px 10px;border-radius:var(--r);
+  border:1px solid var(--border-em);background:var(--surface);color:var(--text2);cursor:pointer;}
+.mr-all:hover{border-color:var(--teal);color:var(--teal);}
 .ci-hd{padding:14px 18px;border-bottom:1px solid var(--border);font-size:17px;font-weight:600;
   display:flex;align-items:center;}
 .ci-x{margin-left:auto;border:none;background:none;font-size:22px;line-height:1;
@@ -2392,7 +2408,11 @@ function buildPendingExpand(m, st) {
             ${days[a.day_of_week]}
           </div>
           <div style="flex:1;">
-            <div style="font-size:13px;font-weight:500;${isPicked?'color:#0C447C;':''}">${fmtShortDateFac(offerDate(a))} · ${a.start_time.slice(0,5)} – ${a.end_time.slice(0,5)} <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>
+            <div style="font-size:13px;font-weight:500;${isPicked?'color:#0C447C;':''}">${(() => {
+              const pd = offerDate(a, 0, m.meetingDuration || 30);
+              const pw = blockWindow(a, m.meetingDuration || 30, pd);
+              return `${fmtShortDateFac(pd)} · ${pw.start} – ${pw.end}`;
+            })()} <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>
             ${a.note?`<div style="font-size:11px;color:var(--text3);">${esc(a.note)}</div>`:''}
           </div>
         </div>`; 
@@ -2680,12 +2700,31 @@ function facNowHM() {
   return new Date().toLocaleTimeString('en-GB',
     { timeZone: FACULTY_TIMEZONE || 'UTC', hour:'2-digit', minute:'2-digit', hour12:false });
 }
-// The date a block is actually offered for. The next occurrence of its weekday
-// unless that is today and the window has already closed, in which case it is
-// a week later — an office hour that ended at noon is not a time to offer.
-function offerDate(a, weeksAhead = 0) {
+function tMinFac(t) { const [h, m] = String(t).split(':').map(Number); return h*60 + m; }
+function minTFac(v) { return `${String(Math.floor(v/60)).padStart(2,'0')}:${String(v%60).padStart(2,'0')}`; }
+function facNowMin() { return tMinFac(facNowHM()); }
+
+// The part of a block that can still be offered on a given date. Appointments
+// sit on the block's own grid, so a window half gone does not shift the starts
+// that remain — it loses the ones that have passed. On any date but today the
+// whole window stands.
+function blockWindow(a, dur, dateStr) {
+  const s = tMinFac(a.start_time), e = tMinFac(a.end_time);
+  let from = s;
+  if (dateStr === ymdLocal(facTodayDate())) {
+    const now = facNowMin();
+    if (now > s) from = s + Math.ceil((now - s) / dur) * dur;
+  }
+  return { start: minTFac(from), end: minTFac(e), count: Math.max(0, Math.floor((e - from) / dur)) };
+}
+
+// The date a block is actually offered for: the next occurrence of its weekday,
+// unless that is today and nothing is left in it. An office hour that ended at
+// noon is not a time to offer, and neither is the last twenty minutes of one
+// that ends before the appointment would.
+function offerDate(a, weeksAhead = 0, dur = 30) {
   const d = nextOccurrence(a.day_of_week, weeksAhead);
-  if (d === ymdLocal(facTodayDate()) && a.end_time.slice(0,5) <= facNowHM()) {
+  if (d === ymdLocal(facTodayDate()) && blockWindow(a, dur, d).count === 0) {
     return nextOccurrence(a.day_of_week, weeksAhead + 1);
   }
   return d;
@@ -2693,17 +2732,14 @@ function offerDate(a, weeksAhead = 0) {
 function dayNameFac(dow) {
   return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dow] || '';
 }
-// How many appointments of this length the block holds.
-function blockFit(a, dur) {
-  const toM = t => { const [h, mm] = String(t).split(':').map(Number); return h*60 + mm; };
-  return Math.max(0, Math.floor((toM(a.end_time) - toM(a.start_time)) / dur));
-}
+
 // The offer itself. Times are the advisor's own timezone throughout — the
 // student app converts them for display and writes the confirmed time back in
 // the advisor's timezone, which is the convention the rest of the app reads by.
 function advisorSlot(a, dur, weeksAhead = 0) {
-  const dateStr = offerDate(a, weeksAhead);
-  const start = a.start_time.slice(0,5), end = a.end_time.slice(0,5);
+  const dateStr = offerDate(a, weeksAhead, dur);
+  const w = blockWindow(a, dur, dateStr);
+  const start = w.start, end = w.end;
   return {
     block: true,
     duration: dur,
@@ -6010,7 +6046,7 @@ function openMeetingRequest(sid){
   if(!st) return;
   mrPick = new Set(); mrDur = Math.min(30, FACULTY_MAX_MEETING || 30); mrWeek = 0; mrNote = '';
   const m = document.getElementById('ci-modal');
-  m.innerHTML = `<div class="ci-box">
+  m.innerHTML = `<div class="ci-box wide">
     <div class="ci-hd">Request a meeting with ${esc(st.name)}
       <button class="ci-x" onclick="closeCheckin()">×</button></div>
     <div class="ci-bd" id="mr-bd" style="max-height:72vh;overflow:auto;"></div></div>`;
@@ -6019,21 +6055,61 @@ function openMeetingRequest(sid){
 }
 
 function mrSet(key, val, sid){
+  // Both of these change what the times even are, so nothing picked under the
+  // old setting can survive them.
   if(key === 'dur'){ mrDur = val; mrPick.clear(); }
-  if(key === 'week'){ mrWeek = val; }
+  if(key === 'week'){ mrWeek = val; mrPick.clear(); }
   renderMeetingRequest(sid);
 }
-function mrToggle(i, sid){
-  if(mrPick.has(i)) mrPick.delete(i); else mrPick.add(i);
+function mrToggle(key, sid){
+  if(mrPick.has(key)) mrPick.delete(key); else mrPick.add(key);
   renderMeetingRequest(sid);
+}
+function mrToggleDay(dateStr, sid){
+  const day = mrOptions().find(g => g.dateStr === dateStr);
+  if(!day) return;
+  const keys = day.times.map(t => `${dateStr}|${t.start}|${t.end}`);
+  const all  = keys.every(k => mrPick.has(k));
+  keys.forEach(k => all ? mrPick.delete(k) : mrPick.add(k));
+  renderMeetingRequest(sid);
+}
+
+// Every appointment the advisor could offer for the chosen week and length,
+// gathered by date rather than by block: two windows on a Tuesday are one
+// Tuesday to the student, and the advisor reads their week the same way.
+function mrOptions(){
+  const byDate = {};
+  availSlots.forEach(a => {
+    if(!a.is_active) return;
+    const date = offerDate(a, mrWeek, mrDur);
+    const w    = blockWindow(a, mrDur, date);
+    if(!w.count) return;
+    const from = tMinFac(w.start);
+    for(let k = 0; k < w.count; k++){
+      const start = minTFac(from + k*mrDur), end = minTFac(from + (k+1)*mrDur);
+      byDate[date] = byDate[date] || {};
+      byDate[date][start] = { start, end };   // overlapping blocks collapse
+    }
+  });
+  // Two windows that overlap sit on different grids, and offering both grids
+  // would offer 09:20-09:40 beside 09:30-09:50 — two students, one advisor,
+  // the same ten minutes. Earliest wins and the rest give way.
+  return Object.keys(byDate).sort().map(d => {
+    const times = [];
+    let until = -1;
+    Object.values(byDate[d]).sort((x, y) => x.start.localeCompare(y.start)).forEach(t => {
+      if (tMinFac(t.start) < until) return;
+      times.push(t);
+      until = tMinFac(t.end);
+    });
+    return { dateStr: d, label: fmtShortDateFac(d), times };
+  });
 }
 
 function renderMeetingRequest(sid){
   const st = students.find(s => s.id === sid);
   const bd = document.getElementById('mr-bd');
   if(!st || !bd) return;
-
-  const active = availSlots.map((a, i) => ({a, i})).filter(x => x.a.is_active);
 
   const durChips = [20, 30, 60, 90, 120]
     .filter(d => !FACULTY_MAX_MEETING || d <= FACULTY_MAX_MEETING)
@@ -6045,31 +6121,30 @@ function renderMeetingRequest(sid){
     <button class="sp-btn" style="padding:5px 12px;font-size:14px;${mrWeek===w?'border-color:var(--teal);color:var(--teal);font-weight:600;background:var(--teal-l);':''}"
       onclick="mrSet('week',${w},'${esc(sid)}')">${w===0?'This coming week':'The week after'}</button>`).join('');
 
-  const rows = active.length ? active.map(({a, i}) => {
-    const on   = mrPick.has(i);
-    const date = offerDate(a, mrWeek);
-    const fit  = blockFit(a, mrDur);
+  const groups = mrOptions();
+  const rows = groups.length ? groups.map(g => {
+    const keys = g.times.map(t => `${g.dateStr}|${t.start}|${t.end}`);
+    const all  = keys.every(k => mrPick.has(k));
     return `
-    <div onclick="mrToggle(${i},'${esc(sid)}')"
-      style="display:flex;align-items:center;gap:12px;padding:9px 12px;border:1px solid ${on?'var(--teal)':'var(--border-em)'};
-        border-radius:var(--r);background:${on?'var(--teal-l)':'var(--surface)'};margin-bottom:6px;cursor:pointer;${fit===0?'opacity:.45;':''}">
-      <div style="width:16px;height:16px;border-radius:3px;flex-shrink:0;border:1.5px solid ${on?'var(--teal)':'var(--border-em)'};
-        background:${on?'var(--teal)':'transparent'};display:flex;align-items:center;justify-content:center;">
-        ${on?`<svg width="9" height="9" viewBox="0 0 10 10"><polyline points="1.5,5 3.5,7.5 8.5,2.5" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`:''}
+    <div class="mr-day">
+      <div class="mr-day-hd">${g.label}
+        <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span>
+        <span style="font-weight:400;font-size:12px;color:var(--text3);">${g.times.length} × ${mrDur} min</span>
+        <button class="mr-all" onclick="mrToggleDay('${g.dateStr}','${esc(sid)}')">${all?'Clear day':'All day'}</button>
       </div>
-      <div style="flex:1;">
-        <div style="font-size:15px;font-weight:500;">${fmtShortDateFac(date)} · ${a.start_time.slice(0,5)} – ${a.end_time.slice(0,5)}
-          <span class="tz-pill" style="margin-left:3px;">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>
-        <div style="font-size:12px;color:var(--text3);margin-top:2px;">
-          ${fit ? `${fit} appointment${fit>1?'s':''} of ${mrDur} min` : `Too short for a ${mrDur} min meeting`}${a.note?` · ${esc(a.note)}`:''}
-        </div>
+      <div class="mr-day-bd">
+        ${g.times.map(t => {
+          const key = `${g.dateStr}|${t.start}|${t.end}`;
+          return `<button class="mr-t ${mrPick.has(key)?'on':''}"
+            onclick="mrToggle('${key}','${esc(sid)}')">${t.start}</button>`;
+        }).join('')}
       </div>
     </div>`;
   }).join('') : `
-    <div class="mg-hint" style="margin:0;">You have no availability registered yet. Add it under
-      Meetings → Availability, and it will be offered here.</div>`;
+    <div class="mg-hint" style="margin:0;">Nothing to offer for this week. Add availability under
+      Meetings → Availability, or try the week after.</div>`;
 
-  const fits = Array.from(mrPick).filter(i => blockFit(availSlots[i], mrDur) > 0).length;
+  const fits = mrPick.size;
 
   bd.innerHTML = `
     <div class="mg-vislabel" style="margin-top:0;">How long</div>
@@ -6078,18 +6153,18 @@ function renderMeetingRequest(sid){
     </div>
     <div class="mg-vislabel">Which week</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;">${weekChips}</div>
-    <div class="mg-vislabel">Offer these blocks</div>
+    <div class="mg-vislabel">Offer these times</div>
     ${rows}
     <div class="mg-vislabel">A line to go with it</div>
-    <textarea id="mr-note" rows="2" oninput="mrNote=this.value"
+    <textarea id="mr-note" rows="5" style="min-height:110px;" oninput="mrNote=this.value"
       placeholder="I would like to catch up before the add/drop deadline.">${esc(mrNote)}</textarea>
-    <div class="mg-hint" style="margin-top:6px;">They pick one start time inside one block. Nothing is
+    <div class="mg-hint" style="margin-top:6px;">They take one of the times you offer. Nothing is
       booked until they do, and the request is logged in their advising history either way.</div>
     <div class="ci-ft">
       <span class="mg-hint" style="margin:0;">${st.email ? esc(st.email) : 'No email on file'}</span>
       <button class="sp-btn" onclick="closeCheckin()">Cancel</button>
       <button class="sp-btn solid" id="mr-send" ${fits===0?'disabled style="opacity:.45;cursor:default;"':''}
-        onclick="sendMeetingRequest('${esc(sid)}')">Send request${fits?` (${fits})`:''}</button>
+        onclick="sendMeetingRequest('${esc(sid)}')">Send request${fits?` (${fits} time${fits>1?'s':''})`:''}</button>
     </div>`;
 }
 
@@ -6098,9 +6173,9 @@ function meetingRequestMailto(st, slots, note){
   const lines = [
     `Hi ${first},`, '',
     'I would like to meet. I have offered these times in Telos:',
-    ...slots.map(sl => `  · ${sl.dateLabel} ${sl.start}–${sl.end} (${tzAbbrFac(FACULTY_TIMEZONE)}) — ${sl.duration} min appointments`),
+    ...slots.map(sl => `  · ${sl.dateLabel} ${sl.start}–${sl.end} (${tzAbbrFac(FACULTY_TIMEZONE)})`),
     '',
-    'Open Telos and pick a start time inside one of them:',
+    'Open Telos and take whichever suits you:',
     'https://jkwahk02.github.io/Telos/student/',
     ...(note ? ['', note] : []),
     '',
@@ -6130,14 +6205,28 @@ function showMeetingRequestFallback(st, slots, note, why){
     </div>`;
 }
 
+// One appointment, already dated and timed. Same shape the block offer takes,
+// so the student side needs to know nothing about which way it was made.
+function advisorTimeSlot(dateStr, start, end, dur){
+  return {
+    block: true,
+    duration: dur,
+    day_of_week: new Date(dateStr + 'T12:00:00').getDay(),
+    dateStr, dateLabel: fmtShortDateFac(dateStr),
+    facDateStr: dateStr, facStart: start, facEnd: end,
+    start, end,
+    tz: FACULTY_TIMEZONE || '',
+    note: '',
+  };
+}
+
 async function sendMeetingRequest(sid){
   const st = students.find(s => s.id === sid);
   if(!st) return;
   const slots = Array.from(mrPick)
-    .filter(i => blockFit(availSlots[i], mrDur) > 0)
-    .map(i => advisorSlot(availSlots[i], mrDur, mrWeek))
+    .map(k => { const [dateStr, start, end] = k.split('|'); return advisorTimeSlot(dateStr, start, end, mrDur); })
     .sort((x, y) => (x.dateStr + x.start).localeCompare(y.dateStr + y.start));
-  if(!slots.length){ showToast('Choose a block first.'); return; }
+  if(!slots.length){ showToast('Choose a time first.'); return; }
 
   const btn = document.getElementById('mr-send');
   if(btn){ btn.disabled = true; btn.textContent = 'Sending…'; }
@@ -6170,7 +6259,7 @@ async function sendMeetingRequest(sid){
   // which for the student who does not answer is the whole point.
   const logged = [
     'I have asked for a meeting and offered these times:',
-    ...slots.map(sl => `· ${sl.dateLabel} ${sl.start}–${sl.end} (${sl.duration} min appointments)`),
+    ...slots.map(sl => `· ${sl.dateLabel} ${sl.start}–${sl.end}`),
     ...(note ? ['', note] : []),
   ].join('\n');
   msgDraft[sid] = logged;
@@ -6189,7 +6278,7 @@ async function sendMeetingRequest(sid){
   }catch(e){ mailed = false; why = e.message; console.warn('Meeting request mail failed:', e); }
 
   renderCurrent();
-  if(mailed){ closeCheckin(); showToast(`✓ Request sent — ${slots.length} block${slots.length>1?'s':''} offered`); return; }
+  if(mailed){ closeCheckin(); showToast(`✓ Request sent — ${slots.length} time${slots.length>1?'s':''} offered`); return; }
   showMeetingRequestFallback(st, slots, note, why);
 }
 
