@@ -7305,6 +7305,11 @@ async function renderSettings() {
             <div style="font-size:11px;color:var(--text3);margin-top:4px;">
               Times shown in ${tzLabelFac(FACULTY_TIMEZONE)}
             </div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px;">
+              ${FACULTY_MAX_MEETING
+                ? `Meetings run ${FACULTY_MAX_MEETING} min — change under Max meeting length in My profile`
+                : 'Students choose how long the meeting runs — change under Max meeting length in My profile'}
+            </div>
           </div>
           <span id="avail-count" class="bdg bdg-blue">— slots</span>
         </div>
@@ -7509,8 +7514,8 @@ function renderSlotList() {
       </span>
       <span style="font-size:13px;min-width:132px;color:var(--text3);">
         ${FACULTY_MAX_MEETING
-          ? `${Math.floor((slotMins(s.end_time)-slotMins(s.start_time))/FACULTY_MAX_MEETING)} × ${FACULTY_MAX_MEETING} min`
-          : 'student chooses'}
+          ? `${Math.floor((slotMins(s.end_time)-slotMins(s.start_time))/FACULTY_MAX_MEETING)} appointments`
+          : ''}
       </span>
       <span style="font-size:13px;color:var(--text3);flex:1;
         font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
@@ -7691,6 +7696,11 @@ async function confirmAddSlot() {
 
 function toggleAvailSlot(idx, active) {
   availSlots[idx].is_active = active;
+  // The grid above is drawn from availSlots, so it has to be redrawn with it.
+  // Toggling from the chip did this and toggling from the checkbox did not,
+  // which left the calendar showing a slot as active after it had been turned
+  // off — the same state, contradicting itself in two places on one screen.
+  renderSlotList();
   updateAvailCount();
 }
 
