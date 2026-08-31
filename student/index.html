@@ -1371,7 +1371,7 @@ async function loadData(){
         TBL_MEETING,
         `student_id=eq.${sid}&order=meeting_date.desc&select=id,meeting_date,faculty_email,meeting_format,meeting_type,status,student_agenda,student_log_id`
       ),
-      sbGet(TBL_FACULTY, `select=id,name_en,email,school,is_chair,timezone`),
+      sbGet(TBL_FACULTY, `select=id,name_en,email,school,is_chair,timezone,max_meeting_minutes`),
       sbGet(TBL_STUDENT_LOG, `student_id=eq.${sid}&select=student_log_id,meeting_id,reflection,key_takeaway,next_step`),
       // 졸업요건 — 마이그레이션 전이면 뷰가 없으므로 개별 fallback
       sbGet(VW_REQ_STATUS,   `student_id=eq.${sid}&order=sort_order.asc`).catch(e=>{console.warn('requirements unavailable:',e.message);return[];}),
@@ -3938,6 +3938,22 @@ function tzLabel(tz) {
 function getFacTz(facultyEmail) {
   return allFaculty.find(f=>f.email===facultyEmail)?.timezone || null;
 }
+
+// The longest meeting this advisor takes. null means they have set no limit,
+// which is most of them — the cap belongs to the advisor, not to the school.
+function facultyCap(email) {
+  const n = allFaculty.find(f=>f.email===(email||selectedFacultyEmail))?.max_meeting_minutes;
+  return n ? Number(n) : null;
+}
+function facultyCapName() {
+  return allFaculty.find(f=>f.email===selectedFacultyEmail)?.name_en || 'This advisor';
+}
+// Said rather than silently disabled: a greyed-out chip explains nothing, and
+// the student is left wondering whether the app is broken.
+function capMsg() {
+  const cap = facultyCap();
+  if(cap) showToast(`${facultyCapName()} takes meetings of up to ${cap} minutes.`);
+}
   
 function buildOtherCard(){
   const s=studentData;
@@ -4029,16 +4045,15 @@ function buildRequestForm(){
   function getOpts(sl){
     const s=tToM(sl.start_time),e=tToM(sl.end_time);
     const o=[];
-    // An advisor may fix the length of a block. Where they have, that length is
-    // the appointment and the chips above do not apply inside it: the block
-    // divides into back-to-back appointments so that everyone gets a turn.
-    const fixed = sl.duration ? Number(sl.duration) : null;
-    const dur   = fixed || meetingDuration;
-    // Otherwise start times step by the meeting length, capped at 30 — so a 20
-    // min meeting offers :00 :20 :40 instead of leaving a third of the hour idle.
-    const step  = fixed || Math.min(meetingDuration,30);
+    const dur = meetingDuration;
+    // Where the advisor has capped the length the window runs back to back — a
+    // 20 minute cap on two hours is six appointments, not six with idle time
+    // between them. Uncapped, start times step by the length but no more than
+    // 30, so a 20 min meeting offers :00 :20 :40 rather than leaving a third of
+    // the hour unbookable.
+    const step = facultyCap() ? dur : Math.min(dur,30);
     for(let t=s;t+dur<=e;t+=step)
-      o.push({start:mToT(t),end:mToT(t+dur),dur,fixed:!!fixed});
+      o.push({start:mToT(t),end:mToT(t+dur)});
     return o;
   }
   function isSel(dateStr,start){return selectedMeetingSlots.some(x=>x.dateStr===dateStr&&x.start===start);}
@@ -4102,7 +4117,7 @@ function buildRequestForm(){
             const facDateChanged = sl.facDateStr !== dateStr;
             return `<div class="spop-row ${sel?'sel':''}"
                           onmouseenter="this.classList.add('hov')" onmouseleave="this.classList.remove('hov')"
-                          onclick="toggleMeetingSlot('${stuConverted.date||dateStr}','${stuConverted.time||o.start}','${stuEndConverted.time||o.end}','${formatShortDate(stuConverted.date||dateStr)}','${o.start}','${o.end}','${sl.facDateStr}',${o.dur});event.stopPropagation()">
+                          onclick="toggleMeetingSlot('${stuConverted.date||dateStr}','${stuConverted.time||o.start}','${stuEndConverted.time||o.end}','${formatShortDate(stuConverted.date||dateStr)}','${o.start}','${o.end}','${sl.facDateStr}');event.stopPropagation()">
                           <div class="spop-bar"></div>
                           <div class="spop-lbl">${stuConverted.time||o.start}</div>
                           <div class="spop-tz">
@@ -4131,8 +4146,8 @@ function buildRequestForm(){
             ${pc?`<div class="s-picked" style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:1px;">${pc} picked</div>`:''}
             ${!dis?`<div class="slot-popover" id="${popId}">
               <div class="spop-hd"><div class="spop-date">${dateLabel} · ${convertTime(sl.start_time,slotFacTz,stuTz)||sl.start_time.slice(0,5)}–${convertTime(sl.end_time,slotFacTz,stuTz)||sl.end_time.slice(0,5)} ${tzAbbr(stuTz)?`<span class="tz-pill">${tzAbbr(stuTz)}</span>`:''}</div>
-              <div class="spop-hint">Choose start time (${sl.duration || meetingDuration} min${
-                sl.duration ? ' · set by your advisor' : ''})</div></div>
+              <div class="spop-hint">Choose start time (${meetingDuration} min${
+                facultyCap() ? ' · set by your advisor' : ''})</div></div>
               <div class="spop-body">${tRows}</div>
             </div>`:''}
           </div>`;
@@ -4144,11 +4159,17 @@ function buildRequestForm(){
   }
 
   // ── duration chips ──
+  // A cap does not hide the other lengths, it answers them. The request is held
+  // at the cap and the chip says why when it is pressed.
+  const durCap = facultyCap();
+  if(durCap && meetingDuration > durCap) meetingDuration = durCap;
   const durChips=[20,30,60,90,120].map(m=>{
     const lbl=m===20?'20 min':m===30?'30 min':m===60?'1 hour':m===90?'1.5 hours':'2 hours';
-    return `<button class="dur-chip ${meetingDuration===m?'on':''}"
-      onclick="meetingDuration=${m};selectedMeetingSlots=[];renderMeetings();event.stopPropagation()">${lbl}</button>`;
-  }).join('');
+    const over=durCap && m>durCap;
+    return `<button class="dur-chip ${meetingDuration===m?'on':''}"${over?' style="opacity:.45;"':''}
+      onclick="${over?'capMsg()':`meetingDuration=${m};selectedMeetingSlots=[];renderMeetings()`};event.stopPropagation()">${lbl}</button>`;
+  }).join('')
+    + (durCap ? `<span style="font-size:12px;color:var(--text3);align-self:center;margin-left:4px;">up to ${durCap} min</span>` : '');
 
   // ── selected summary ──
   const facTz = selectedFacultyEmail
@@ -4338,18 +4359,7 @@ function toggleSlotPop(id){
   document.querySelectorAll('.slot-popover.open').forEach(p=>p.classList.remove('open'));
   if(!isOpen)el.classList.add('open');
 }
-function toggleMeetingSlot(dateStr, start, end, dateLabel, facStart, facEnd, facDateStr, slotDur) {
-  // A request carries one length. Picking a slot out of a block the advisor has
-  // fixed sets the request to that length, and anything already picked at a
-  // different length cannot ride along with it.
-  const dur = Number(slotDur) || meetingDuration;
-  if(dur !== meetingDuration){
-    meetingDuration = dur;
-    if(selectedMeetingSlots.length){
-      selectedMeetingSlots = [];
-      showToast(`This block is set to ${dur}-minute appointments — earlier picks cleared`);
-    }
-  }
+function toggleMeetingSlot(dateStr, start, end, dateLabel, facStart, facEnd, facDateStr) {
   const idx = selectedMeetingSlots.findIndex(x => x.dateStr===dateStr && x.start===start);
   if (idx>=0) selectedMeetingSlots.splice(idx,1);
   else selectedMeetingSlots.push({dateStr, start, end, dateLabel, facStart: facStart||start, facEnd: facEnd||end, facDateStr: facDateStr||dateStr});
