@@ -137,13 +137,15 @@ button,input,select,textarea{font-family:inherit;}
 .ov-x{margin-left:auto;font-family:inherit;font-size:15px;padding:8px 17px;border-radius:20px;
   border:1px solid var(--border-em);background:var(--surface);color:var(--text2);cursor:pointer;}
 /* Major Advising Load */
-.al-src{background:var(--surface2);border:1px solid var(--border-em);border-radius:var(--r);
+/* Source declarations are reference, not alarm: amber in this app means read
+   this carefully, and where a page came by its figures is something you look up
+   rather than something you are warned about. */
+.ov-srcbox{background:var(--surface2);border:1px solid var(--border-em);border-radius:var(--r);
   padding:14px 18px;margin:0 0 16px;font-size:15.5px;color:var(--text2);line-height:1.65;}
-.al-src h4{font-size:12.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--text3);margin:0 0 8px;}
-.al-src dl{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;margin:0;}
-.al-src dt{font-family:'DM Mono',monospace;font-size:13.5px;color:var(--text);white-space:nowrap;}
-.al-src dd{margin:0;}
+.ov-srcbox strong{color:var(--text);}
+.ov-src{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;margin:6px 0 0;}
+.ov-src dt{font-family:'DM Mono',monospace;font-size:13.5px;color:var(--text);white-space:nowrap;}
+.ov-src dd{margin:0;}
 .al-hm{width:100%;border-collapse:collapse;font-size:15px;}
 .al-hm th{font-size:12.5px;font-weight:600;color:var(--text3);text-transform:uppercase;
   letter-spacing:.06em;padding:8px 10px;text-align:center;}
@@ -3002,18 +3004,32 @@ function ovStudents(){
 // appear here - no error, just a smaller number. Cohort 4 is the current case:
 // their first term is Fall 2026, so the registrar has no coursework for them.
 // Saying so on the page is better than a silent undercount.
+// Every analytics page says where its figures come from, and until now each
+// said it differently. One voice: the label "Source", what it is, and then what
+// it does not cover - the coverage line is the half that gets used, because a
+// figure is only as wide as the delivery behind it.
+//
+// One source reads as a sentence and several as a list. Same box either way.
+function ovSource(rows, coverage){
+  const head = rows.length === 1
+    ? `<strong>Source: ${rows[0].what}</strong> — ${rows[0].detail}`
+    : `<strong>Sources</strong><dl class="ov-src">${rows.map(r =>
+        `<dt>${r.what}</dt><dd${r.id ? ` id="${r.id}"` : ''}>${r.detail}</dd>`).join('')}</dl>`;
+  return `<div class="ov-srcbox">${head}${coverage ? `<br><br>${coverage}` : ''}</div>`;
+}
+
 function ovSourceNote(){
   const inView = ovStudents().length;
   const roster = students.filter(isRealStudent).length;
   const missing = roster - inView;
-  return `<div class="ov-warn"><strong>Source: coursework and grades</strong> — the transcript
-    extract the registrar shared at 10:36 on 20 August 2026. Not Telos's own roster, and not the
-    same file as the major declarations: those came separately at 17:28 the same day and drive
-    the Major Declarations page only. The two are different deliveries with different coverage,
-    so a student can appear on one page and not the other.<br><br>
-    This extract covers ${inView} students.${
-    missing > 0 ? ` ${missing} of the ${roster} students now in Telos are not in it and are absent
-    from every chart on this page - Cohort 4 (2026) among them, whose first term is Fall 2026.` : ''}</div>`;
+  return ovSource([{ what:'coursework and grades', detail:`the transcript extract the registrar
+    shared at 10:36 on 20 August 2026. Not Telos's own roster, and not the same file as the major
+    declarations: those came separately at 17:28 the same day and drive the Major Declarations page
+    only. The two are different deliveries with different coverage, so a student can appear on one
+    page and not the other.` }],
+    `This extract covers ${inView} students.${
+      missing > 0 ? ` ${missing} of the ${roster} students now in Telos are not in it and are absent
+      from every chart on this page - Cohort 4 (2026) among them, whose first term is Fall 2026.` : ''}`);
 }
 
 function ovScoped(list){
@@ -3436,13 +3452,13 @@ function ovMajors(box){
       apart. <strong>Which program</strong> is the first chart and the last. <strong>What form the declaration
       takes</strong> — single, double, or a major with a minor — is the one in between. A self-designed major
       belongs to the programs: it answers which, not what form.</p>
-    <div class="ov-warn"><strong>Source: major declarations</strong> — the official major-status file the
-      registrar shared at 17:28 on 20 August 2026, which they mark as still in progress. This is a different
-      file from the coursework and grade extract that arrived at 10:36 the same day; that one drives Credit
-      Progress and Program Requirements and has no bearing on what is shown here.<br><br>
-      ${nodec} students have no declaration on record — most of them Cohort 4 (2026), who have not reached the
+    ${ovSource([{ what:'major declarations', detail:`the official major-status file the registrar shared at
+      17:28 on 20 August 2026, which they mark as still in progress. This is a different file from the coursework
+      and grade extract that arrived at 10:36 the same day; that one drives Credit Progress and Program
+      Requirements and has no bearing on what is shown here.` }],
+      `${nodec} students have no declaration on record — most of them Cohort 4 (2026), who have not reached the
       declaration stage, and a few in Cohort 3 whose forms had not arrived. Anything decided after the file was
-      shared is not here yet.</div>
+      shared is not here yet.`)}
 
     <div class="ov-hero">
       ${tile('', 'declared', declared, '/ ' + total)}
@@ -3852,12 +3868,17 @@ function alBuild(){
   const idx = {};
   scoped.forEach(f => {
     idx[f.email] = { ...f, prog: f.programs.find(alIsMajor),
-      pri:0, sec:0, iPri:0, iSec:0, p1:[], p2:[], mn:[], out:[], tot:0 };
+      pri:0, sec:0, iPri:0, iSec:0, p1:[], p2:[], mn:[], out:[], tot:0,
+      // by advisor role and whether the assignment is interim, which is what
+      // the ranked chart draws - the composition arrays above answer a
+      // different question and cannot be reused for it
+      a1:[], a2:[], heldList:[] };
   });
 
   const place = (email, interim, roleKey, iKey, s) => {
     const e = idx[email]; if(!e) return;
     e[roleKey]++; if(interim) e[iKey]++;
+    (interim ? e.heldList : roleKey === 'pri' ? e.a1 : e.a2).push(s);
     const d = mjTrim(e.prog);
     if(mjTrim(s.major1) === d)      e.p1.push(s);
     else if(mjTrim(s.major2) === d) e.p2.push(s);
@@ -3913,7 +3934,7 @@ function alBuild(){
         per: f.length ? t / f.length : 0,
         min: f.length ? Math.min(...f.map(x => x.carried)) : 0,
         max: f.length ? Math.max(...f.map(x => x.carried)) : 0 };
-    }).sort((a,b) => (a.tot?1:0) - (b.tot?1:0) || b.per - a.per),
+    }).sort((a,b) => (b.tot?1:0) - (a.tot?1:0) || b.per - a.per),
   };
 }
 
@@ -3960,20 +3981,15 @@ function ovAdvisingLoad(box){
       ${d.pool.length} students. <strong>Interim assignments are counted as held, never as carried</strong>, so a
       programme awaiting an appointment does not read as a staffed one.</div>
 
-    <div class="al-src">
-      <h4>Where these figures come from</h4>
-      <dl>
-        <dt>advisor assignments</dt>
-        <dd><strong>Collected by hand from each programme chair.</strong> No timestamps, so read them as of the
-          last collection, not as of today.</dd>
-        <dt>declarations</dt>
-        <dd><code>students.major1 / major2 / minor</code></dd>
-        <dt>faculty and programme</dt>
-        <dd><code>faculty_profiles.program</code> — the programme, not the school.</dd>
-        <dt>contact</dt>
-        <dd id="al-src-c"><code>advising_log</code>, through a view returning counts and dates only.</dd>
-      </dl>
-    </div>
+    ${ovSource([
+      { what:'advisor assignments', detail:`<strong>collected by hand from each programme chair.</strong> No
+        timestamps, so read them as of the last collection, not as of today.` },
+      { what:'declarations',        detail:`<code>students.major1 / major2 / minor</code>` },
+      { what:'faculty, programme',  detail:`<code>faculty_profiles.program</code> — the programme, not the school.` },
+      { what:'contact', id:'al-src-c',
+        detail:`<code>advising_log</code>, through a view returning counts and dates only.` },
+    ], `Cohort 4 and non-advising roles are out of every figure here, and the numbers dropped are named under the
+      first chart.`)}
 
     <div class="ov-hero">
       ${tile('', 'advisors in scope', d.fac.length, 'of ' + FACULTY_ROWS.length)}
@@ -4001,13 +4017,14 @@ function ovAdvisingLoad(box){
 
     <h3 class="ov-h2">How the relationships are spread between individuals</h3>
     <p class="ov-sub2">Solid is advisor 1, lighter is advisor 2, hatched is held awaiting an appointment. Grouped
-      by programme, ordered by size inside it.</p>
+      by programme, ordered by size inside it. <strong>Click any segment for the students in it.</strong></p>
     <div class="ov-cw"><svg id="al-rank" viewBox="0 0 900 ${44 + d.fac.length * 50 + 52}"></svg></div>
     <div class="ov-lg">
       <span class="ov-i"><i class="ov-sw" style="background:var(--text2)"></i>advisor 1 — primary</span>
       <span class="ov-i"><i class="ov-sw" style="background:var(--text2);opacity:.34"></i>advisor 2 — second</span>
       <span class="ov-i"><i class="ov-sw none"></i>held, awaiting a formal assignment</span>
     </div>
+    <div class="ov-selp" id="al-sel2" hidden></div>
     <p class="ov-note" id="al-rank-note"></p>
 
     <div id="al-contact"></div>
@@ -4057,7 +4074,10 @@ function alDrawProg(d){
 
     // Held first, so the dot and the range sit on top of it. A programme can
     // carry little and hold a lot; without this the row reads as light rather
-    // than as unappointed.
+    // than as unappointed. Such a row sorts to the bottom: it is the widest
+    // thing on the chart and the one row not comparable to the others, so at
+    // the top it sets the scale and the eye before either has anything to
+    // measure against.
     if(p.queue){
       const qx = X(p.per), qw = Math.min(X((p.tot + p.queue) / p.fac) - qx, L + AW - qx);
       svg.appendChild(ovEl('rect', { x:qx, y:y-9, width:Math.max(qw,3), height:18, rx:9,
@@ -4172,13 +4192,25 @@ function alDrawRank(d){
       'font-size':16, fill:alHueT(f.prog), 'font-weight':600 }, f.name));
     let x = L;
     const cPri = f.pri - f.iPri, cSec = f.sec - f.iSec;
-    if(cPri){ svg.appendChild(ovEl('rect', { x, y, width:X(cPri), height:BH, fill:h })); x += X(cPri); }
-    if(cSec){ svg.appendChild(ovEl('rect', { x, y, width:X(cSec), height:BH, fill:alHex(h,.34),
-      stroke:alHex(h,.7), 'stroke-width':1 })); x += X(cSec); }
+    // Every segment opens the students behind it. This chart reads students,
+    // which the app already holds, so the list costs nothing to produce and
+    // discloses nothing the roster does not.
+    const seg = (w, attrs, label, list) => {
+      const g = ovEl('g', { style:'cursor:pointer' });
+      g.appendChild(ovEl('rect', attrs));
+      g.addEventListener('click', () => alSel('al-sel2', f, label, list));
+      svg.appendChild(g);
+      return w;
+    };
+    if(cPri) x += seg(X(cPri), { x, y, width:X(cPri), height:BH, fill:h },
+      'Advisor 1 — primary', f.a1);
+    if(cSec) x += seg(X(cSec), { x, y, width:X(cSec), height:BH, fill:alHex(h,.34),
+      stroke:alHex(h,.7), 'stroke-width':1 }, 'Advisor 2 — second', f.a2);
     // The held part continues the same bar. Breaking it onto a row of its own
     // would say the students belong to nobody, and for now they belong to them.
-    if(f.held){ svg.appendChild(ovEl('rect', { x, y, width:X(f.held), height:BH, fill:HATCH,
-      stroke:alHex(h,.7), 'stroke-width':1.1, 'stroke-dasharray':'4 3' })); x += X(f.held); }
+    if(f.held) x += seg(X(f.held), { x, y, width:X(f.held), height:BH, fill:HATCH,
+      stroke:alHex(h,.7), 'stroke-width':1.1, 'stroke-dasharray':'4 3' },
+      'Held, awaiting a formal assignment', f.heldList);
     if(!f.tot)
       svg.appendChild(ovEl('text', { x:L+4, y:mid, 'dominant-baseline':'middle', 'font-size':14,
         fill:ink3, 'font-style':'italic' }, 'no advisees assigned'));
@@ -7404,6 +7436,7 @@ function buildDayGrid() {
 }
 
 
+function slotMins(t){ const [h,m] = String(t).split(':').map(Number); return h*60+m; }
 function renderSlotList() {
   const list = document.getElementById('slot-list');
   if (!list) return;
@@ -7437,6 +7470,11 @@ function renderSlotList() {
       </div>
       <span style="font-size:13px;color:var(--text3);min-width:80px;">
         ${s.meeting_type||'Zoom'}
+      </span>
+      <span style="font-size:13px;min-width:132px;color:${s.duration?'var(--text2)':'var(--text3)'};">
+        ${s.duration
+          ? `${s.duration} min · ${Math.floor((slotMins(s.end_time)-slotMins(s.start_time))/s.duration)} appointments`
+          : 'student chooses'}
       </span>
       <span style="font-size:13px;color:var(--text3);flex:1;
         font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
@@ -7542,6 +7580,19 @@ function openAddSlotForm(day) {
           </select>
         </div>
         <div class="fg">
+          <div class="fl">Appointment length</div>
+          <select class="fsel" id="as-dur">
+            <option value="">Student chooses</option>
+            <option value="20">20 min</option>
+            <option value="30">30 min</option>
+            <option value="45">45 min</option>
+            <option value="60">1 hour</option>
+          </select>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px;">
+            Set a length and the block divides into that many appointments — nothing longer can be
+            booked inside it. Leave it on "Student chooses" for major advising.</div>
+        </div>
+        <div class="fg">
           <div class="fl">Note (optional)</div>
           <input class="fi" id="as-note" placeholder="e.g. Confirm 2 days before">
         </div>
@@ -7564,6 +7615,17 @@ async function confirmAddSlot() {
   const end   = document.getElementById('as-end').value;
   const fmt   = document.getElementById('as-format').value;
   const note  = document.getElementById('as-note').value.trim();
+  const dur   = parseInt(document.getElementById('as-dur').value) || null;
+
+  // A length that does not divide the block leaves a tail nobody can book, and
+  // the advisor would never see it - the student side simply stops offering
+  // start times partway through. Better to say so here.
+  if(dur){
+    const mins = (t => { const [h,m] = t.split(':').map(Number); return h*60+m; });
+    const span = mins(end) - mins(start);
+    if(span < dur){ showToast(`That block is ${span} minutes — too short for a ${dur}-minute appointment.`); return; }
+    if(span % dur) showToast(`${Math.floor(span/dur)} appointments of ${dur} min, with ${span % dur} min left over.`);
+  }
 
   const newSlot = {
     faculty_email: FACULTY_EMAIL,
@@ -7572,6 +7634,7 @@ async function confirmAddSlot() {
     end_time:      end   + ':00',
     meeting_type:  fmt,
     note:          note,
+    duration:      dur,
     is_active:     true,
   };
 
@@ -7635,6 +7698,7 @@ async function saveAvailability() {
         end_time:      s.end_time,
         meeting_type:  s.meeting_type,
         note:          s.note,
+        duration:      s.duration || null,
         is_active:     s.is_active,
       });
     }
