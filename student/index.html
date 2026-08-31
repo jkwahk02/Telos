@@ -1109,6 +1109,10 @@ let meetingDuration       = 60;   // minutes
 let selectedMeetingSlots  = [];   // [{dateStr, start, end, dateLabel}]
 let editingRequestId      = null;   // ← 추가: 수정 중인 pending request ID
 let justRequestedId       = null;   // 방금 제출한 요청 — 메일 안내를 함께 표시
+// The time the student has picked out of what an advisor offered, per request.
+// Picking and accepting are two acts: a meeting should not be booked by the
+// same click that first shows interest in the hour.
+let advPick               = {};     // { meetingId: {slotIdx, start, end} }
 let justReleasedConfirmed = false;  // 그 요청이 확정된 미팅을 무른 것인지
 let helpHeroOpen = false;
 
@@ -1635,7 +1639,7 @@ function renderOverview(){
     return `<div class="card accent-teal" style="margin-bottom:10px;">
       <div class="card-hd teal-bg">
         <div><div class="card-title" style="color:#085041;">Upcoming meeting</div>
-        <div class="card-sub">${esc(fac?.name_en||m.faculty_email)}</div></div>
+        <div class="card-sub">${esc(facLabel(fac, m.faculty_email))}</div></div>
         <span class="bdg bdg-teal">Confirmed</span>
       </div>
       <div class="card-body">
@@ -1664,7 +1668,7 @@ function renderOverview(){
     return `<div class="card" style="margin-bottom:10px;border-color:var(--amber-b);">
       <div class="card-hd" style="background:var(--amber-l);">
         <div>
-          <div class="card-title" style="color:#633806;">Reschedule needed — ${esc(fac?.name_en||m.faculty_email)}</div>
+          <div class="card-title" style="color:#633806;">Reschedule needed — ${esc(facLabel(fac, m.faculty_email))}</div>
           <div class="card-sub">Your advisor couldn't find a suitable time. Please propose new slots.</div>
         </div>
         <span class="bdg bdg-amber">Action needed</span>
@@ -1689,7 +1693,7 @@ function renderOverview(){
       return `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:0.5px solid var(--border);">
         <div style="width:6px;height:6px;border-radius:50%;flex-shrink:0;background:${isAdvProposed?'var(--amber-b)':'var(--blue-m)'};"></div>
         <div style="flex:1;">
-          <div style="font-size:13px;font-weight:500;">${esc(fac?.name_en||m.faculty_email)}</div>
+          <div style="font-size:13px;font-weight:500;">${esc(facLabel(fac, m.faculty_email))}</div>
           <div style="font-size:12px;color:var(--text2);margin-top:1px;">
             ${isAdvProposed?'Advisor proposed new times — action needed':slots.length?`${slots.length} slot${slots.length>1?'s':''} proposed · ${m.meeting_duration||60} min`:'No slots proposed'}
           </div>
@@ -1730,7 +1734,7 @@ function renderOverview(){
           <div class="ov-adv-body">
             <div class="ov-adv-av">${initials}</div>
             <div style="flex:1;min-width:0;">
-              <div class="ov-adv-name">${esc(f.name_en)}</div>
+              <div class="ov-adv-name">${esc(facLabel(f))}</div>
               <div class="ov-adv-school">${esc(facProgramLabel(f))}</div>
             </div>
             <button class="btn-sm-teal"
@@ -1758,7 +1762,7 @@ function renderOverview(){
                   <div class="hist-date-day">${new Date(m.meeting_date+'T00:00:00').getDate()}</div>
                 </div>
                 <div class="hist-main">
-                  <div class="hist-main-title">${esc(fac?.name_en||m.faculty_email)} · ${esc(m.meeting_format||'Zoom')} · Completed</div>
+                  <div class="hist-main-title">${esc(facLabel(fac, m.faculty_email))} · ${esc(m.meeting_format||'Zoom')} · Completed</div>
                   <div class="hist-main-sub">${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
                 </div>
                 <div class="hist-chevron">→</div>
@@ -2720,7 +2724,7 @@ function reqNoteWhen(iso){
 function reqNoteAuthor(n){
   if(n.author_role === 'student') return { name:'You', initials: initials(studentData?.name_en||'You'), advisor:false };
   const fac = allFaculty.find(f => f.email === n.author_email);
-  const name = fac?.name_en || n.author_email;
+  const name = facLabel(fac, n.author_email);
   return { name, initials: initials(name), advisor:true };
 }
 
@@ -2731,7 +2735,7 @@ const STU_PROFILE_LABEL = {vision:'My Mission', career:'Career goal',
 function stuMsgAuthor(n){
   if(n.author_role === 'student') return {name:'You', initials:initials(studentData?.name_en||'You'), advisor:false};
   const fac = allFaculty.find(f => f.email === n.author_email);
-  const name = fac?.name_en || n.author_email;
+  const name = facLabel(fac, n.author_email);
   return {name, initials:initials(name), advisor:true};
 }
 
@@ -3164,7 +3168,7 @@ function renderProfile(){
 
   const adv1=allFaculty.find(f=>f.email===s.advisor1_email);
   const adv2=allFaculty.find(f=>f.email===s.advisor2_email);
-  const advRows=[adv1?['Advisor 1',adv1.name_en]:null,adv2?['Advisor 2',adv2.name_en]:null]
+  const advRows=[adv1?['Advisor 1',facLabel(adv1)]:null,adv2?['Advisor 2',facLabel(adv2)]:null]
     .filter(Boolean).map(([l,v])=>`<div class="ir"><div class="ir-l">${l}</div><div class="ir-v">${esc(v)}</div></div>`).join('');
 
   // Progress header
@@ -3395,7 +3399,7 @@ function renderMeetings(){
           </div>
           <div class="adv-body">
             <div class="adv-av" style="background:${i===0?'var(--teal-l)':i===1?'var(--blue-l)':'var(--gray-l)'};color:${i===0?'var(--teal)':i===1?'var(--blue)':'var(--gray-m)'};">${initials(f.name_en)}</div>
-            <div class="adv-name">${esc(f.name_en)}</div>
+            <div class="adv-name">${esc(facLabel(f))}</div>
             <div class="adv-email">${esc(f.email)}</div>
             <div class="adv-school">${esc(facProgramLabel(f))}</div>
             <button class="adv-req-btn" ${!hasSlots?'disabled':''} onclick="openRequestForm('${f.email}')">
@@ -3419,7 +3423,7 @@ const upcomingHtml = confirmed.length ? `
         return `<div class="card accent-teal" style="margin-bottom:0;">
           <div class="card-hd teal-bg">
             <div>
-              <div class="card-title" style="color:#085041;">${esc(fac?.name_en||m.faculty_email)}</div>
+              <div class="card-title" style="color:#085041;">${esc(facLabel(fac, m.faculty_email))}</div>
               <div class="card-sub">${formatDate(m.meeting_date)}${m.confirmed_start_time?` · ${convertTime(m.confirmed_start_time.slice(0,5),getFacTz(m.faculty_email),STUDENT_TIMEZONE)||m.confirmed_start_time.slice(0,5)} <span class="tz-pill">${tzAbbr(STUDENT_TIMEZONE)}</span> <span style="color:var(--text3);">(${m.confirmed_start_time.slice(0,5)} <span class="tz-pill">${tzAbbr(getFacTz(m.faculty_email))}</span>)</span>`:''} · ${esc(m.meeting_format||'Zoom')} · ${esc(m.meeting_type||'Regular')}</div>
             </div>
             <span class="bdg bdg-teal">Confirmed</span>
@@ -3478,7 +3482,7 @@ const reschedulingHtml = rescheduling.length ? rescheduling.map(m=>{
   return `<div class="card" style="margin-bottom:0;border-color:var(--amber-b);">
     <div class="card-hd" style="background:var(--amber-l);">
       <div>
-        <div class="card-title" style="color:#633806;">Reschedule needed — ${esc(fac?.name_en||m.faculty_email)}</div>
+        <div class="card-title" style="color:#633806;">Reschedule needed — ${esc(facLabel(fac, m.faculty_email))}</div>
         <div class="card-sub">Your advisor couldn't find a suitable time. Please propose new slots.</div>
       </div>
       <span class="bdg bdg-amber">Action needed</span>
@@ -3498,7 +3502,7 @@ const reschedulingHtml2 = rescheduling.length ? `
         return `<div class="card" style="margin-bottom:0;border-color:var(--amber-b);">
           <div class="card-hd" style="background:var(--amber-l);">
             <div>
-              <div class="card-title" style="color:#633806;">${esc(fac?.name_en||m.faculty_email)}</div>
+              <div class="card-title" style="color:#633806;">${esc(facLabel(fac, m.faculty_email))}</div>
               <div class="card-sub">Advisor couldn't find a suitable time · ${esc(m.meeting_format||'Zoom')} · ${m.meeting_duration||60} min</div>
             </div>
             <span class="bdg bdg-amber">Action needed</span>
@@ -3524,7 +3528,7 @@ const reschedulingHtml2 = rescheduling.length ? `
 const pendingHtml = pending.length ? `
   <div class="meetings-section">
     <div class="meetings-section-title">
-      Pending meeting requests${pending.length > 1 ? 's' : ''}
+      Pending meeting request${pending.length > 1 ? 's' : ''}
     </div>
     <div class="meeting-stack">
       ${pending.map(m=>{
@@ -3554,7 +3558,7 @@ const pendingHtml = pending.length ? `
         const advSlotHtml=isAdvProposed&&slots.length?`
           <div style="background:var(--teal-l);border-radius:var(--r);padding:9px 12px;margin-bottom:10px;font-size:13px;color:var(--teal);display:flex;align-items:center;gap:8px;">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".6" fill="currentColor"/></svg>
-            Your advisor offered these times. Pick a start time to accept.
+            Your advisor offered these times. Pick one, then press Accept.
           </div>
           ${slots.map((raw,i)=>{
             const sl=resolveAdvisorSlot(raw,facTz);
@@ -3581,13 +3585,14 @@ const pendingHtml = pending.length ? `
               <div style="display:flex;flex-wrap:wrap;gap:5px;">
                 ${opts.map(o=>{
                   const c=convertDateTime(sl.dateStr,o.start,facTz,STUDENT_TIMEZONE);
-                  return `<button class="btn-sm-teal" style="font-size:12px;padding:4px 10px;"
-                    onclick="acceptAdvisorSlot(${m.id},${i},'${o.start}','${o.end}')">${c.time||o.start}</button>`;
+                  const on=advPicked(m.id,i,o.start);
+                  return `<button class="${on?'btn-sm-teal':'btn-sm-out'}" style="font-size:12px;padding:4px 10px;"
+                    onclick="pickAdvisorSlot(${m.id},${i},'${o.start}','${o.end}')">${c.time||o.start}</button>`;
                 }).join('')}
               </div>`
             :`<div style="margin-top:7px;">
-                <button class="btn-sm-teal" style="font-size:12px;padding:4px 10px;"
-                  onclick="acceptAdvisorSlot(${m.id},${i})">Accept</button>
+                <button class="${advPicked(m.id,i,sl.start)?'btn-sm-teal':'btn-sm-out'}" style="font-size:12px;padding:4px 10px;"
+                  onclick="pickAdvisorSlot(${m.id},${i},'${sl.start}','${sl.end}')">${sl.start}</button>
               </div>`}
           </div>`;}).join('')}`:'';
 
@@ -3599,7 +3604,7 @@ const pendingHtml = pending.length ? `
         return `<div class="card" style="margin-bottom:0;border-color:${accentColor};">
           <div class="card-hd" style="background:${hdrBg};">
             <div>
-              <div class="card-title" style="color:${titleColor};">${esc(fac?.name_en||m.faculty_email)}</div>
+              <div class="card-title" style="color:${titleColor};">${esc(facLabel(fac, m.faculty_email))}</div>
               <div class="card-sub">${esc(m.meeting_format||'Zoom')} · ${m.meeting_duration||60} min · submitted ${new Date(m.created_at||m.meeting_date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
             </div>
             ${badge}
@@ -3620,6 +3625,12 @@ const pendingHtml = pending.length ? `
               <a class="btn-sm-out" style="text-decoration:none;display:inline-flex;align-items:center;"
                 href="${requestMailto(m)}">✉ Email my advisor</a>
               <button class="btn-sm-out" style="color:var(--red);border-color:var(--red-l);" onclick="withdrawRequest(${m.id})">Withdraw</button>
+              ${isAdvProposed?(()=>{
+                const pick=advPick[m.id];
+                const lbl=pick?(convertDateTime(pick.dateStr,pick.start,facTz,STUDENT_TIMEZONE).time||pick.start):'';
+                return `<button class="btn-sm-teal" ${pick?'':'disabled style="opacity:.45;cursor:default;"'}
+                  onclick="acceptAdvisorSlot(${m.id})">${pick?`Accept ${esc(lbl)}`:'Accept a time'}</button>`;
+              })():''}
             </div>
             ${m.id===justRequestedId
               ? `<div style="background:var(--accent-l);border:1px solid var(--accent-b);
@@ -3686,7 +3697,7 @@ return `
               </div>
               <div class="hist-main">
                 <div class="hist-main-title">
-                  ${esc(fac?.name_en||m.faculty_email)} · ${esc(m.meeting_format||'Zoom')}
+                  ${esc(facLabel(fac, m.faculty_email))} · ${esc(m.meeting_format||'Zoom')}
                 </div>
                 <div class="hist-main-sub">
                   ${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
@@ -3944,6 +3955,15 @@ function facProgramList(f) {
   return Array.isArray(p) ? p.filter(Boolean) : (p ? [p] : []);
 }
 function facProgramLabel(f) { return facProgramList(f).join(', '); }
+
+// Students address faculty by title. Applied where the name is shown rather
+// than stored with it, so the roster keeps the name as the name — and a title
+// already on the front is not given a second one.
+function facLabel(f, fallback) {
+  const name = (typeof f === 'string' ? f : f?.name_en) || '';
+  if (!name) return fallback || '';
+  return /^(prof\.?|dr\.?|professor)\s/i.test(name) ? name : `Prof. ${name}`;
+}
 function facInProgram(f, name) { return !!name && facProgramList(f).includes(name); }
 
 function getFacTz(facultyEmail) {
@@ -3957,7 +3977,7 @@ function facultyCap(email) {
   return n ? Number(n) : null;
 }
 function facultyCapName() {
-  return allFaculty.find(f=>f.email===selectedFacultyEmail)?.name_en || 'This advisor';
+  return facLabel(allFaculty.find(f=>f.email===selectedFacultyEmail)) || 'This advisor';
 }
 // Said rather than silently disabled: a greyed-out chip explains nothing, and
 // the student is left wondering whether the app is broken.
@@ -3980,7 +4000,7 @@ function buildOtherCard(){
       </div>
       <div class="adv-body">
         <div class="adv-av" style="background:var(--amber-l);color:var(--amber-d);">${initials(f.name_en)}</div>
-        <div class="adv-name">${esc(f.name_en)}</div>
+        <div class="adv-name">${esc(facLabel(f))}</div>
         <div class="adv-email">${esc(f.email)}</div>
         <div class="adv-school">${esc(facProgramLabel(f))}</div>
         <button class="adv-req-btn" onclick="openRequestForm('${f.email}')">Request meeting →</button>
@@ -4000,7 +4020,7 @@ function buildOtherCard(){
         <div class="adv-name" style="color:var(--text2);font-size:12px;">Select professor</div>
         ${remainingOthers.length?`<select class="fsel" onchange="selectOtherFaculty(this.value)" onclick="event.stopPropagation()" style="font-size:11px;">
           <option value="">Choose…</option>
-          ${remainingOthers.map(o=>`<option value="${o.email}">${esc(o.name_en)} · ${esc(o.school||'')}</option>`).join('')}
+          ${remainingOthers.map(o=>`<option value="${o.email}">${esc(facLabel(o))} · ${esc(facProgramLabel(o))}</option>`).join('')}
         </select>`:`<div style="font-size:11px;color:var(--text3);font-style:italic;">No more professors</div>`}
       </div>
     </div>`;
@@ -4020,7 +4040,7 @@ function buildOtherCard(){
       <div class="adv-school" style="margin-bottom:6px;">Request from any professor</div>
       ${others.length?`<select class="fsel" id="other-fac-sel" onchange="selectOtherFaculty(this.value)" onclick="event.stopPropagation()">
         <option value="">Choose…</option>
-        ${others.map(f=>`<option value="${f.email}">${esc(f.name_en)} · ${esc(facProgramLabel(f))}</option>`).join('')}
+        ${others.map(f=>`<option value="${f.email}">${esc(facLabel(f))} · ${esc(facProgramLabel(f))}</option>`).join('')}
       </select>`:`<div style="font-size:12px;color:var(--text3);font-style:italic;">No other faculty with available slots</div>`}
     </div>
   </div>`;
@@ -4244,7 +4264,7 @@ function buildRequestForm(){
             <div class="adv-av" style="background:${avBg};color:${avColor};width:34px;height:34px;font-size:11px;">${initials(fac?.name_en||'')}</div>
             <div style="flex:1;">
               <div style="font-size:13px;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                ${esc(fac?.name_en||'')}
+                ${esc(facLabel(fac))}
                 <span class="bdg bdg-teal" style="font-size:9px;">Advisor</span>${chairBadge}
               </div>
               <div class="prof-strip-meta">${esc(fac?.email||'')} · ${esc(fac?.school||'')}</div>
@@ -4307,7 +4327,7 @@ function buildRequestForm(){
         ${otherFaculty.map(f=>`
           <div class="of-row" onclick="selectRequestFaculty('${f.email}')">
             <div class="of-av" style="background:var(--amber-l);color:var(--amber-d);">${initials(f.name_en)}</div>
-            <span class="of-name">${esc(f.name_en)}</span>
+            <span class="of-name">${esc(facLabel(f))}</span>
             <span class="of-school">${esc(facProgramLabel(f))}</span>
           </div>`).join('')}
       </div>
@@ -4316,7 +4336,7 @@ function buildRequestForm(){
     <div class="faculty-chip" onclick="selectRequestFaculty('${f.email}')">
       <div class="fav" style="background:${i===0?'var(--teal-l)':i===1?'var(--blue-l)':'var(--gray-l)'};color:${i===0?'var(--teal)':i===1?'var(--blue)':'var(--gray-m)'};">${initials(f.name_en)}</div>
       <div>
-        <div style="font-size:12px;font-weight:500;">${esc(f.name_en)}</div>
+        <div style="font-size:12px;font-weight:500;">${esc(facLabel(f))}</div>
         <div style="font-size:10px;color:var(--text3);display:flex;align-items:center;gap:4px;">
           Advisor${f.is_chair?` <span style="font-size:9px;font-weight:500;background:var(--blue-l);color:var(--blue);padding:1px 5px;border-radius:10px;">Chair</span>`:''}
         </div>
@@ -4610,25 +4630,43 @@ function advisorBlockOpts(sl) {
   return out;
 }
 
-async function acceptAdvisorSlot(meetingId, slotIdx, pickStart, pickEnd) {
+function advPicked(meetingId, slotIdx, start) {
+  const p = advPick[meetingId];
+  return !!p && p.slotIdx === slotIdx && p.start === start;
+}
+
+// Clicking a time chooses it; clicking it again lets it go. Nothing reaches
+// the advisor until Accept is pressed.
+function pickAdvisorSlot(meetingId, slotIdx, start, end) {
   const m = scheduledMeetings.find(x => x.id === meetingId);
   if (!m) return;
   const slots = m.proposed_slots
     ? (typeof m.proposed_slots === 'string' ? JSON.parse(m.proposed_slots) : m.proposed_slots)
     : [];
-  const facTz = getFacTz(m.faculty_email);
-  const sl = resolveAdvisorSlot(slots[slotIdx], facTz);
+  const sl = resolveAdvisorSlot(slots[slotIdx], getFacTz(m.faculty_email));
   if (!sl || !sl.dateStr) { showToast('That time has no date on it — please email your advisor.'); return; }
 
-  const start = pickStart || sl.start, end = pickEnd || sl.end;
+  if (advPicked(meetingId, slotIdx, start)) delete advPick[meetingId];
+  else advPick[meetingId] = { slotIdx, start, end, dateStr: sl.dateStr };
+  renderMeetings();
+}
+
+async function acceptAdvisorSlot(meetingId) {
+  const m = scheduledMeetings.find(x => x.id === meetingId);
+  if (!m) return;
+  const pick = advPick[meetingId];
+  if (!pick) { showToast('Pick a time first.'); return; }
+  const slots = m.proposed_slots
+    ? (typeof m.proposed_slots === 'string' ? JSON.parse(m.proposed_slots) : m.proposed_slots)
+    : [];
+  const facTz = getFacTz(m.faculty_email);
+  const sl = resolveAdvisorSlot(slots[pick.slotIdx], facTz);
+  if (!sl || !sl.dateStr) { showToast('That time has no date on it — please email your advisor.'); return; }
+
+  const start = pick.start, end = pick.end;
   const mine    = convertDateTime(sl.dateStr, start, facTz, STUDENT_TIMEZONE);
   const mineEnd = convertDateTime(sl.dateStr, end,   facTz, STUDENT_TIMEZONE);
   const mineLine = `${formatShortDate(mine.date || sl.dateStr)} · ${mine.time || start}–${mineEnd.time || end} ${tzAbbr(STUDENT_TIMEZONE) || ''}`.trim();
-  const facLine  = facTz && facTz !== STUDENT_TIMEZONE
-    ? `\n${formatShortDate(sl.dateStr)} · ${start}–${end} ${tzAbbr(facTz)} — your advisor's time`
-    : '';
-
-  if (!confirm(`Accept this meeting?\n\n${mineLine}${facLine}`)) return;
   try {
     await sbPatch(TBL_MEETING, 'id', meetingId, {
       advisor_confirmed:    true,
@@ -4641,6 +4679,7 @@ async function acceptAdvisorSlot(meetingId, slotIdx, pickStart, pickEnd) {
     m.meeting_date         = sl.dateStr;
     m.confirmed_start_time = start + ':00';
     m.confirmed_end_time   = end + ':00';
+    delete advPick[meetingId];
     renderMeetings();
     renderOverview();
     showToast(`✓ Meeting confirmed — ${mineLine}`);
