@@ -1371,7 +1371,7 @@ async function loadData(){
         TBL_MEETING,
         `student_id=eq.${sid}&order=meeting_date.desc&select=id,meeting_date,faculty_email,meeting_format,meeting_type,status,student_agenda,student_log_id`
       ),
-      sbGet(TBL_FACULTY, `select=id,name_en,email,school,is_chair,timezone,max_meeting_minutes`),
+      sbGet(TBL_FACULTY, `select=id,name_en,email,program,is_chair,timezone,max_meeting_minutes`),
       sbGet(TBL_STUDENT_LOG, `student_id=eq.${sid}&select=student_log_id,meeting_id,reflection,key_takeaway,next_step`),
       // 졸업요건 — 마이그레이션 전이면 뷰가 없으므로 개별 fallback
       sbGet(VW_REQ_STATUS,   `student_id=eq.${sid}&order=sort_order.asc`).catch(e=>{console.warn('requirements unavailable:',e.message);return[];}),
@@ -1703,7 +1703,7 @@ function renderOverview(){
   </div>` : '';
 
   // ── Advisor cards ──
-  const schoolChair = allFaculty.find(f=>f.is_chair && f.school===s.school);
+  const schoolChair = allFaculty.find(f=>f.is_chair && facInProgram(f, s.school));
   const chairExtra = schoolChair &&
     schoolChair.email !== s.advisor1_email &&
     schoolChair.email !== s.advisor2_email ? schoolChair : null;
@@ -1731,7 +1731,7 @@ function renderOverview(){
             <div class="ov-adv-av">${initials}</div>
             <div style="flex:1;min-width:0;">
               <div class="ov-adv-name">${esc(f.name_en)}</div>
-              <div class="ov-adv-school">${esc(f.school||'')}</div>
+              <div class="ov-adv-school">${esc(facProgramLabel(f))}</div>
             </div>
             <button class="btn-sm-teal"
               onclick="goToMeetings();openRequestForm('${f.email}')">
@@ -3372,7 +3372,7 @@ function renderMeetings(){
   // Advisor cards
   const adv1=allFaculty.find(f=>f.email===s.advisor1_email);
   const adv2=allFaculty.find(f=>f.email===s.advisor2_email);
-  const chair = allFaculty.find(f=>f.is_chair && f.school === s.school);
+  const chair = allFaculty.find(f=>f.is_chair && facInProgram(f, s.school));
   const chairSeparate = chair && chair.email !== s.advisor1_email && chair.email !== s.advisor2_email;
   const cards = [adv1, adv2, chairSeparate ? chair : null].filter(Boolean);
   // 선택된 other professor가 있으면 카드 수 +1 (선택 카드 + + 카드)
@@ -3397,7 +3397,7 @@ function renderMeetings(){
             <div class="adv-av" style="background:${i===0?'var(--teal-l)':i===1?'var(--blue-l)':'var(--gray-l)'};color:${i===0?'var(--teal)':i===1?'var(--blue)':'var(--gray-m)'};">${initials(f.name_en)}</div>
             <div class="adv-name">${esc(f.name_en)}</div>
             <div class="adv-email">${esc(f.email)}</div>
-            <div class="adv-school">${esc(f.school||'')}</div>
+            <div class="adv-school">${esc(facProgramLabel(f))}</div>
             <button class="adv-req-btn" ${!hasSlots?'disabled':''} onclick="openRequestForm('${f.email}')">
               ${hasSlots?'Request meeting →':'No slots available'}
             </button>
@@ -3935,6 +3935,17 @@ function tzLabel(tz) {
   return `${name} <span class="tz-pill">${offset}</span>`;
 }
 
+// faculty_profiles.school became program in Aug 2026, and an array with it —
+// David Hazard and Helen Lee each hold two. The students table still calls its
+// own single value school, so the two are read through here rather than
+// compared directly and wrongly.
+function facProgramList(f) {
+  const p = f?.program;
+  return Array.isArray(p) ? p.filter(Boolean) : (p ? [p] : []);
+}
+function facProgramLabel(f) { return facProgramList(f).join(', '); }
+function facInProgram(f, name) { return !!name && facProgramList(f).includes(name); }
+
 function getFacTz(facultyEmail) {
   return allFaculty.find(f=>f.email===facultyEmail)?.timezone || null;
 }
@@ -3971,7 +3982,7 @@ function buildOtherCard(){
         <div class="adv-av" style="background:var(--amber-l);color:var(--amber-d);">${initials(f.name_en)}</div>
         <div class="adv-name">${esc(f.name_en)}</div>
         <div class="adv-email">${esc(f.email)}</div>
-        <div class="adv-school">${esc(f.school||'')}</div>
+        <div class="adv-school">${esc(facProgramLabel(f))}</div>
         <button class="adv-req-btn" onclick="openRequestForm('${f.email}')">Request meeting →</button>
       </div>
     </div>`:'';
@@ -4009,7 +4020,7 @@ function buildOtherCard(){
       <div class="adv-school" style="margin-bottom:6px;">Request from any professor</div>
       ${others.length?`<select class="fsel" id="other-fac-sel" onchange="selectOtherFaculty(this.value)" onclick="event.stopPropagation()">
         <option value="">Choose…</option>
-        ${others.map(f=>`<option value="${f.email}">${esc(f.name_en)} · ${esc(f.school||'')}</option>`).join('')}
+        ${others.map(f=>`<option value="${f.email}">${esc(f.name_en)} · ${esc(facProgramLabel(f))}</option>`).join('')}
       </select>`:`<div style="font-size:12px;color:var(--text3);font-style:italic;">No other faculty with available slots</div>`}
     </div>
   </div>`;
@@ -4297,7 +4308,7 @@ function buildRequestForm(){
           <div class="of-row" onclick="selectRequestFaculty('${f.email}')">
             <div class="of-av" style="background:var(--amber-l);color:var(--amber-d);">${initials(f.name_en)}</div>
             <span class="of-name">${esc(f.name_en)}</span>
-            <span class="of-school">${esc(f.school||'')}</span>
+            <span class="of-school">${esc(facProgramLabel(f))}</span>
           </div>`).join('')}
       </div>
     </div>`:'' ;
