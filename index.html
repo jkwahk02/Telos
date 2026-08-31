@@ -833,7 +833,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .settings-field-row{display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);}
 .settings-field-row.editable{transition:background .15s;}
 .settings-field-row.editable:focus-within{background:var(--surface2);}
-.settings-field-label{font-size:13px;color:var(--text3);min-width:100px;flex-shrink:0;padding:11px 0;}
+.settings-field-label{font-size:13px;color:var(--text3);min-width:150px;flex-shrink:0;padding:11px 0;}
 .settings-field-val{font-size:14px;color:var(--text2);padding:11px 0;flex:1;}
 .settings-edit-bar{width:3px;border-radius:2px;background:var(--blue);align-self:stretch;flex-shrink:0;margin-right:12px;opacity:0;transition:opacity .15s;}
 .settings-field-row.editable:focus-within .settings-edit-bar{opacity:1;}
@@ -1503,7 +1503,7 @@ async function hydrateFacultyProfile(email, token, user){
 // outlives the tab is not a trade worth making.
 const SESSION_KEY = 'telos_faculty_session';
 
-function saveSession(){
+function saveAuthSession(){
   try{ sessionStorage.setItem(SESSION_KEY, JSON.stringify(supabaseUser)); }catch(e){}
 }
 function clearSession(){
@@ -1528,7 +1528,7 @@ async function restoreSession(){
         body: JSON.stringify({ refresh_token: saved.refresh_token })});
       if(!r.ok) throw new Error('refresh failed');
       supabaseUser = await r.json();
-      saveSession();
+      saveAuthSession();
     }catch(e){ supabaseUser = null; clearSession(); return false; }
   }
   return true;
@@ -1578,7 +1578,7 @@ async function handleWallLogin() {
     }
 
     // Step 5: Normal login — enter app
-    saveSession();
+    saveAuthSession();
     await loadData();
 
   } catch(e) {
@@ -1668,7 +1668,7 @@ async function handlePasswordChange() {
     }
 
     // 3. Hide pw wall, restore defaults, and enter/stay in app
-    saveSession();
+    saveAuthSession();
     document.getElementById('pw-change-wall').style.display = 'none';
     document.getElementById('pw-new').value = '';
     document.getElementById('pw-confirm').value = '';
@@ -7510,9 +7510,9 @@ async function renderSettings() {
             </select>
           </div>
         </div>
-        <div class="settings-field-row editable">
+        <div class="settings-field-row editable" style="align-items:flex-start;">
           <div class="settings-edit-bar"></div>
-          <div class="settings-field-label">Max meeting length</div>
+          <div class="settings-field-label" style="padding-top:13px;">Max meeting length</div>
           <div class="settings-field-input">
             <div style="display:flex;align-items:center;gap:8px;">
               <input class="fi" id="prof-maxlen" type="number" min="10" max="180" step="5"
@@ -7520,9 +7520,8 @@ async function renderSettings() {
                 style="height:30px;font-size:14px;width:96px;" oninput="markProfileDirty()">
               <span style="font-size:13px;color:var(--text2);">minutes</span>
             </div>
-            <div style="font-size:12px;color:var(--text3);margin-top:5px;line-height:1.5;">
-              The longest meeting a student may book with you. Leave blank for no limit —
-              they choose the length themselves, which is what major advising usually wants.
+            <div style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;max-width:520px;">
+              The longest meeting a student may book with you. Leave blank for no limit.
             </div>
           </div>
         </div>
