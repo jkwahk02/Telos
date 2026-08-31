@@ -4029,11 +4029,16 @@ function buildRequestForm(){
   function getOpts(sl){
     const s=tToM(sl.start_time),e=tToM(sl.end_time);
     const o=[];
-    // Start times step by the meeting length, capped at 30 — so a 20 min
-    // meeting offers :00 :20 :40 instead of leaving a third of the hour idle.
-    const step=Math.min(meetingDuration,30);
-    for(let t=s;t+meetingDuration<=e;t+=step)
-      o.push({start:mToT(t),end:mToT(t+meetingDuration)});
+    // An advisor may fix the length of a block. Where they have, that length is
+    // the appointment and the chips above do not apply inside it: the block
+    // divides into back-to-back appointments so that everyone gets a turn.
+    const fixed = sl.duration ? Number(sl.duration) : null;
+    const dur   = fixed || meetingDuration;
+    // Otherwise start times step by the meeting length, capped at 30 — so a 20
+    // min meeting offers :00 :20 :40 instead of leaving a third of the hour idle.
+    const step  = fixed || Math.min(meetingDuration,30);
+    for(let t=s;t+dur<=e;t+=step)
+      o.push({start:mToT(t),end:mToT(t+dur),dur,fixed:!!fixed});
     return o;
   }
   function isSel(dateStr,start){return selectedMeetingSlots.some(x=>x.dateStr===dateStr&&x.start===start);}
@@ -4097,7 +4102,7 @@ function buildRequestForm(){
             const facDateChanged = sl.facDateStr !== dateStr;
             return `<div class="spop-row ${sel?'sel':''}"
                           onmouseenter="this.classList.add('hov')" onmouseleave="this.classList.remove('hov')"
-                          onclick="toggleMeetingSlot('${stuConverted.date||dateStr}','${stuConverted.time||o.start}','${stuEndConverted.time||o.end}','${formatShortDate(stuConverted.date||dateStr)}','${o.start}','${o.end}','${sl.facDateStr}');event.stopPropagation()">
+                          onclick="toggleMeetingSlot('${stuConverted.date||dateStr}','${stuConverted.time||o.start}','${stuEndConverted.time||o.end}','${formatShortDate(stuConverted.date||dateStr)}','${o.start}','${o.end}','${sl.facDateStr}',${o.dur});event.stopPropagation()">
                           <div class="spop-bar"></div>
                           <div class="spop-lbl">${stuConverted.time||o.start}</div>
                           <div class="spop-tz">
@@ -4126,7 +4131,8 @@ function buildRequestForm(){
             ${pc?`<div class="s-picked" style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:1px;">${pc} picked</div>`:''}
             ${!dis?`<div class="slot-popover" id="${popId}">
               <div class="spop-hd"><div class="spop-date">${dateLabel} · ${convertTime(sl.start_time,slotFacTz,stuTz)||sl.start_time.slice(0,5)}–${convertTime(sl.end_time,slotFacTz,stuTz)||sl.end_time.slice(0,5)} ${tzAbbr(stuTz)?`<span class="tz-pill">${tzAbbr(stuTz)}</span>`:''}</div>
-              <div class="spop-hint">Choose start time (${meetingDuration} min)</div></div>
+              <div class="spop-hint">Choose start time (${sl.duration || meetingDuration} min${
+                sl.duration ? ' · set by your advisor' : ''})</div></div>
               <div class="spop-body">${tRows}</div>
             </div>`:''}
           </div>`;
@@ -4332,7 +4338,18 @@ function toggleSlotPop(id){
   document.querySelectorAll('.slot-popover.open').forEach(p=>p.classList.remove('open'));
   if(!isOpen)el.classList.add('open');
 }
-function toggleMeetingSlot(dateStr, start, end, dateLabel, facStart, facEnd, facDateStr) {
+function toggleMeetingSlot(dateStr, start, end, dateLabel, facStart, facEnd, facDateStr, slotDur) {
+  // A request carries one length. Picking a slot out of a block the advisor has
+  // fixed sets the request to that length, and anything already picked at a
+  // different length cannot ride along with it.
+  const dur = Number(slotDur) || meetingDuration;
+  if(dur !== meetingDuration){
+    meetingDuration = dur;
+    if(selectedMeetingSlots.length){
+      selectedMeetingSlots = [];
+      showToast(`This block is set to ${dur}-minute appointments — earlier picks cleared`);
+    }
+  }
   const idx = selectedMeetingSlots.findIndex(x => x.dateStr===dateStr && x.start===start);
   if (idx>=0) selectedMeetingSlots.splice(idx,1);
   else selectedMeetingSlots.push({dateStr, start, end, dateLabel, facStart: facStart||start, facEnd: facEnd||end, facDateStr: facDateStr||dateStr});
