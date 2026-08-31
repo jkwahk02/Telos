@@ -1011,6 +1011,10 @@ let FACULTY_INITIALS = '';
 let FACULTY_EMAIL = '';   // ← 신규: 이름 대신 email로 식별
 let FACULTY_SCHOOL = '';  // chair's school for program filtering
 let FACULTY_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+// The longest meeting a student may book with this advisor. null is no limit,
+// which is what every account starts as — a cap is one advisor's decision, not
+// a rule of the school.
+let FACULTY_MAX_MEETING = null;
 let SCHOOL_FACULTY_NAMES = []; // 같은 school 소속 교수 이름 목록
 let FACULTY_PROGRAMS = [];     // signed-in faculty's programmes (array since Aug 2026)
 let FACULTY_ROWS = [];         // every faculty row: email, name, role, chair, programs
@@ -1416,6 +1420,7 @@ async function hydrateFacultyProfile(email, token, user){
                      : (profData[0].program ? [profData[0].program] : []);
     FACULTY_SCHOOL = FACULTY_PROGRAMS[0] || '';
     FACULTY_TIMEZONE = profData[0].timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    FACULTY_MAX_MEETING = profData[0].max_meeting_minutes ?? null;
     
     // 첫 로그인 시 timezone이 null이면 브라우저 값으로 DB에 저장
     if (!profData[0].timezone) {
@@ -2716,7 +2721,9 @@ async function sendProposal(meetingId) {
   const picked = pendingPropose[meetingId];
   if (!picked || picked.size === 0) { showToast('Select at least one slot.'); return; }
 
-  const dur = m?.meetingDuration || 30;
+  // The advisor's cap binds the advisor too — otherwise they offer an hour
+  // inside a window they have told students is twenty minutes.
+  const dur = Math.min(m?.meetingDuration || 30, FACULTY_MAX_MEETING || 1e9);
   const proposedByAdvisor = Array.from(picked)
     .map(ai => advisorSlot(availSlots[ai], dur))
     .sort((x, y) => (x.dateStr + x.start).localeCompare(y.dateStr + y.start));
@@ -6001,7 +6008,7 @@ let mrNote = '';
 function openMeetingRequest(sid){
   const st = students.find(s => s.id === sid);
   if(!st) return;
-  mrPick = new Set(); mrDur = 30; mrWeek = 0; mrNote = '';
+  mrPick = new Set(); mrDur = Math.min(30, FACULTY_MAX_MEETING || 30); mrWeek = 0; mrNote = '';
   const m = document.getElementById('ci-modal');
   m.innerHTML = `<div class="ci-box">
     <div class="ci-hd">Request a meeting with ${esc(st.name)}
@@ -6028,7 +6035,9 @@ function renderMeetingRequest(sid){
 
   const active = availSlots.map((a, i) => ({a, i})).filter(x => x.a.is_active);
 
-  const durChips = [20, 30, 45, 60, 90].map(d => `
+  const durChips = [20, 30, 60, 90, 120]
+    .filter(d => !FACULTY_MAX_MEETING || d <= FACULTY_MAX_MEETING)
+    .map(d => `
     <button class="sp-btn" style="padding:5px 12px;font-size:14px;${mrDur===d?'border-color:var(--teal);color:var(--teal);font-weight:600;background:var(--teal-l);':''}"
       onclick="mrSet('dur',${d},'${esc(sid)}')">${d} min</button>`).join('');
 
@@ -6064,7 +6073,9 @@ function renderMeetingRequest(sid){
 
   bd.innerHTML = `
     <div class="mg-vislabel" style="margin-top:0;">How long</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">${durChips}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">${durChips}
+      ${FACULTY_MAX_MEETING ? `<span style="font-size:12px;color:var(--text3);">your limit is ${FACULTY_MAX_MEETING} min</span>` : ''}
+    </div>
     <div class="mg-vislabel">Which week</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;">${weekChips}</div>
     <div class="mg-vislabel">Offer these blocks</div>
@@ -7244,14 +7255,23 @@ function markProfileDirty() {
 async function saveProfile() {
   const name = document.getElementById('prof-name')?.value.trim();
   const tz   = document.getElementById('tz-select')?.value;
+  const raw  = document.getElementById('prof-maxlen')?.value.trim() ?? '';
   const btn  = document.getElementById('btn-save-profile');
   const status = document.getElementById('prof-save-status');
   if (!name) { showToast('Name cannot be empty.'); return; }
+  // Blank is the meaningful value here, not an omission: it means no limit.
+  const maxLen = raw === '' ? null : parseInt(raw, 10);
+  if (maxLen !== null && (!Number.isFinite(maxLen) || maxLen < 10 || maxLen > 180)) {
+    showToast('Maximum meeting length must be between 10 and 180 minutes, or blank for no limit.');
+    return;
+  }
   if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
   try {
-    await sbUpdate('faculty_profiles', 'email', FACULTY_EMAIL, { name_en: name, timezone: tz });
+    await sbUpdate('faculty_profiles', 'email', FACULTY_EMAIL,
+      { name_en: name, timezone: tz, max_meeting_minutes: maxLen });
     FACULTY = name;
     FACULTY_TIMEZONE = tz;
+    FACULTY_MAX_MEETING = maxLen;
     document.getElementById('nav-name').textContent    = FACULTY;
     document.getElementById('dd-name').textContent     = FACULTY;
     document.getElementById('nav-avatar').textContent  = initials(FACULTY);
@@ -7396,6 +7416,22 @@ async function renderSettings() {
             </select>
           </div>
         </div>
+        <div class="settings-field-row editable">
+          <div class="settings-edit-bar"></div>
+          <div class="settings-field-label">Max meeting length</div>
+          <div class="settings-field-input">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input class="fi" id="prof-maxlen" type="number" min="10" max="180" step="5"
+                value="${FACULTY_MAX_MEETING ?? ''}" placeholder="No limit"
+                style="height:30px;font-size:14px;width:96px;" oninput="markProfileDirty()">
+              <span style="font-size:13px;color:var(--text2);">minutes</span>
+            </div>
+            <div style="font-size:12px;color:var(--text3);margin-top:5px;line-height:1.5;">
+              The longest meeting a student may book with you. Leave blank for no limit —
+              they choose the length themselves, which is what major advising usually wants.
+            </div>
+          </div>
+        </div>
 
         <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
           <span class="save-status" id="prof-save-status"></span>
@@ -7471,9 +7507,9 @@ function renderSlotList() {
       <span style="font-size:13px;color:var(--text3);min-width:80px;">
         ${s.meeting_type||'Zoom'}
       </span>
-      <span style="font-size:13px;min-width:132px;color:${s.duration?'var(--text2)':'var(--text3)'};">
-        ${s.duration
-          ? `${s.duration} min · ${Math.floor((slotMins(s.end_time)-slotMins(s.start_time))/s.duration)} appointments`
+      <span style="font-size:13px;min-width:132px;color:var(--text3);">
+        ${FACULTY_MAX_MEETING
+          ? `${Math.floor((slotMins(s.end_time)-slotMins(s.start_time))/FACULTY_MAX_MEETING)} × ${FACULTY_MAX_MEETING} min`
           : 'student chooses'}
       </span>
       <span style="font-size:13px;color:var(--text3);flex:1;
@@ -7580,17 +7616,13 @@ function openAddSlotForm(day) {
           </select>
         </div>
         <div class="fg">
-          <div class="fl">Appointment length</div>
-          <select class="fsel" id="as-dur">
-            <option value="">Student chooses</option>
-            <option value="20">20 min</option>
-            <option value="30">30 min</option>
-            <option value="45">45 min</option>
-            <option value="60">1 hour</option>
-          </select>
-          <div style="font-size:12px;color:var(--text3);margin-top:4px;">
-            Set a length and the block divides into that many appointments — nothing longer can be
-            booked inside it. Leave it on "Student chooses" for major advising.</div>
+          <div class="fl">Meeting length</div>
+          <div style="height:32px;display:flex;align-items:center;font-size:14px;color:var(--text2);">
+            ${FACULTY_MAX_MEETING ? `${FACULTY_MAX_MEETING} min` : 'Student chooses'}
+          </div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px;line-height:1.5;">
+            This is the window you are free, not the length of one meeting. That is set once for
+            all your blocks — Max meeting length, in My profile.</div>
         </div>
         <div class="fg">
           <div class="fl">Note (optional)</div>
@@ -7615,16 +7647,16 @@ async function confirmAddSlot() {
   const end   = document.getElementById('as-end').value;
   const fmt   = document.getElementById('as-format').value;
   const note  = document.getElementById('as-note').value.trim();
-  const dur   = parseInt(document.getElementById('as-dur').value) || null;
 
-  // A length that does not divide the block leaves a tail nobody can book, and
-  // the advisor would never see it - the student side simply stops offering
-  // start times partway through. Better to say so here.
-  if(dur){
+  // A window shorter than the advisor's own cap can never be booked, and they
+  // would never see why - the student side simply offers no start times in it.
+  if(FACULTY_MAX_MEETING){
     const mins = (t => { const [h,m] = t.split(':').map(Number); return h*60+m; });
     const span = mins(end) - mins(start);
-    if(span < dur){ showToast(`That block is ${span} minutes — too short for a ${dur}-minute appointment.`); return; }
-    if(span % dur) showToast(`${Math.floor(span/dur)} appointments of ${dur} min, with ${span % dur} min left over.`);
+    if(span < FACULTY_MAX_MEETING){
+      showToast(`That window is ${span} minutes — shorter than your ${FACULTY_MAX_MEETING}-minute meetings.`);
+      return;
+    }
   }
 
   const newSlot = {
@@ -7634,7 +7666,6 @@ async function confirmAddSlot() {
     end_time:      end   + ':00',
     meeting_type:  fmt,
     note:          note,
-    duration:      dur,
     is_active:     true,
   };
 
@@ -7698,7 +7729,6 @@ async function saveAvailability() {
         end_time:      s.end_time,
         meeting_type:  s.meeting_type,
         note:          s.note,
-        duration:      s.duration || null,
         is_active:     s.is_active,
       });
     }
