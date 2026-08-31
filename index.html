@@ -3386,7 +3386,9 @@ function ovMajors(box){
     <h3 class="ov-h2" style="margin-top:26px;">How many students study in each program</h3>
     <p class="ov-sub2">The first thing to know about a declaration is which program it names. Headcount by school
       counts each student once, but a student who takes a program as a second major or a minor studies in it just
-      as much. So each program is counted three ways, sorted by the total.</p>
+      as much. So each program is counted three ways, sorted by the total. <strong>The ${nodec} students who have
+      not declared are not in this figure</strong> — they name no program to be counted under — so the bars sum to
+      the ${declared} declared rather than to all ${total}.</p>
     <div class="ov-cw"><svg id="mj-load" viewBox="0 0 900 ${30 + load.length * 54}"></svg></div>
     <div class="ov-lg" id="mj-load-lg"></div>
     <div class="ov-selp" id="mj-sel1" hidden></div>
@@ -3405,7 +3407,9 @@ function ovMajors(box){
     <h3 class="ov-h2">What pairs with what</h3>
     <p class="ov-sub2">Rows are the primary major, columns the program paired with it, kept in two panels because a
       second major and a minor are different commitments. Weight is the number of students, so the heavy cells are
-      the combinations the university actually produces.</p>
+      the combinations the university actually produces. <strong>The ${nodec} students who have not declared are
+      not in this figure</strong> — a pairing needs a primary major to pair from — so it covers the ${declared}
+      declared, unlike the two charts above it.</p>
     <div class="ov-cw"><svg id="mj-pair" viewBox="0 0 900 ${76 + pairs.list.length * 44}"></svg></div>
     <div class="ov-lg" id="mj-pair-lg"></div>
     <div class="ov-selp" id="mj-sel3" hidden></div>
