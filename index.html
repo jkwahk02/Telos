@@ -136,6 +136,36 @@ button,input,select,textarea{font-family:inherit;}
 .ov-selh{display:flex;align-items:center;gap:10px;font-size:15.5px;color:var(--text);}
 .ov-x{margin-left:auto;font-family:inherit;font-size:15px;padding:8px 17px;border-radius:20px;
   border:1px solid var(--border-em);background:var(--surface);color:var(--text2);cursor:pointer;}
+/* Major Advising Load */
+.al-src{background:var(--surface2);border:1px solid var(--border-em);border-radius:var(--r);
+  padding:14px 18px;margin:0 0 16px;font-size:15.5px;color:var(--text2);line-height:1.65;}
+.al-src h4{font-size:12.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text3);margin:0 0 8px;}
+.al-src dl{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;margin:0;}
+.al-src dt{font-family:'DM Mono',monospace;font-size:13.5px;color:var(--text);white-space:nowrap;}
+.al-src dd{margin:0;}
+.al-hm{width:100%;border-collapse:collapse;font-size:15px;}
+.al-hm th{font-size:12.5px;font-weight:600;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.06em;padding:8px 10px;text-align:center;}
+.al-hm th.l{text-align:left;padding-left:0;}
+.al-hm td{padding:0;}
+.al-hm td.l{padding:0 14px 0 0;font-size:16px;white-space:nowrap;}
+.al-hm td.l small{display:block;font-size:12.5px;color:var(--text3);font-family:'DM Mono',monospace;}
+.al-grp td{padding:20px 0 6px;font-size:13px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;}
+.al-grp td span{float:right;font-family:'DM Mono',monospace;font-size:12.5px;
+  color:var(--text3);letter-spacing:0;text-transform:none;}
+.al-c{margin:2px;height:40px;border-radius:var(--r);cursor:pointer;display:flex;
+  align-items:center;justify-content:center;font-family:'DM Mono',monospace;
+  font-size:16px;font-weight:500;border:1px solid transparent;}
+.al-c:hover{border-color:var(--text);}
+.al-c.z{color:var(--text3);font-weight:400;cursor:default;}
+.al-c.z:hover{border-color:transparent;}
+.al-c.on{outline:2px solid var(--text);outline-offset:-1px;}
+.al-tot{font-family:'DM Mono',monospace;font-size:16px;text-align:center;color:var(--text2);}
+.al-legend{display:flex;align-items:center;gap:9px;font-size:15px;color:var(--text2);margin:14px 0 0;}
+.al-ramp{display:flex;}
+.al-ramp i{width:34px;height:13px;}
 .ov-h2{font-size:23px;font-weight:600;letter-spacing:-.015em;margin:42px 0 6px;color:var(--text);}
 .ov-sub2{font-size:17px;color:var(--text2);margin:0 0 18px;max-width:74ch;line-height:1.6;}
 .ov-sw{display:inline-block;width:13px;height:13px;border-radius:3px;margin-right:8px;vertical-align:-1px;}
@@ -980,6 +1010,8 @@ let FACULTY_EMAIL = '';   // ← 신규: 이름 대신 email로 식별
 let FACULTY_SCHOOL = '';  // chair's school for program filtering
 let FACULTY_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let SCHOOL_FACULTY_NAMES = []; // 같은 school 소속 교수 이름 목록
+let FACULTY_PROGRAMS = [];     // signed-in faculty's programmes (array since Aug 2026)
+let FACULTY_ROWS = [];         // every faculty row: email, name, role, chair, programs
 let facultyMap = {};
 
 const GCAL_CLIENT_ID = '290444850759-26d8ch9qjk7hvsudgavlqi8tdngsgism.apps.googleusercontent.com'; 
@@ -1374,7 +1406,13 @@ async function hydrateFacultyProfile(email, token, user){
     FACULTY_EMAIL  = profData[0].email;        // ← 추가
     IS_CHAIR       = profData[0].is_chair === true;
     FACULTY_ROLE   = profData[0].role || 'advisor';
-    FACULTY_SCHOOL = profData[0].school || '';
+    // faculty_profiles.school became program in Aug 2026, and an array with it:
+    // a joint appointment (HSS + Innovation Foundations) needs both. The old
+    // single-valued name is kept as the first entry because renderProgramSummary
+    // and the roster badges still compare one value against students.major*.
+    FACULTY_PROGRAMS = Array.isArray(profData[0].program) ? profData[0].program
+                     : (profData[0].program ? [profData[0].program] : []);
+    FACULTY_SCHOOL = FACULTY_PROGRAMS[0] || '';
     FACULTY_TIMEZONE = profData[0].timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     
     // 첫 로그인 시 timezone이 null이면 브라우저 값으로 DB에 저장
@@ -1391,6 +1429,7 @@ async function hydrateFacultyProfile(email, token, user){
     FACULTY_EMAIL  = email;                    // ← 추가 (fallback: 로그인 email 그대로)
     IS_CHAIR       = false;
     FACULTY_ROLE   = 'advisor';
+    FACULTY_PROGRAMS = [];
     FACULTY_SCHOOL = '';
     FACULTY_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone; // ← 추가
   }
@@ -1398,19 +1437,33 @@ async function hydrateFacultyProfile(email, token, user){
   // Chair인 경우 같은 school 소속 교수 목록 추가 로드
   if (IS_CHAIR && FACULTY_SCHOOL) {
     const allProfRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/faculty_profiles?school=eq.${encodeURIComponent(FACULTY_SCHOOL)}&select=name_en`,
+      `${SUPABASE_URL}/rest/v1/faculty_profiles?program=cs.${encodeURIComponent('{' + JSON.stringify(FACULTY_SCHOOL) + '}')}&select=name_en`,
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` } }
     );
     const allProfData = await allProfRes.json();
-    SCHOOL_FACULTY_NAMES = allProfData.map(p => p.name_en);
+    SCHOOL_FACULTY_NAMES = Array.isArray(allProfData) ? allProfData.map(p => p.name_en) : [];
+    if(!Array.isArray(allProfData))
+      console.warn('[faculty_profiles] programme filter failed:', allProfData);
   }
 
   const allFacRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/faculty_profiles?select=name_en,email`,
+    `${SUPABASE_URL}/rest/v1/faculty_profiles?select=name_en,email,program,role,is_chair`,
     { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` } }
   );
-  const allFacData = await allFacRes.json();
+  const allFacRaw = await allFacRes.json().catch(() => null);
+  const allFacData = Array.isArray(allFacRaw) ? allFacRaw : [];
+  if(!Array.isArray(allFacRaw)) console.warn('[faculty_profiles] roster read failed:', allFacRaw);
   allFacData.forEach(f => { facultyMap[f.email] = f.name_en; });
+  // Major Advising Load needs the programme and the role, not only the name.
+  // program is an array; a row that predates the migration is wrapped so the
+  // page does not have to test the shape everywhere.
+  // Test accounts are out of the analytics roster the same way test students
+  // are. facultyMap keeps them, so a session one of them wrote still resolves
+  // to a name rather than an address.
+  FACULTY_ROWS = allFacData.map(f => ({
+    email: f.email, name: f.name_en, role: f.role || 'advisor', chair: f.is_chair === true,
+    programs: Array.isArray(f.program) ? f.program : (f.program ? [f.program] : []),
+  })).filter(isRealFaculty);
   
   FACULTY_INITIALS = FACULTY.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 
@@ -1628,7 +1681,7 @@ async function handleSignOut() {
   IS_CHAIR = false; FACULTY_ROLE = 'advisor';
   FACULTY_SCHOOL = '';
   FACULTY_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  SCHOOL_FACULTY_NAMES = [];
+  SCHOOL_FACULTY_NAMES = []; FACULTY_PROGRAMS = []; FACULTY_ROWS = [];
 
   students = []; sessions = []; meetings = []; dataLoaded = false;
   document.getElementById('nav-user-btn').style.display = 'none';
@@ -1726,6 +1779,10 @@ function mapStudent(r) {
     advisor2_email: r.advisor2_email || '',   // ← FK로 변경
     advisor1: r.advisor1 || '',               // deprecated 유지 (호환)
     advisor2: r.advisor2 || '',               // deprecated 유지 (호환)
+    // An interim assignment holds a student until a formal advisor is named.
+    // Major Advising Load counts it as held, never as carried.
+    advisor1Interim: r.advisor1_interim === true,
+    advisor2Interim: r.advisor2_interim === true,
     careerGoal:       r.career_goal || '',
     researchInterest: r.research_interest || '',
     concerns:         r.concerns  || '',
@@ -2829,9 +2886,17 @@ const OV_PAGES = [
   // advisor nor chair - Academic Affairs - because renderOverview falls through
   // to the first enabled page. Which program a student declared is a better
   // first screen for that account than a credit histogram.
+  //
+  // Academic Insights follows one student: what they declared, how far along
+  // they are, what is left. Advising Insights is a group of its own because its
+  // unit is the faculty member, not the student - who carries how much, and how
+  // much of it is served. A reassignment worklist and coverage over time belong
+  // there too when they come. It sits last so the fallthrough above still lands
+  // an Academic Affairs account on Major Declarations.
   { k:'majors',   grp:'Academic Insights', label:'Major Declarations', icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.4l7 3.4-7 3.4-7-3.4 7-3.4z"/><path d="M4.6 8v4.4c0 1.5 2.4 2.8 5.4 2.8s5.4-1.3 5.4-2.8V8"/><path d="M17 5.8v5"/></svg>` },
   { k:'credits',  grp:'Academic Insights', label:'Credit Progress', icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16.5V11M7.7 16.5V6.5M12.3 16.5v-4M17 16.5v-13"/></svg>` },
   { k:'program',  grp:'Academic Insights', label:'Program Requirements', icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.6l1.6 1.6 2.6-2.9M3.5 11.2l1.6 1.6 2.6-2.9M3.5 16.6l1.6 1.6 2.6-2.9"/><path d="M11 5h5.5M11 10.5h5.5M11 16h5.5"/></svg>` },
+  { k:'load',     grp:'Advising Insights', label:'Major Advising Load', icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.4" cy="5.6" r="2.3"/><circle cx="13.6" cy="5.6" r="2.3"/><path d="M2.4 12.6c0-1.9 1.8-3 4-3s4 1.1 4 3"/><path d="M11.2 12.6c0-1.9 1.8-3 4-3s4 1.1 4 3"/><path d="M3 17.4h14"/></svg>` },
 ];
 
 // PostgREST caps at 1000 rows unless asked otherwise.
@@ -2892,7 +2957,7 @@ function ovStudents(){
   const real = r => {
     const no = String(ovPick(r, ['student_no','student_id'], ''));
     const st = sIdx[no];
-    if(st && /\(test\)/i.test(st.name || '')) return false;
+    if(st && isTestName(st.name)) return false;
     return no.slice(0,4) >= '2023';
   };
 
@@ -2939,8 +3004,7 @@ function ovStudents(){
 // Saying so on the page is better than a silent undercount.
 function ovSourceNote(){
   const inView = ovStudents().length;
-  const roster = students.filter(s => !/\(test\)/i.test(s.name || '')
-                                   && String(s.id).slice(0,4) >= '2023').length;
+  const roster = students.filter(isRealStudent).length;
   const missing = roster - inView;
   return `<div class="ov-warn"><strong>Source: coursework and grades</strong> — the transcript
     extract the registrar shared at 10:36 on 20 August 2026. Not Telos's own roster, and not the
@@ -3054,6 +3118,7 @@ function ovRenderBody(){
   // Above the registry guards on purpose: this page reads students, which is
   // already loaded, so it must not wait on v_student_credit_progress.
   if(OV.page === 'majors'  ){ ovMajors(b);                          return; }
+  if(OV.page === 'load'    ){ ovAdvisingLoad(b);                    return; }
   if(OV.err){
     b.innerHTML = `<div class="error-banner"><strong>Could not load registry data.</strong> ${esc(OV.err)}</div>`;
     return;
@@ -3249,11 +3314,15 @@ const MJ_FORMS = [
 ];
 
 // Taejae's first intake is 2023, so a student number below it is not a real
-// student. Test rows are out of every count on this page.
-function mjPool(){
-  return students.filter(s => !/\(test\)/i.test(s.name || '')
-                           && String(s.id || '').slice(0,4) >= '2023');
+// student; the (test) marker in the name confirms it. The rule was written out
+// in three places and has to hold in all of them, so it lives here once - a
+// test row that slips into one page and not another is worse than either.
+function isTestName(n){ return /\(test\)/i.test(n || ''); }
+function isRealStudent(s){
+  return !isTestName(s && s.name) && String((s && s.id) || '').slice(0,4) >= '2023';
 }
+function isRealFaculty(f){ return !!(f && f.name) && !isTestName(f.name); }
+function mjPool(){ return students.filter(isRealStudent); }
 function mjYear(s){ return String(s.id || '').slice(0,4); }
 function mjLabel(y){ return 'Cohort ' + (Number(y) - 2022) + ' · ' + y; }
 function mjTrim(v){ return String(v == null ? '' : v).trim(); }
@@ -3697,7 +3766,552 @@ function mjSentences(d){
     : `No student has declared a second major or a minor yet.`);
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// MAJOR ADVISING LOAD
+//
+// Advising toward a major, counted per advisor. Three exclusions, each named
+// on screen rather than applied silently:
+//   role !== 'advisor'      visiting faculty and the OAA dean do not advise
+//   Innovation Foundations  the foundations year, not a declarable major; its
+//                           chair advises the whole intake until they declare
+//   interim assignments     held, never counted as carried load
+//
+// Assignment and composition come from students and FACULTY_ROWS, both already
+// in memory. Contact cannot: advising_log is under RLS and every viewer sees a
+// different subset of it, so it comes from v_advising_load, which aggregates
+// with the owner's rights. If that view is absent the page drops the contact
+// chart and its table columns rather than showing a number that is wrong for
+// whoever happens to be reading.
+// ══════════════════════════════════════════════════════════════
+function alHex(h, a){
+  const v = String(h || '').trim();
+  if(!/^#[0-9a-f]{6}$/i.test(v)) return v;
+  const n = parseInt(v.slice(1), 16);
+  return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;
+}
+// Why a student sits in the cell they sit in. The last column of the heat map
+// counts one fact - the advisor's programme is nowhere in this advisee's
+// declaration - and that one fact has several causes. Two of them need a
+// reassignment and two do not, so the chips say which.
+//
+// What the data cannot say is whether a review case is a major change the
+// assignment did not follow or a cross-programme advisor chosen on purpose.
+// students carries no change history, so the tag stops at 'needs review'
+// rather than guessing at a reason.
+function alTags(f, s){
+  const t = [];
+  if((s.advisor1_email === f.email && s.advisor1Interim) ||
+     (s.advisor2_email === f.email && s.advisor2Interim)) t.push('interim');
+  const d = mjTrim(f.prog);
+  if(mjTrim(s.major1) !== d && mjTrim(s.major2) !== d && mjTrim(s.minor) !== d){
+    if(/self.?design/i.test(s.major1 || ''))                       t.push('self-designed');
+    else if(!mjTrim(s.major1) && !mjTrim(s.major2) && !mjTrim(s.minor)) t.push('undeclared');
+    else                                                            t.push('needs review');
+  }
+  return t;
+}
+
+// mjSel with the tags. Kept separate rather than added to mjSel, which Major
+// Declarations calls with no advisor to reason about.
+function alSel(id, f, context, list){
+  const p = document.getElementById(id); if(!p) return;
+  p.hidden = false;
+  const count = {};
+  list.forEach(s => alTags(f, s).forEach(t => { count[t] = (count[t] || 0) + 1; }));
+  const chips = list.slice(0, 60).map(s =>
+    `<span class="ov-chip2" onclick="goPage('students');selectStud('${esc(s.id)}')">
+       <u>${esc(s.name || s.id)}</u><em>${esc(shortCohort(s.cohort) || mjYear(s))}</em>${
+       alTags(f, s).map(t =>
+         `<span class="db-badge ${t === 'needs review' ? 'bdg-warn-sm' : 'bdg-gray-sm'}"
+            style="font-size:12px">${t}</span>`).join('')}</span>`).join('');
+  const summary = Object.keys(count).length
+    ? ' · ' + Object.keys(count).sort().map(k => `${count[k]} ${k}`).join(', ') : '';
+  p.innerHTML =
+    `<div class="ov-selh"><strong>${esc(f.name)}</strong> · ${esc(context)} · ${list.length}
+       student${list.length === 1 ? '' : 's'}${esc(summary)}
+       <button class="ov-x" onclick="document.getElementById('${id}').hidden=true">Close</button></div>
+     <div class="ov-chips">${chips}
+       ${list.length > 60 ? `<span class="ov-chip2"><em>+${list.length - 60} more</em></span>` : ''}</div>`;
+}
+
+// mjSentences keeps its own put(); this page needs one at file scope.
+function alPut(id, text){ const el = document.getElementById(id); if(el) el.textContent = text; }
+function alHue(p){  return ovVar('--sch-' + schoolKey(p)); }
+function alHueT(p){ return ovVar('--sch-' + schoolKey(p) + '-t'); }
+function alIsMajor(p){ return p && schoolKey(p) !== 'if'; }
+
+// One row per advisor. pri/sec are all assignments; iPri/iSec the interim ones
+// among them, so carried = tot - held without a second pass over the roster.
+function alBuild(){
+  const pool = mjPool();
+  const scoped = FACULTY_ROWS.filter(f =>
+    ADVISING_ROLES.includes(f.role) && f.programs.some(alIsMajor));
+  const held   = FACULTY_ROWS.filter(f =>
+    ADVISING_ROLES.includes(f.role) && f.programs.length && !f.programs.some(alIsMajor));
+  const idx = {};
+  scoped.forEach(f => {
+    idx[f.email] = { ...f, prog: f.programs.find(alIsMajor),
+      pri:0, sec:0, iPri:0, iSec:0, p1:[], p2:[], mn:[], out:[], tot:0 };
+  });
+
+  const place = (email, interim, roleKey, iKey, s) => {
+    const e = idx[email]; if(!e) return;
+    e[roleKey]++; if(interim) e[iKey]++;
+    const d = mjTrim(e.prog);
+    if(mjTrim(s.major1) === d)      e.p1.push(s);
+    else if(mjTrim(s.major2) === d) e.p2.push(s);
+    else if(mjTrim(s.minor)  === d) e.mn.push(s);
+    else                            e.out.push(s);
+  };
+  pool.forEach(s => {
+    if(mjTrim(s.advisor1_email)) place(s.advisor1_email, s.advisor1Interim, 'pri', 'iPri', s);
+    if(mjTrim(s.advisor2_email)) place(s.advisor2_email, s.advisor2Interim, 'sec', 'iSec', s);
+  });
+
+  const fac = Object.values(idx);
+  fac.forEach(f => { f.tot = f.pri + f.sec; f.held = f.iPri + f.iSec;
+                     f.carried = f.tot - f.held; f.interim = f.held > 0; });
+
+  // What the exclusions cost, so the page can print it. Counted the same way.
+  let outRel = 0;
+  const outNames = held.map(f => f.name);
+  pool.forEach(s => {
+    held.forEach(f => {
+      if(s.advisor1_email === f.email) outRel++;
+      if(s.advisor2_email === f.email) outRel++;
+    });
+  });
+  const nonAdvising = FACULTY_ROWS.filter(f => !ADVISING_ROLES.includes(f.role)).length;
+
+  // Programme order, used by every list on the page so a name keeps its place.
+  const progs = [...new Set(fac.map(f => f.prog))].sort((a,b) => {
+    const ca = fac.filter(f => f.prog === a).length, cb = fac.filter(f => f.prog === b).length;
+    return cb - ca || String(a).localeCompare(String(b));
+  });
+
+  const carried = fac.reduce((n,f) => n + f.carried, 0);
+  const heldN   = fac.reduce((n,f) => n + f.held, 0);
+  const rel     = carried + heldN;
+  const sorted  = fac.map(f => f.carried).sort((a,b) => a - b);
+  const median  = sorted.length ? (sorted.length % 2 ? sorted[sorted.length>>1]
+                  : (sorted[(sorted.length>>1)-1] + sorted[sorted.length>>1]) / 2) : 0;
+  const sum = sorted.reduce((a,c) => a + c, 0);
+  let g = 0; sorted.forEach((v,i) => { g += (2*(i+1) - sorted.length - 1) * v; });
+
+  return { pool, fac, progs, outRel, outNames, nonAdvising,
+    carried, held: heldN, rel, median,
+    mean: fac.length ? carried / fac.length : 0,
+    gini: sum ? g / (sorted.length * sum) : 0,
+    pIdx: n => progs.indexOf(n),
+    byProg(a,b){ return progs.indexOf(a.prog) - progs.indexOf(b.prog) || b.tot - a.tot; },
+    // Per programme: the average an advisor there carries, and the spread.
+    pl: progs.map(name => {
+      const f = fac.filter(x => x.prog === name);
+      const t = f.reduce((n,x) => n + x.carried, 0);
+      return { name, fac: f.length, tot: t, queue: f.reduce((n,x) => n + x.held, 0),
+        per: f.length ? t / f.length : 0,
+        min: f.length ? Math.min(...f.map(x => x.carried)) : 0,
+        max: f.length ? Math.max(...f.map(x => x.carried)) : 0 };
+    }).sort((a,b) => (a.tot?1:0) - (b.tot?1:0) || b.per - a.per),
+  };
+}
+
+// Contact. Fetched once; a failure is remembered so the page does not retry on
+// every render, and is shown as an absence rather than as zeros.
+function alContact(){
+  if(OV.alc !== undefined) return Promise.resolve(OV.alc);
+  return sbGet('v_advising_load', 'select=*')
+    .then(rows => { const m = {}; (rows||[]).forEach(r => { m[r.faculty_email] = r; });
+                    OV.alc = m; return m; })
+    .catch(e => { OV.alc = null; OV.alcErr = e.message; return null; });
+}
+
 // ── page: Program Requirements ───────────────────────────────────
+function ovAdvisingLoad(box){
+  if(!students.length){ box.innerHTML = `<div class="ov-wait">No students loaded yet.</div>`; return; }
+  if(!FACULTY_ROWS.length){
+    box.innerHTML = `<div class="error-banner"><strong>No faculty records.</strong> This page groups advisors by
+      programme, which comes from faculty_profiles. Sign out and in again if this persists.</div>`;
+    return;
+  }
+  const d = alBuild();
+  if(!d.fac.length){
+    box.innerHTML = `<div class="ov-wait">No advisor holds a programme that is a declarable major.</div>`;
+    return;
+  }
+  const tile = (cls, label, val, sub) =>
+    `<div class="ov-hs${cls ? ' ' + cls : ''}"><i>${label}</i><b>${val}${
+      sub ? ` <small>${sub}</small>` : ''}</b></div>`;
+
+  box.innerHTML = `
+    <div class="ov-scope">
+      <span class="ov-caption">University · ${d.pool.length} students · ${d.fac.length} advisor${
+        d.fac.length === 1 ? '' : 's'}</span>
+      <span class="ov-meta">${FACULTY_ROWS.length} faculty on file</span>
+    </div>
+
+    <h2 class="ov-h1">Major Advising Load</h2>
+    <p class="ov-sub">Advising toward a major: who is carrying it, and how it is spread. Innovation Foundations is
+      not on this page — the foundations year is advised centrally, against a different expectation.</p>
+
+    <div class="ov-warn">Every figure counts <strong>advising relationships, not students</strong>: advisor1 and
+      advisor2 are both real, so a student with two is counted twice — ${d.rel} relationships over
+      ${d.pool.length} students. <strong>Interim assignments are counted as held, never as carried</strong>, so a
+      programme awaiting an appointment does not read as a staffed one.</div>
+
+    <div class="al-src">
+      <h4>Where these figures come from</h4>
+      <dl>
+        <dt>advisor assignments</dt>
+        <dd><strong>Collected by hand from each programme chair.</strong> No timestamps, so read them as of the
+          last collection, not as of today.</dd>
+        <dt>declarations</dt>
+        <dd><code>students.major1 / major2 / minor</code></dd>
+        <dt>faculty and programme</dt>
+        <dd><code>faculty_profiles.program</code> — the programme, not the school.</dd>
+        <dt>contact</dt>
+        <dd id="al-src-c"><code>advising_log</code>, through a view returning counts and dates only.</dd>
+      </dl>
+    </div>
+
+    <div class="ov-hero">
+      ${tile('', 'advisors in scope', d.fac.length, 'of ' + FACULTY_ROWS.length)}
+      ${tile('', 'carried', d.carried)}
+      ${d.held ? tile('warn', 'held by interim', d.held) : ''}
+      ${tile('', 'median advisees', d.median)}
+    </div>
+    <p class="ov-note" id="al-lede"></p>
+
+    <h3 class="ov-h2" style="margin-top:26px;">Advisees per faculty member, by programme</h3>
+    <p class="ov-sub2">Dot is the programme average, the band behind it the range from its lightest advisor to its
+      heaviest. Dashed line is the university figure. Hatched is held, not carried.</p>
+    <div class="ov-cw"><svg id="al-prog" viewBox="0 0 900 ${44 + d.pl.length * 58 + 62}"></svg></div>
+    <p class="ov-note" id="al-prog-note"></p>
+
+    <h3 class="ov-h2">What kind of advising each faculty member carries</h3>
+    <p class="ov-sub2">All four columns are the advisor's own advisees, split by the role that advisor's programme
+      plays in each one's declaration. The last column is an advisee whose declaration does not name it at all.
+      <strong>Click any cell for the students in it.</strong></p>
+    <div class="ov-cw" id="al-hm"></div>
+    <div class="al-legend">fewer <span class="al-ramp" id="al-ramp"></span> more advisees
+      <span style="color:var(--text3);margin-left:6px">· colour is the programme, depth is the count</span></div>
+    <div class="ov-selp" id="al-sel" hidden></div>
+    <p class="ov-note" id="al-hm-note"></p>
+
+    <h3 class="ov-h2">How the relationships are spread between individuals</h3>
+    <p class="ov-sub2">Solid is advisor 1, lighter is advisor 2, hatched is held awaiting an appointment. Grouped
+      by programme, ordered by size inside it.</p>
+    <div class="ov-cw"><svg id="al-rank" viewBox="0 0 900 ${44 + d.fac.length * 50 + 52}"></svg></div>
+    <div class="ov-lg">
+      <span class="ov-i"><i class="ov-sw" style="background:var(--text2)"></i>advisor 1 — primary</span>
+      <span class="ov-i"><i class="ov-sw" style="background:var(--text2);opacity:.34"></i>advisor 2 — second</span>
+      <span class="ov-i"><i class="ov-sw none"></i>held, awaiting a formal assignment</span>
+    </div>
+    <p class="ov-note" id="al-rank-note"></p>
+
+    <div id="al-contact"></div>
+
+`;
+
+  alDrawProg(d);
+  alDrawHeat(d);
+  alDrawRank(d);
+  document.getElementById('al-lede').textContent =
+    `${d.rel} relationships across ${d.fac.length} advisors: ${d.carried} carried` +
+    (d.held ? `, ${d.held} held by an interim pending appointment` : '') +
+    `. Mean ${d.mean.toFixed(1)}, median ${d.median}.`;
+
+  alContact().then(c => {
+    if(OV.page !== 'load' || !document.getElementById('al-contact')) return;
+    alDrawContact(d, c);
+  });
+}
+
+// ── 1. per-programme capacity: dot with range ────────────────────
+function alDrawProg(d){
+  const svg = document.getElementById('al-prog'); if(!svg) return;
+  const ink = ovVar('--text'), ink2 = ovVar('--text2'), ink3 = ovVar('--text3'),
+        ln = ovVar('--border-em'), red = ovVar('--red');
+  const W = 900, L = 214, R = 176, AW = W - L - R, RH = 58, TOP = 34;
+  const DOM = Math.max(6, ...d.pl.map(p => p.fac ? (p.tot + p.queue) / p.fac : 0)) + 2;
+  const X = v => L + (v / DOM) * AW;
+  const HATCH = mjHatch(svg);
+
+  const step = DOM > 30 ? 10 : 5;
+  for(let t = 0; t <= DOM; t += step){
+    svg.appendChild(ovEl('line', { x1:X(t), y1:TOP-6, x2:X(t), y2:TOP+d.pl.length*RH,
+      stroke:ln, 'stroke-width':1, opacity:t?.45:1 }));
+    svg.appendChild(ovEl('text', { x:X(t), y:TOP+d.pl.length*RH+22, 'text-anchor':'middle',
+      'font-size':14, fill:ink3, 'font-family':'DM Mono, monospace' }, String(t)));
+  }
+  svg.appendChild(ovEl('line', { x1:X(d.mean), y1:TOP-14, x2:X(d.mean), y2:TOP+d.pl.length*RH+4,
+    stroke:ink, 'stroke-width':1.6, 'stroke-dasharray':'5 4' }));
+  svg.appendChild(ovEl('text', { x:X(d.mean)+8, y:TOP-18, 'font-size':13.5, fill:ink2 },
+    'university ' + d.mean.toFixed(1)));
+
+  d.pl.forEach((p, i) => {
+    const y = TOP + i*RH + RH/2, h = alHue(p.name), ht = alHueT(p.name);
+    svg.appendChild(ovEl('text', { x:L-16, y, 'text-anchor':'end', 'dominant-baseline':'middle',
+      'font-size':16, fill:p.tot ? ht : red, 'font-weight':600 }, shortMajorLong(p.name)));
+
+    // Held first, so the dot and the range sit on top of it. A programme can
+    // carry little and hold a lot; without this the row reads as light rather
+    // than as unappointed.
+    if(p.queue){
+      const qx = X(p.per), qw = Math.min(X((p.tot + p.queue) / p.fac) - qx, L + AW - qx);
+      svg.appendChild(ovEl('rect', { x:qx, y:y-9, width:Math.max(qw,3), height:18, rx:9,
+        fill:HATCH, stroke:alHex(h,.5), 'stroke-width':1, 'stroke-dasharray':'4 3' }));
+      svg.appendChild(ovEl('text', { x:qx+Math.max(qw,3)/2, y, 'dominant-baseline':'middle',
+        'text-anchor':'middle', 'font-size':13.5, fill:ovVar('--amber') },
+        p.queue + ' held, awaiting appointment'));
+    }
+    if(p.fac > 1){
+      svg.appendChild(ovEl('rect', { x:X(p.min), y:y-9, width:Math.max(X(p.max)-X(p.min),3),
+        height:18, rx:9, fill:alHex(h,.20) }));
+      [p.min, p.max].forEach(v => svg.appendChild(ovEl('line', { x1:X(v), y1:y-9, x2:X(v), y2:y+9,
+        stroke:alHex(h,.55), 'stroke-width':1.5 })));
+      svg.appendChild(ovEl('text', { x:X(p.min)-8, y, 'text-anchor':'end', 'dominant-baseline':'middle',
+        'font-size':13, fill:ink3, 'font-family':'DM Mono, monospace' }, String(p.min)));
+      svg.appendChild(ovEl('text', { x:X(p.max)+8, y, 'dominant-baseline':'middle',
+        'font-size':13, fill:ink3, 'font-family':'DM Mono, monospace' }, String(p.max)));
+    }
+    svg.appendChild(ovEl('circle', { cx:X(p.per), cy:y, r:9, fill:h,
+      stroke:ovVar('--surface'), 'stroke-width':2 }));
+    svg.appendChild(ovEl('text', { x:W-R+22, y, 'dominant-baseline':'middle', 'font-size':17,
+      fill:ink, 'font-weight':600, 'font-family':'DM Mono, monospace' }, p.per.toFixed(1)));
+    svg.appendChild(ovEl('text', { x:W-R+72, y, 'dominant-baseline':'middle', 'font-size':13.5,
+      fill:ink3 }, p.tot + ' \u00f7 ' + p.fac + ' advisor' + (p.fac === 1 ? '' : 's')));
+  });
+  svg.appendChild(ovEl('text', { x:L, y:TOP+d.pl.length*RH+48, 'font-size':13.5, fill:ink3 },
+    'advising relationships per faculty member'));
+
+  const staffed = d.pl.filter(p => p.tot), hi = staffed[0], lo = staffed[staffed.length-1];
+  alPut('al-prog-note',
+    (hi ? shortMajorLong(hi.name) + ' highest at ' + hi.per.toFixed(1) + ' against ' + d.mean.toFixed(1)
+        + ', range ' + hi.min + '\u2013' + hi.max + '; ' + shortMajorLong(lo.name) + ' lowest at '
+        + lo.per.toFixed(1) + '. ' : '')
+    + 'Out of these figures: ' + d.outRel + ' foundations assignment' + (d.outRel === 1 ? '' : 's')
+    + (d.outNames.length ? ' (' + d.outNames.join(', ') + ')' : '') + ' and ' + d.nonAdvising
+    + ' faculty in non-advising roles.');
+}
+
+// ── 2. faculty × declaration role, as a heat map ─────────────────
+function alDrawHeat(d){
+  const COLS = [{k:'p1', l:'Primary major'}, {k:'p2', l:'Second major'},
+                {k:'mn', l:'Minor'}, {k:'out', l:'Not in their declaration'}];
+  const max = Math.max(1, ...d.fac.flatMap(f => COLS.map(c => f[c.k].length)));
+  let html = '<table class="al-hm"><thead><tr><th class="l">Advisor</th>'
+    + COLS.map(c => '<th>' + c.l + '</th>').join('') + '<th>Total</th></tr></thead><tbody>';
+  d.progs.forEach(name => {
+    const rows = d.fac.filter(f => f.prog === name).sort((a,b) => b.tot - a.tot);
+    const t = rows.reduce((n,f) => n + f.tot, 0), h = rows.reduce((n,f) => n + f.held, 0);
+    html += '<tr class="al-grp"><td colspan="6" style="color:' + alHueT(name) + '">'
+      + esc(shortMajorLong(name)) + '<span>' + rows.length + ' advisor' + (rows.length === 1 ? '' : 's')
+      + ' \u00b7 ' + (t - h) + ' carried' + (h ? ' \u00b7 ' + h + ' held' : '') + '</span></td></tr>';
+    rows.forEach(f => {
+      const other = f.programs.filter(p => p !== f.prog).map(p => shortMajor(p));
+      const joint = other.length
+        ? ' <span style="color:var(--text3);font-weight:400">(+' + esc(other.join(', ')) + ')</span>' : '';
+      html += '<tr><td class="l">' + esc(f.name) + joint + '<small>' + f.pri + ' primary \u00b7 '
+        + f.sec + ' second' + (f.held ? ' \u00b7 ' + f.held + ' held' : '') + '</small></td>';
+      COLS.forEach(c => {
+        const v = f[c.k].length, a = v ? .10 + .45 * (v / max) : 0;
+        html += '<td>' + (v
+          ? '<span class="al-c" style="background:' + alHex(alHue(name), a) + ';color:' + alHueT(name)
+            + '" data-f="' + esc(f.email) + '" data-c="' + c.k + '" data-l="' + esc(c.l)
+            + '" role="button" tabindex="0">' + v + '</span>'
+          : '<span class="al-c z">\u00b7</span>') + '</td>';
+      });
+      html += '<td class="al-tot">' + f.tot + '</td></tr>';
+    });
+  });
+  document.getElementById('al-hm').innerHTML = html + '</tbody></table>';
+  // Neutral, like the weight swatches on Major Declarations: the ramp teaches
+  // the density, and the hue changes from one programme block to the next. In
+  // one programme's colour it would read as if that colour meant something.
+  const ramp = document.getElementById('al-ramp');
+  if(ramp) ramp.innerHTML = [.10,.19,.28,.37,.46,.55]
+    .map(a => '<i style="background:' + alHex(ovVar('--text'), a) + '"></i>').join('');
+
+  document.querySelectorAll('#al-hm .al-c:not(.z)').forEach(c => {
+    const open = () => {
+      document.querySelectorAll('#al-hm .al-c.on').forEach(x => x.classList.remove('on'));
+      c.classList.add('on');
+      const f = d.fac.find(x => x.email === c.dataset.f); if(!f) return;
+      alSel('al-sel', f, c.dataset.l, f[c.dataset.c]);
+    };
+    c.addEventListener('click', open);
+    c.addEventListener('keydown', e => {
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); } });
+  });
+
+  const out = d.fac.reduce((n,f) => n + f.out.length, 0);
+  const mn  = d.fac.reduce((n,f) => n + f.mn.length, 0);
+  const t   = d.fac.find(f => f.interim);
+  alPut('al-hm-note',
+    out + ' of ' + d.rel + ' relationships name no programme the advisor holds; ' + mn + ' more are minors.'
+    + (t ? ' The interim row: ' + t.p1.length + ' of ' + t.tot + ' major in the programme, '
+         + (t.p2.length + t.mn.length) + ' read it as a second major or minor.' : '')
+    + ' The last column has more than one cause - click it: a self-designed major has no programme to match, '
+    + 'an undeclared student has nothing to match, and the rest need review.');
+}
+
+// ── 3. individual spread, carried and held on one bar ────────────
+function alDrawRank(d){
+  const svg = document.getElementById('al-rank'); if(!svg) return;
+  const ink = ovVar('--text'), ink2 = ovVar('--text2'), ink3 = ovVar('--text3');
+  const HATCH = mjHatch(svg);
+  const rows = d.fac.slice().sort(d.byProg);
+  const W = 900, L = 214, R = 118, AW = W - L - R, RH = 50, TOP = 40, BH = 28;
+  const DOM = Math.max(1, ...rows.map(f => f.tot)) + 1, X = v => (v / DOM) * AW;
+
+  rows.forEach((f, i) => {
+    const y = TOP + i*RH, mid = y + BH/2, h = alHue(f.prog);
+    svg.appendChild(ovEl('text', { x:L-14, y:mid, 'text-anchor':'end', 'dominant-baseline':'middle',
+      'font-size':16, fill:alHueT(f.prog), 'font-weight':600 }, f.name));
+    let x = L;
+    const cPri = f.pri - f.iPri, cSec = f.sec - f.iSec;
+    if(cPri){ svg.appendChild(ovEl('rect', { x, y, width:X(cPri), height:BH, fill:h })); x += X(cPri); }
+    if(cSec){ svg.appendChild(ovEl('rect', { x, y, width:X(cSec), height:BH, fill:alHex(h,.34),
+      stroke:alHex(h,.7), 'stroke-width':1 })); x += X(cSec); }
+    // The held part continues the same bar. Breaking it onto a row of its own
+    // would say the students belong to nobody, and for now they belong to them.
+    if(f.held){ svg.appendChild(ovEl('rect', { x, y, width:X(f.held), height:BH, fill:HATCH,
+      stroke:alHex(h,.7), 'stroke-width':1.1, 'stroke-dasharray':'4 3' })); x += X(f.held); }
+    if(!f.tot)
+      svg.appendChild(ovEl('text', { x:L+4, y:mid, 'dominant-baseline':'middle', 'font-size':14,
+        fill:ink3, 'font-style':'italic' }, 'no advisees assigned'));
+    else {
+      svg.appendChild(ovEl('text', { x:x+10, y:mid, 'dominant-baseline':'middle', 'font-size':16,
+        fill:ink, 'font-weight':600, 'font-family':'DM Mono, monospace' }, String(f.carried)));
+      if(f.held) svg.appendChild(ovEl('text', { x:x+10+(f.carried > 9 ? 26 : 16), y:mid,
+        'dominant-baseline':'middle', 'font-size':13.5, fill:ink3 }, '+' + f.held + ' held'));
+    }
+  });
+  svg.appendChild(ovEl('line', { x1:L+X(d.mean), y1:TOP-16, x2:L+X(d.mean), y2:TOP+rows.length*RH,
+    stroke:ink, 'stroke-width':1.6, 'stroke-dasharray':'5 4' }));
+  svg.appendChild(ovEl('text', { x:L+X(d.mean)+8, y:TOP-20, 'font-size':13.5, fill:ink2 },
+    'mean ' + d.mean.toFixed(1)));
+
+  const lo = Math.min(...rows.map(f => f.carried)), hi = Math.max(...rows.map(f => f.carried));
+  alPut('al-rank-note',
+    'Median ' + d.median + ' carried, mean ' + d.mean.toFixed(1) + ', range ' + lo + '\u2013' + hi
+    + ', Gini ' + d.gini.toFixed(2) + '.'
+    + (d.held ? ' The ' + d.held + ' held relationships would move the mean to '
+        + ((d.carried + d.held) / rows.length).toFixed(1) + ' if spread across these '
+        + rows.length + ' advisors.' : ''));
+}
+
+// ── 4. assigned, met, and met off the roster ─────────────────────
+// One row per faculty member. Joining the log the other way round - listing the
+// advisors of students who had meetings - cannot see what this exists for:
+// contact with students who are on nobody's roster.
+function alDrawContact(d, c){
+  const host = document.getElementById('al-contact'); if(!host) return;
+  if(!c){
+    host.innerHTML = '<h3 class="ov-h2">What each advisor was assigned, and who they actually met</h3>'
+      + '<div class="ov-warn"><strong>Contact figures are not available.</strong> They come from '
+      + '<code>v_advising_load</code>, which aggregates advising_log with the owner\u2019s rights. '
+      + 'advising_log is under row-level security, so counting meetings in the browser would give every '
+      + 'viewer a different answer, and all of them low. The page leaves the figures out rather than '
+      + 'showing one that is wrong for whoever is reading.'
+      + (OV.alcErr ? '<br><span style="font-family:\'DM Mono\',monospace;font-size:13px">'
+          + esc(OV.alcErr) + '</span>' : '') + '</div>';
+    const sc = document.getElementById('al-src-c');
+    if(sc) sc.innerHTML = '<code>advising_log</code> \u2014 view not present, figures omitted.';
+    return;
+  }
+  const rows = d.fac.map(f => Object.assign({}, f, { c: c[f.email] || {} }))
+    .filter(f => f.tot || (f.c.others_met || 0))
+    .sort((a,b) => d.pIdx(a.prog) - d.pIdx(b.prog) || b.tot - a.tot);
+  const met = rows.reduce((n,f) => n + (f.c.advisees_met || 0), 0);
+  const off = rows.reduce((n,f) => n + (f.c.others_met || 0), 0);
+
+  host.innerHTML = '<h3 class="ov-h2">What each advisor was assigned, and who they actually met</h3>'
+    + '<p class="ov-sub2">Two panels on one scale. Left is the advisor’s own roster, split by whether the '
+    + 'advisee has been met; right is students they met who are not assigned to them — work an assignment '
+    + 'count cannot see. The shared scale is the point: a right-hand bar longer than the left-hand one means '
+    + 'exactly what it looks like.</p>'
+    + '<div class="ov-cw"><svg id="al-gap" viewBox="0 0 900 ' + (46 + rows.length*44 + 62) + '"></svg></div>'
+    + '<div class="ov-lg">'
+    + '<span class="ov-i"><i class="ov-sw" style="background:var(--text2)"></i>advisee, met</span>'
+    + '<span class="ov-i"><i class="ov-sw" style="background:var(--text2);opacity:.16;'
+    + 'border:1px dashed var(--text3)"></i>advisee, not met</span>'
+    + '<span class="ov-i"><i class="ov-sw none"></i>met, not an advisee</span></div>'
+    + '<p class="ov-note" id="al-gap-note"></p>';
+
+  const svg = document.getElementById('al-gap');
+  const ink = ovVar('--text'), ink2 = ovVar('--text2'), ink3 = ovVar('--text3'), ln = ovVar('--border-em');
+  const HATCH = mjHatch(svg);
+  // Two panels, one scale. Separate scales would let the off-roster bars fill
+  // their panel and make six meetings look like twenty advisees; sharing the
+  // scale is the whole reason for putting them side by side.
+  const W = 900, L = 214, R = 76, G = 76, RH = 44, TOP = 46, BH = 24;
+  const asgOf = f => f.c.advisees == null ? f.tot : f.c.advisees;
+  const domR = Math.max(1, ...rows.map(asgOf)) + 1;
+  const domO = Math.max(1, ...rows.map(f => f.c.others_met || 0)) + 1;
+  const k = (W - L - R - G) / (domR + domO);
+  const x0 = L, WL = domR * k, x1 = L + WL + G;
+  const H = TOP + rows.length * RH;
+
+  const panel = (x, w, title) => {
+    svg.appendChild(ovEl('text', { x, y:TOP-24, 'font-size':13, fill:ink3,
+      'letter-spacing':'.06em' }, title));
+    const step = Math.max(1, Math.ceil((w / k) / 5 / 5) * 5);
+    for(let t = 0; t * k <= w; t += step){
+      svg.appendChild(ovEl('line', { x1:x+t*k, y1:TOP-10, x2:x+t*k, y2:H,
+        stroke:ln, 'stroke-width':1, opacity:t?.45:1 }));
+      svg.appendChild(ovEl('text', { x:x+t*k, y:H+22, 'text-anchor':'middle', 'font-size':14,
+        fill:ink3, 'font-family':'DM Mono, monospace' }, String(t)));
+    }
+  };
+  panel(x0, WL, 'OWN ADVISEES \u2014 MET / NOT MET');
+  panel(x1, domO * k, 'MET, NOT AN ADVISEE');
+
+  rows.forEach((f, i) => {
+    const y = TOP + i*RH, mid = y + BH/2, h = alHue(f.prog);
+    const asg = asgOf(f), m = Math.min(f.c.advisees_met || 0, asg),
+          others = f.c.others_met || 0, unmet = Math.max(asg - m, 0);
+    svg.appendChild(ovEl('text', { x:L-16, y:mid, 'text-anchor':'end', 'dominant-baseline':'middle',
+      'font-size':16, fill:alHueT(f.prog), 'font-weight':600 }, f.name));
+
+    let x = x0;
+    if(m){ svg.appendChild(ovEl('rect', { x, y, width:m*k, height:BH, fill:h })); x += m*k; }
+    if(unmet){ svg.appendChild(ovEl('rect', { x, y, width:unmet*k, height:BH, fill:alHex(h,.16),
+      stroke:alHex(h,.55), 'stroke-width':1, 'stroke-dasharray':'3 2' })); x += unmet*k; }
+    if(asg){
+      const t = ovEl('text', { x:x+10, y:mid, 'dominant-baseline':'middle', 'font-size':13,
+        fill:ink3 });
+      t.appendChild(ovEl('tspan', { 'font-size':15.5, fill:ink, 'font-weight':600,
+        'font-family':'DM Mono, monospace' }, String(m)));
+      t.appendChild(ovEl('tspan', {}, ' of ' + asg));
+      svg.appendChild(t);
+    } else {
+      svg.appendChild(ovEl('text', { x:x0+4, y:mid, 'dominant-baseline':'middle', 'font-size':14,
+        fill:ink3, 'font-style':'italic' }, 'no advisees'));
+    }
+
+    if(others){
+      svg.appendChild(ovEl('rect', { x:x1, y:y+3, width:others*k, height:BH-6, fill:HATCH,
+        stroke:ink3, 'stroke-width':1.1 }));
+      svg.appendChild(ovEl('text', { x:x1+others*k+10, y:mid, 'dominant-baseline':'middle',
+        'font-size':15.5, fill:ink2, 'font-weight':600,
+        'font-family':'DM Mono, monospace' }, String(others)));
+    }
+  });
+  svg.appendChild(ovEl('line', { x1:x1-G/2, y1:TOP-30, x2:x1-G/2, y2:H+8, stroke:ln }));
+  svg.appendChild(ovEl('text', { x:L, y:H+48, 'font-size':13.5, fill:ink3 },
+    'students \u2014 both panels on one scale'));
+
+  const top = rows.slice().sort((a,b) => (b.c.others_met||0) - (a.c.others_met||0))[0];
+  alPut('al-gap-note',
+    met + ' of ' + d.rel + ' relationships have a logged meeting.'
+    + (off ? ' A further ' + off + ' students were met off-roster, most by ' + top.name + ' at '
+        + (top.c.others_met || 0) + ' against a roster of ' + top.tot + '.' : ''));
+
+}
+
 function ovProgram(box){
   const all = ovStudents(), list = ovScoped(all);
 
@@ -4069,11 +4683,11 @@ function buildWatchList(data) {
 function renderProgramSummary() {
   // ── 프로그램 학생 범위: chair의 school에 1st/2nd major 또는 minor로 등록된 학생 ──
   // IS_CHAIR인 경우 FACULTY_SCHOOL을 기준으로 필터 (로그인 시 설정)
-  const prog = students.filter(s =>
+  const prog = students.filter(s => isRealStudent(s) && (
     s.major1 === FACULTY_SCHOOL ||
     s.major2 === FACULTY_SCHOOL ||
     s.minor  === FACULTY_SCHOOL
-  );
+  ));
 
   // ── Pulse 지표 ──
   const progSess    = sessions.filter(s => prog.some(p => p.id === s.studentId));
