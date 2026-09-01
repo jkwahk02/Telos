@@ -73,15 +73,16 @@ button,input,select,textarea{font-family:inherit;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ── OVERVIEW (analytics) ─────────────────────────────────── */
-.ov-split{display:grid;grid-template-columns:284px 1fr;align-items:start;gap:0;}
+.ov-split{display:grid;grid-template-columns:304px 1fr;align-items:start;gap:0;}
 .ov-menu{border-right:1px solid var(--border);background:var(--surface2);
   padding:14px 0 18px;position:sticky;top:70px;border-radius:var(--r-lg) 0 0 var(--r-lg);}
 .ov-mgrp{padding:20px 24px 8px;font-size:13px;font-weight:600;letter-spacing:.08em;
   text-transform:uppercase;color:var(--text3);}
 .ov-mgrp:first-child{padding-top:10px;}
-.ov-mi{display:flex;align-items:center;gap:13px;margin:2px 9px;padding:13px 15px;
+.ov-mi{display:flex;align-items:center;gap:11px;margin:2px 9px;padding:13px 13px;
   font-size:18px;color:var(--text2);line-height:1.3;border-radius:var(--r);
   cursor:pointer;transition:background .12s,color .12s;}
+.ov-mi > span{white-space:nowrap;}
 .ov-mi:hover{background:var(--surface3);color:var(--text);}
 .ov-mi.on{background:var(--surface);color:var(--blue);font-weight:600;
   box-shadow:0 1px 3px rgba(0,0,0,.06), inset 0 0 0 1px var(--border);}
@@ -90,6 +91,13 @@ button,input,select,textarea{font-family:inherit;}
 .ov-mi.off:hover{background:none;color:var(--text3);}
 .ov-mi svg{width:22px;height:22px;flex:0 0 22px;opacity:.72;}
 .ov-mi.on svg{opacity:1;}
+/* Marks a page only a programme chair can open. It sits where the count pill
+   sits and is deliberately quieter than one: a count is news, a role is a
+   standing fact. It shows on the disabled item too, where it answers the
+   question the greying raises - why can I not open this. */
+.ov-mi .ov-chair{margin-left:auto;font-size:11px;font-weight:600;letter-spacing:.03em;
+  background:var(--blue-l);color:var(--blue);padding:2px 8px;border-radius:20px;}
+.ov-mi.off .ov-chair{background:var(--gray-l);color:var(--text3);}
 .ov-mi .ov-n{margin-left:auto;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;
   background:var(--red-l);color:var(--red);padding:2px 8px;border-radius:20px;}
 .ov-body{min-width:0;padding:32px 0 0 28px;}
@@ -182,7 +190,7 @@ button,input,select,textarea{font-family:inherit;}
 .ov-chip2 u{text-decoration:none;color:var(--text);font-weight:600;}
 .ov-chip2 b{font-family:'DM Mono',monospace;color:var(--text);}
 .ov-chip2 em{font-style:normal;font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);}
-@media (max-width:900px){
+@media (max-width:920px){
   .ov-split{grid-template-columns:1fr;}
   .ov-body{padding-left:0;padding-top:14px;}
   .ov-menu{border-right:none;border-bottom:1px solid var(--border);position:static;
@@ -192,7 +200,7 @@ button,input,select,textarea{font-family:inherit;}
 }
 
 /* MAIN */
-.main{padding:24px clamp(16px,3vw,44px);max-width:1680px;margin:0 auto;width:100%;}
+.main{padding:24px clamp(12px,2vw,30px);max-width:1880px;margin:0 auto;width:100%;}
 .main.narrow{max-width:960px;}
 .page{display:none;}
 .page.active{display:block;}
@@ -643,6 +651,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .req{color:var(--red);}
 .fi,.fsel,.fta{border:1px solid var(--border-em);border-radius:var(--r);background:var(--surface2);font-size:17px;color:var(--text);outline:none;transition:border-color .12s;}
 .fi{height:32px;padding:0 10px;}
+.date-echo{font-size:11px;color:var(--text3);margin-top:3px;min-height:14px;}
 .fsel{height:32px;padding:0 10px;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%236b6960' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
 .fta{padding:8px 10px;resize:none;line-height:1.5;width:100%;}
 .fi:focus,.fsel:focus,.fta:focus{border-color:var(--blue-m);}
@@ -827,6 +836,176 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .text-warn{color:var(--amber);font-weight:500;}
 .text-bad{color:var(--red);font-weight:500;}
 .text-muted{color:var(--text3);}
+
+/* ── Advisor Assignment ───────────────────────────────────────────────────
+   A chair's worklist for the students who have no Advisor 1. Everything here
+   is new; the sizes are taken from the rules above rather than invented. */
+.aa-src{background:var(--surface2);border:1px solid var(--border-em);border-radius:var(--r);
+  padding:14px 18px;margin:26px 0 0;font-size:15.5px;color:var(--text2);line-height:1.65;}
+.aa-src h4{font-size:12.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text3);margin:0 0 8px;}
+.aa-src dl{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;margin:0;}
+.aa-src dt{font-family:'DM Mono',monospace;font-size:13.5px;color:var(--text);white-space:nowrap;}
+.aa-src dd{margin:0;}
+
+/* The two lists are one comparison, so they share a bottom edge and the
+   advisor rows take the slack rather than leaving it under them. */
+.aa-work{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(390px,1fr);
+  gap:14px;align-items:stretch;}
+@media (max-width:1080px){.aa-work{grid-template-columns:1fr;}}
+.aa-work > .db-card{display:flex;flex-direction:column;min-width:0;}
+.aa-bench-list{flex:1;display:flex;flex-direction:column;}
+.aa-bench-list > .aa-fac{flex:1;display:flex;flex-direction:column;justify-content:center;}
+
+/* Bands. A student whose first major is yours is yours to assign; one who
+   only minors in your programme is another chair's, and yours only to second.
+   Mixing the three is how two chairs overwrite each other. */
+.aa-bands{display:flex;border:1px solid var(--border-em);border-radius:var(--r);
+  overflow:hidden;margin:0 0 14px;}
+.aa-band{flex:1;padding:13px 16px;background:var(--surface);border-right:1px solid var(--border);
+  cursor:pointer;text-align:left;font-family:inherit;}
+.aa-band:last-child{border-right:none;}
+.aa-band:hover{background:var(--surface2);}
+.aa-band.on{background:var(--blue-l);box-shadow:inset 0 -3px 0 var(--blue);}
+.aa-band b{display:block;font-size:25px;font-weight:600;letter-spacing:-.03em;line-height:1;
+  color:var(--text);margin-bottom:5px;}
+.aa-band.on b{color:var(--blue);}
+.aa-band i{font-style:normal;display:block;font-size:15px;color:var(--text2);line-height:1.35;}
+.aa-band em{font-style:normal;display:block;font-size:13px;color:var(--blue);
+  font-family:'DM Mono',monospace;font-weight:500;margin-top:5px;}
+.aa-band em.no{color:var(--text3);}
+
+.aa-qhd{display:flex;align-items:center;gap:12px;padding:11px 16px;
+  border-bottom:1px solid var(--border);background:var(--surface2);flex-wrap:wrap;}
+.aa-qn{font-size:15.5px;font-weight:600;}
+.aa-qs{font-size:14.5px;color:var(--text3);}
+.aa-qw{display:block;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;
+  color:var(--blue);margin-top:3px;}
+/* Select-all belongs at the head of the column it selects, aligned with the
+   ticks below it. */
+.aa-selall{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;
+  border-bottom:1px solid var(--border);background:var(--surface2);font-size:15px;color:var(--text2);}
+.aa-selall:hover{background:var(--surface3);color:var(--text);}
+.aa-selc{margin-left:auto;font-family:'DM Mono',monospace;font-size:13px;
+  color:var(--blue);font-weight:500;}
+
+.aa-btn{font-family:inherit;font-size:15px;padding:8px 16px;border-radius:20px;
+  border:1px solid var(--border-em);background:var(--surface);color:var(--text2);cursor:pointer;}
+.aa-btn:hover{background:var(--surface3);color:var(--text);}
+.aa-btn.pri{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600;}
+.aa-btn.pri:hover{background:#12518d;}
+.aa-btn:disabled,.aa-btn.pri:disabled{opacity:.4;cursor:default;}
+.aa-btn.pri:disabled:hover{background:var(--blue);}
+.aa-btn.lg{font-size:17.5px;padding:14px 26px;border-radius:26px;}
+
+/* The whole row is the checkbox: a chair works through these in runs. */
+.aa-row{display:flex;align-items:center;gap:12px;padding:10px 16px;
+  border-bottom:1px solid var(--border);cursor:pointer;}
+.aa-row:last-child{border-bottom:none;}
+.aa-row:hover{background:var(--surface2);}
+.aa-row.sel{background:var(--blue-l);}
+.aa-row.pend{background:var(--amber-l);}
+.aa-row.done{opacity:.6;cursor:default;}
+.aa-row.locked{cursor:default;}
+.aa-row.done:hover,.aa-row.locked:hover{background:none;}
+.aa-row.locked .aa-ck{opacity:.3;}
+.aa-ck{width:19px;height:19px;flex:0 0 19px;border-radius:5px;border:1.6px solid var(--border-em);
+  background:var(--surface);display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:#fff;line-height:1;}
+.aa-row.sel .aa-ck{background:var(--blue);border-color:var(--blue);}
+.aa-row.pend .aa-ck{background:var(--amber-b);border-color:var(--amber-b);}
+.aa-row.done .aa-ck{background:var(--green);border-color:var(--green);}
+.aa-nm{min-width:0;flex:1;}
+.aa-nm u{text-decoration:none;display:block;font-size:16px;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.aa-nm small{display:block;font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);}
+.aa-cps{display:flex;gap:5px;flex:0 0 auto;}
+/* Colour is which school; fill weight is which role. Solid = first major,
+   outlined = second, dashed = minor - the Advising Load convention. */
+.cp{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;padding:3px 8px;
+  border-radius:4px;line-height:1.25;white-space:nowrap;border:1.4px solid transparent;}
+.cp.r1{color:#fff;}
+.cp.r2,.cp.r3{background:transparent;}
+.cp.r3{border-style:dashed;}
+.aa-tag{font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:20px;
+  white-space:nowrap;flex:0 0 auto;}
+.tg-never{background:var(--gray-l);color:var(--gray-m);}
+.tg-loa{background:var(--gray-l);color:var(--gray-m);}
+.tg-other{background:var(--blue-l);color:var(--blue);}
+.tg-pend{background:var(--amber-l);color:var(--amber);}
+.tg-done{background:var(--green-l);color:var(--green);}
+.aa-to{font-family:'DM Mono',monospace;font-size:13px;color:var(--blue);
+  flex:0 0 auto;font-weight:500;}
+
+/* Naming a person is not the same gesture as sending eleven students to them,
+   so the name is not the click - the button is, and it says how many. */
+.aa-fac{padding:14px 16px;border-bottom:1px solid var(--border);}
+.aa-fac:last-child{border-bottom:none;}
+.aa-fac.has{background:var(--amber-l);box-shadow:inset 3px 0 0 var(--amber-b);}
+.aa-fhd{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;}
+.aa-fn{flex:1;min-width:0;}
+.aa-fn u{text-decoration:none;display:block;font-size:17px;color:var(--text);}
+.aa-fn small{display:block;font-size:13.5px;color:var(--text3);margin-top:2px;}
+.aa-lbar{height:11px;border-radius:6px;background:var(--surface3);overflow:hidden;
+  display:flex;position:relative;}
+.aa-lnow{height:100%;background:var(--blue-m);}
+.aa-ladd{height:100%;background:repeating-linear-gradient(135deg,
+  var(--amber-b) 0 4px,#fbe3bd 4px 8px);}
+.aa-lcap{position:absolute;top:-2px;bottom:-2px;width:1.5px;background:var(--text);opacity:.42;}
+.aa-lnum{font-family:'DM Mono',monospace;font-size:13px;color:var(--text3);
+  margin-top:7px;display:flex;justify-content:space-between;gap:10px;}
+.aa-lnum b{color:var(--text2);font-weight:500;}
+.aa-lnum b.up{color:var(--amber);}
+.aa-lnum b.over{color:var(--red);}
+
+/* Suggest sits under both columns because it acts on both: it reads the queue
+   on the left and lands in the bench on the right. */
+.aa-sugg{display:grid;grid-template-columns:minmax(0,1fr) minmax(270px,330px);
+  align-items:center;margin-top:14px;}
+@media (max-width:1080px){.aa-sugg{grid-template-columns:1fr;}}
+.aa-sugg-hd{grid-column:1 / -1;}
+.aa-sugg-l{border-right:1px solid var(--border);padding:6px 0;}
+@media (max-width:1080px){.aa-sugg-l{border-right:none;border-bottom:1px solid var(--border);}}
+.aa-sugg-r{padding:18px 22px;display:flex;flex-direction:column;gap:10px;}
+.aa-sugg-n{font-family:'DM Mono',monospace;font-size:13px;color:var(--text3);
+  line-height:1.6;text-align:center;}
+.aa-rule{display:flex;align-items:flex-start;gap:11px;padding:10px 16px;
+  border-bottom:1px solid var(--border);font-size:15px;color:var(--text2);line-height:1.5;}
+.aa-rule:last-child{border-bottom:none;}
+.aa-rule b{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);
+  flex:0 0 18px;padding-top:2px;}
+.aa-rule u{text-decoration:none;color:var(--text);}
+
+/* The tray is the commit point, so it does not scroll away, and it never says
+   just "12 selected" - it says what will be written, to whom, and at what cost. */
+.aa-tray{position:sticky;bottom:0;z-index:5;margin-top:14px;
+  background:var(--surface);border:1px solid var(--blue-b);border-top:3px solid var(--blue);
+  border-radius:var(--r-lg);box-shadow:0 -6px 20px rgba(0,0,0,.08);padding:14px 18px;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.aa-tray.idle{border-color:var(--border-em);border-top-color:var(--border-em);
+  background:var(--surface2);box-shadow:none;}
+.aa-tray-t{flex:1;min-width:250px;font-size:16px;line-height:1.5;color:var(--text);}
+.aa-tray-t span{color:var(--text3);}
+.aa-tray-t b{font-weight:600;}
+.aa-tray-s{font-family:'DM Mono',monospace;font-size:13px;color:var(--text2);
+  margin-top:4px;display:block;line-height:1.6;}
+
+/* The state this page is in on most days. A queue that is usually zero has one
+   job when it is zero: say that the zero is today's. */
+.aa-empty{padding:26px 20px 24px;text-align:center;}
+.aa-empty-i{width:38px;height:38px;border-radius:50%;background:var(--green-l);
+  color:var(--green);display:flex;align-items:center;justify-content:center;
+  font-size:19px;margin:0 auto 12px;}
+.aa-empty-i.mute{background:var(--surface3);color:var(--text3);}
+.aa-empty h4{font-size:17.5px;font-weight:600;color:var(--text);margin:0 0 7px;
+  letter-spacing:-.01em;}
+.aa-empty p{font-size:15.5px;color:var(--text2);line-height:1.65;margin:0 auto;max-width:52ch;}
+
+/* Marks a page only a programme chair can open. Quieter than the count pill it
+   sits where: a count is news, a role is a standing fact. */
+.ov-mi .ov-chair{margin-left:auto;font-size:11.5px;font-weight:600;letter-spacing:.04em;
+  background:var(--blue-l);color:var(--blue);padding:2px 9px;border-radius:20px;}
+.ov-mi.off .ov-chair{background:var(--gray-l);color:var(--text3);}
 .mono{font-family:'DM Mono',monospace;font-size:17px;}
 .ov-card-body{overflow-y:auto;max-height:280px;}
 .settings-section-divider{padding:6px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);display:flex;align-items:center;gap:6px;}
@@ -2926,7 +3105,8 @@ let OV = { page:'advisees', loaded:false, loading:false, err:null,
 
 const OV_PAGES = [
   { k:'advisees', grp:'Student Advising', label:'My Advising', needsAdvisor:true, icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="6.5" r="2.8"/><path d="M2.6 16.6c0-2.8 2.2-4.4 4.9-4.4s4.9 1.6 4.9 4.4"/><path d="M13.6 4.9a2.6 2.6 0 0 1 0 5.1M15.1 16.6c0-2.1-.8-3.5-2.1-4.2"/></svg>` },
-  { k:'chair',    grp:'Student Advising', label:'Program Chair', needsChair:true, icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7.4" y="2.2" width="5.2" height="4" rx="1.2"/><rect x="1.8" y="13.8" width="5" height="4" rx="1.2"/><rect x="13.2" y="13.8" width="5" height="4" rx="1.2"/><path d="M10 6.2v3.6M4.3 13.8v-2.2a1.8 1.8 0 0 1 1.8-1.8h7.8a1.8 1.8 0 0 1 1.8 1.8v2.2"/></svg>` },
+  { k:'chair',    grp:'Student Advising', label:'Program Overview', needsChair:true, icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7.4" y="2.2" width="5.2" height="4" rx="1.2"/><rect x="1.8" y="13.8" width="5" height="4" rx="1.2"/><rect x="13.2" y="13.8" width="5" height="4" rx="1.2"/><path d="M10 6.2v3.6M4.3 13.8v-2.2a1.8 1.8 0 0 1 1.8-1.8h7.8a1.8 1.8 0 0 1 1.8 1.8v2.2"/></svg>` },
+  { k:'assign',   grp:'Student Advising', label:'Advisor Assignment', needsChair:true, icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.6" cy="6" r="2.6"/><path d="M2.2 15.4c0-2.4 2-3.9 4.4-3.9 1 0 1.9.2 2.7.7"/><circle cx="14.4" cy="13.6" r="4.1"/><path d="M12.7 13.6l1.2 1.2 2.1-2.3"/></svg>` },
   // First in the group, and so the landing page for an account that is neither
   // advisor nor chair - Academic Affairs - because renderOverview falls through
   // to the first enabled page. Which program a student declared is a better
@@ -3136,14 +3316,18 @@ function renderOverview(){
   const open = OV_PAGES.filter(ovEnabled);
   if(!open.some(p => p.k === OV.page)) OV.page = (open[0] || OV_PAGES[0]).k;
 
+  // The page names itself by what it shows; the badge says who may see it.
+  // Keeping the two apart is why the label could stop being 'Program Chair'.
+  const badge = p => p.needsChair ? `<span class="ov-chair">Chair</span>` : '';
+
   const item = p => ovEnabled(p)
     ? `<div class="ov-mi${OV.page===p.k?' on':''}" onclick="ovGo('${p.k}')"
         role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ovGo('${p.k}')}">
-        ${p.icon}<span>${p.label}</span></div>`
+        ${p.icon}<span>${p.label}</span>${badge(p)}</div>`
     : `<div class="ov-mi off" aria-disabled="true" title="${p.needsChair
           ? 'This account is not registered as a program chair.'
           : 'This account is not registered as an advisor.'}">
-        ${p.icon}<span>${p.label}</span></div>`;
+        ${p.icon}<span>${p.label}</span>${badge(p)}</div>`;
 
   // Groups are kept even when every page inside one is disabled: an account
   // that cannot advise still learns that advising is where those pages live.
@@ -3174,6 +3358,9 @@ function ovRenderBody(){
   if(!b) return;
   if(OV.page === 'advisees'){ b.innerHTML = ovAdviseeHome();       return; }
   if(OV.page === 'chair'   ){ b.innerHTML = renderProgramSummary(); return; }
+  // Reads its own view rather than the registry, so like the two pages below
+  // it must not wait on v_student_credit_progress.
+  if(OV.page === 'assign'  ){ aaPage(b);                            return; }
   // Above the registry guards on purpose: this page reads students, which is
   // already loaded, so it must not wait on v_student_credit_progress.
   if(OV.page === 'majors'  ){ ovMajors(b);                          return; }
@@ -4863,7 +5050,7 @@ function renderProgramSummary() {
     <div style="margin:0 0 20px;">
       <div style="border-top:2px solid var(--blue);padding-top:16px;display:flex;align-items:center;justify-content:space-between;">
         <div>
-          <div style="font-size:13px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Program Summary</div>
+          <div style="font-size:13px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Program Overview</div>
           <div style="font-size:20px;font-weight:600;color:var(--text);letter-spacing:-0.02em;">${esc(FACULTY_SCHOOL)}</div>
         </div>
         <span class="db-chair-badge" style="padding:4px 12px;font-size:12px;">Chair view</span>
@@ -4928,6 +5115,519 @@ function renderProgramSummary() {
 }
 
   
+// ══ ADVISOR ASSIGNMENT ═══════════════════════════════════════════════════
+//
+// A chair's worklist for the students in their programme who have no Advisor 1.
+//
+// The rules live in the database, not here. v_advisor_queue decides who needs
+// an advisor - empty slot, or an interim placement on a student who has since
+// declared - and assign_advisor() decides who may be given to whom. This page
+// draws the same rules so that a chair can see them before acting, but it
+// never enforces them alone: a rule that lives only in the browser is a
+// suggestion, and the function refuses regardless of what the page offered.
+//
+// students.advisor1 stays the column RLS reads for access. Nothing here
+// writes it directly; both writes go through the two functions.
+
+// PostgREST puts a RAISE EXCEPTION message in `message`, which is the whole
+// point of writing those messages carefully: the chair reads the database's
+// own words rather than "request failed".
+async function sbRpc(fn, body){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST', headers: sbHeaders(), body: JSON.stringify(body),
+  });
+  if(r.status === 401){
+    showToast('Session expired. Please sign in again.');
+    handleSignOut();
+    throw new Error('Session expired');
+  }
+  const data = await r.json().catch(() => null);
+  if(!r.ok){
+    const msg = (data && (data.message || data.hint || data.error)) || `HTTP ${r.status}`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
+// Only the roster, not the logs and meetings loadData() also pulls: the bench
+// counts come from students and nothing else on this page moved.
+async function aaReloadStudents(){
+  const rows = await sbGet(TBL_STUDENTS, 'order=id.asc&select=*');
+  students = rows.map(mapStudent);
+  syncStudents();
+}
+
+const AA = {
+  loaded:false, loading:false, err:null, checked:'',
+  queue:  [],                 // rows from v_advisor_queue, in this chair's scope
+  band:   'own',
+  sel:    new Set(),          // student ids ticked, not yet aimed at anyone
+  pending:new Map(),          // student id -> {email, role} staged
+  done:   new Map(),          // student id -> {email, id} applied this session
+  last:   [],                 // the batch Undo would reverse
+  lastRole: 1,
+  busy:   false,
+};
+
+const AA_TARGET = 16;   // advisees a programme is willing to let one person carry
+const AA_SCALE  = 26;   // bar full width, so the target tick sits at 62%
+
+// The label is the rule. Each band names the condition a student meets and the
+// action it licenses, in that order and in the same words everywhere, so a
+// chair never has to hold in their head which queue writes which field.
+const AA_BANDS = [
+  { k:'own',    n:'First major',  act:'You assign Advisor 1',    role:1 },
+  { k:'shared', n:'Second major', act:'You assign Advisor 2',    role:2 },
+  { k:'minor',  n:'Minor',        act:'You assign Advisor 2',    role:2 },
+  { k:'none',   n:'Outside your programme', act:'Another chair assigns', role:0 },
+];
+
+function aaShort(p){
+  if(!p) return '';
+  const k = String(p).toLowerCase();
+  if(k.includes('data'))       return 'DSAI';
+  if(k.includes('human'))      return 'HSS';
+  if(k.includes('business'))   return 'BI';
+  if(k.includes('natural'))    return 'NS';
+  if(k.includes('foundation')) return 'IF';
+  if(k.includes('self'))       return 'SELF';
+  return String(p).slice(0, 4).toUpperCase();
+}
+function aaHueKey(p){
+  const c = aaShort(p);
+  return {DSAI:'dsai', HSS:'hss', BI:'bi', NS:'ns', IF:'if'}[c] || 'self';
+}
+function aaVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+// role: 1 = first major, 2 = second major, 3 = minor
+function aaChip(prog, role){
+  if(!prog) return '';
+  const k = aaHueKey(prog), code = aaShort(prog);
+  const hue = aaVar('--sch-' + k), tint = aaVar('--sch-' + k + '-t') || hue;
+  if(role === 1) return `<span class="cp r1" style="background:${hue};">${esc(code)}</span>`;
+  return `<span class="cp r${role}" style="color:${tint};border-color:${hue};">${esc(code)}</span>`;
+}
+
+// The chair's own programmes, which is what every band test compares against.
+// It is an array because a joint appointment is real - one person can hold
+// Humanities and Social Sciences and Innovation Foundations at once.
+function aaMine(){ return FACULTY_PROGRAMS || []; }
+function aaHolds(p){ return !!p && aaMine().includes(p); }
+
+// The same test the database makes, drawn so the chair can see it first.
+function aaBandOf(r){
+  if(aaHolds(r.major1_key)) return 'own';
+  if(aaHolds(r.major2))     return 'shared';
+  if(aaHolds(r.minor))      return 'minor';
+  return 'none';
+}
+function aaIn(k){ return AA.queue.filter(r => aaBandOf(r) === k); }
+function aaOpen(k){ return aaIn(k).filter(r => !AA.done.has(r.student_id)); }
+
+async function aaLoad(){
+  if(AA.loaded || AA.loading) return;
+  AA.loading = true; AA.err = null;
+  try {
+    const rows = await sbGet('v_advisor_queue', `select=*&${OV_LIMIT}`);
+    AA.queue = Array.isArray(rows) ? rows : [];
+    AA.checked = new Date().toLocaleString('en-GB',
+      { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    AA.loaded = true;
+  } catch(e){
+    AA.err = e.message;
+  } finally {
+    AA.loading = false;
+    if(currentPage === 'overview' && OV.page === 'assign') renderOverview();
+  }
+}
+
+// ── the bench ────────────────────────────────────────────────────────────
+// Advisors who hold at least one of the chair's programmes. Counted from the
+// roster the app already has, so the figures agree with Major Advising Load,
+// and filtered by the same role test that page uses.
+//
+// The role test is not cosmetic. Visiting faculty and the OAA dean are on file
+// with no advisees, so leaving them in would put a row of zeroes at the top of
+// a bench sorted by load - and Suggest, which reaches for the lightest, would
+// hand them the whole queue.
+function aaBench(){
+  return FACULTY_ROWS
+    .filter(f => ADVISING_ROLES.includes(f.role))
+    .filter(f => (f.programs || []).some(p => aaHolds(p)))
+    .map(f => {
+      const pri = students.filter(st => st.advisor1_email === f.email).length;
+      const sec = students.filter(st => st.advisor2_email === f.email).length;
+      return { ...f, pri, sec };
+    })
+    .sort((a, b) => (a.pri + a.sec) - (b.pri + b.sec) || a.name.localeCompare(b.name));
+}
+function aaLoadOf(f){
+  const applied = [...AA.done.values()].filter(v => v.email === f.email).length;
+  const staged  = [...AA.pending.values()].filter(v => v.email === f.email).length;
+  return { now: f.pri + f.sec + applied, add: staged };
+}
+
+// ── the worklist ─────────────────────────────────────────────────────────
+function aaSetBand(k){
+  AA.band = k; AA.sel.clear();
+  const b = AA_BANDS.find(x => x.k === k);
+  if(b && b.role) AA.lastRole = b.role;
+  renderOverview();
+}
+function aaToggle(id){
+  const r = AA.queue.find(x => x.student_id === id);
+  if(!r || AA.done.has(id) || aaBandOf(r) === 'none') return;
+  if(AA.pending.has(id)){ AA.pending.delete(id); renderOverview(); return; }
+  AA.sel.has(id) ? AA.sel.delete(id) : AA.sel.add(id);
+  renderOverview();
+}
+function aaSelectAll(){
+  const q = aaOpen(AA.band).filter(r => !AA.pending.has(r.student_id));
+  const all = q.length && q.every(r => AA.sel.has(r.student_id));
+  q.forEach(r => all ? AA.sel.delete(r.student_id) : AA.sel.add(r.student_id));
+  renderOverview();
+}
+// Tick students, then press Assign on an advisor. One order, no armed mode,
+// no state the reader has to remember they left switched on.
+// The advisor is named, not indexed: the bench is sorted by load, and an
+// index would mean something different the moment that order changed.
+function aaAssignTo(email){
+  if(!AA.sel.size) return;
+  const f = aaBench().find(x => x.email === email);
+  if(!f) return;
+  // The role is fixed here rather than read at Apply. A chair can stage in one
+  // band and look at another before committing, and the staged rows must keep
+  // the rule they were staged under.
+  const role = AA_BANDS.find(b => b.k === AA.band)?.role || 1;
+  AA.sel.forEach(id => AA.pending.set(id, { email: f.email, role }));
+  AA.sel.clear();
+  renderOverview();
+}
+function aaDiscard(){ AA.pending.clear(); AA.sel.clear(); renderOverview(); }
+
+// Continuity first, then the lightest load, recounted after each one. Both
+// rules are printed beside the button: a chair has to be able to see why a
+// name came up before they let it stand.
+function aaSuggest(){
+  const bench = aaBench();
+  if(!bench.length) return;
+  const role = AA_BANDS.find(b => b.k === AA.band)?.role || 1;
+  aaOpen(AA.band)
+    .filter(r => !AA.pending.has(r.student_id))
+    .forEach(r => {
+      const st = students.find(x => String(x.id) === String(r.student_id));
+      const met = st && st.sessions > 0 && st.advisor1_email
+        ? bench.find(f => f.email === st.advisor1_email) : null;
+      if(met){ AA.pending.set(r.student_id, { email: met.email, role }); return; }
+      const lightest = bench.slice().sort((a, b) => {
+        const la = aaLoadOf(a), lb = aaLoadOf(b);
+        return (la.now + la.add) - (lb.now + lb.add);
+      })[0];
+      AA.pending.set(r.student_id, { email: lightest.email, role });
+    });
+  AA.sel.clear();
+  renderOverview();
+}
+
+// Apply writes, with no confirm in front of it. Every row already names the
+// advisor it is going to, the bars already show what it costs, and the tray
+// already gives the totals. Nor can this queue overwrite anyone who is really
+// advising: the function refuses a permanent placement. What replaces the
+// confirm is Undo.
+//
+// One call per student, so a refusal costs that student and not the batch -
+// and the refusal is news the chair needs rather than an error to swallow.
+async function aaApply(){
+  if(AA.busy || !AA.pending.size) return;
+  AA.busy = true; renderOverview();
+  const okd = [], failed = [];
+  let role = 1;
+  for(const [id, v] of AA.pending){
+    role = v.role;
+    try {
+      const newId = await sbRpc('assign_advisor', {
+        p_student_id: id, p_advisor_email: v.email, p_role: v.role });
+      AA.done.set(id, { email: v.email, id: newId });
+      okd.push([id, v.email]);
+    } catch(e){
+      const st = AA.queue.find(x => x.student_id === id);
+      failed.push(`${st ? st.student_name : id}: ${e.message}`);
+    }
+  }
+  okd.forEach(([id]) => AA.pending.delete(id));
+  AA.last = okd; AA.lastRole = role;
+  AA.sel.clear(); AA.busy = false;
+  // The roster the bench counts from is now behind by however many were
+  // written, so it is refetched rather than adjusted in place.
+  await aaReloadStudents().catch(()=>{});
+  renderOverview();
+  if(failed.length) showToast(`${okd.length} assigned, ${failed.length} refused — ${failed[0]}`);
+  else showToast(`${okd.length} assigned as Advisor ${role}.`);
+}
+
+async function aaUndo(){
+  if(AA.busy || !AA.last.length) return;
+  AA.busy = true; renderOverview();
+  const back = [];
+  for(const [id] of AA.last){
+    const rec = AA.done.get(id);
+    if(!rec) continue;
+    try {
+      await sbRpc('undo_advisor_assignment', { p_assignment_id: rec.id });
+      AA.done.delete(id);
+      back.push([id, rec.email]);
+    } catch(e){ showToast(`Could not undo: ${e.message}`); }
+  }
+  back.forEach(([id, email]) => AA.pending.set(id, email));
+  AA.last = []; AA.busy = false;
+  await aaReloadStudents().catch(()=>{});
+  renderOverview();
+}
+
+// ── drawing ──────────────────────────────────────────────────────────────
+function aaRowTag(r){
+  const d = AA.done.get(r.student_id);
+  if(d) return `<span class="aa-tag tg-done">→ ${esc(aaLastName(d.email))}</span>`;
+  const pend = AA.pending.get(r.student_id);
+  if(pend) return `<span class="aa-tag tg-pend">→ ${esc(aaLastName(pend.email))}</span>`;
+  if(r.held_by) return `<span class="aa-tag tg-other">${esc(aaLastName(r.held_by_email) || r.held_by)} · interim</span>`;
+  if((r.status || '').toLowerCase().includes('leave')) return `<span class="aa-tag tg-loa">On leave</span>`;
+  return `<span class="aa-tag tg-never">No advisor</span>`;
+}
+function aaLastName(email){
+  const f = FACULTY_ROWS.find(x => x.email === email);
+  return f ? f.name.split(' ').pop() : (email || '').split('@')[0];
+}
+
+function aaRows(){
+  const list = aaIn(AA.band);
+  if(!list.filter(r => !AA.done.has(r.student_id)).length) return aaEmpty();
+  return list.map(r => {
+    const id = r.student_id;
+    const cls = AA.done.has(id) ? 'done' : AA.pending.has(id) ? 'pend'
+              : AA.sel.has(id) ? 'sel' : (aaBandOf(r) === 'none' ? 'locked' : '');
+    const tick = (AA.done.has(id) || AA.pending.has(id) || AA.sel.has(id)) ? '✓' : '';
+    const chips = r.major1
+      ? aaChip(r.major1, 1) + aaChip(r.major2, 2) + aaChip(r.minor, 3)
+      : `<span class="cp r3" style="color:var(--text3);border-color:var(--text3);">none</span>`;
+    return `<div class="aa-row ${cls}" onclick="aaToggle('${esc(id)}')">
+      <div class="aa-ck">${tick}</div>
+      <div class="aa-nm"><u>${esc(r.student_name)}</u><small>${esc(id)} · ${esc(shortCohort(r.cohort))}</small></div>
+      <div class="aa-cps">${chips}</div>
+      ${aaRowTag(r)}
+    </div>`;
+  }).join('');
+}
+
+// Three different nothings, and they are not interchangeable. "Nothing
+// anywhere" is the news the chair came for and the state this page is in on
+// most days, so it gets the clearest sentence - and it speaks about the
+// programme, not about the band the reader happens to be standing in.
+function aaEmpty(){
+  const openMine = AA.queue.filter(r => !AA.done.has(r.student_id) && aaBandOf(r) !== 'none').length;
+  const mine = aaMine().join(' / ') || 'your programme';
+  if(AA.last.length){
+    return `<div class="aa-empty">
+      <div class="aa-empty-i">✓</div>
+      <h4>All ${AA.last.length} assigned.</h4>
+      <p>Nothing is left here. The tray below still holds an undo.</p></div>`;
+  }
+  if(!openMine){
+    return `<div class="aa-empty">
+      <div class="aa-empty-i">✓</div>
+      <h4>Every student in ${esc(mine)} has an Advisor 1.</h4>
+      <p>Somebody appears here when a student declares ${esc(mine)}, when a new student joins
+         the programme, or when an advisor&rsquo;s assignment is withdrawn.</p></div>`;
+  }
+  return `<div class="aa-empty">
+    <div class="aa-empty-i mute">–</div>
+    <h4>Nothing in this band.</h4>
+    <p>The counts above say which band has the work.</p></div>`;
+}
+
+function aaBenchHtml(){
+  const bench = aaBench();
+  if(!bench.length) return `<div class="aa-empty"><div class="aa-empty-i mute">–</div>
+    <h4>No advisors on file for this programme.</h4>
+    <p>faculty_profiles lists nobody whose programme matches yours.</p></div>`;
+  return bench.map(f => {
+    const {now, add} = aaLoadOf(f);
+    const total = now + add, over = total > AA_TARGET;
+    const wNow = Math.min(100, now / AA_SCALE * 100);
+    const wAdd = Math.min(100 - wNow, add / AA_SCALE * 100);
+    return `<div class="aa-fac ${add ? 'has' : ''}">
+      <div class="aa-fhd">
+        <div class="aa-fn">
+          <u>${esc(f.name)}${f.email === FACULTY_EMAIL
+            ? ' <span class="db-chair-badge" style="margin-left:5px;">you</span>' : ''}</u>
+          <small>${esc((f.programs || []).map(aaShort).join(' / '))}</small>
+        </div>
+        <button class="aa-btn ${AA.sel.size ? 'pri' : ''}" ${AA.sel.size && !AA.busy ? '' : 'disabled'}
+          onclick="aaAssignTo('${f.email}')">${AA.sel.size ? `Assign ${AA.sel.size}` : 'Assign'}</button>
+      </div>
+      <div class="aa-lbar">
+        <div class="aa-lnow" style="width:${wNow}%"></div>
+        <div class="aa-ladd" style="width:${wAdd}%"></div>
+        <div class="aa-lcap" style="left:${AA_TARGET / AA_SCALE * 100}%"></div>
+      </div>
+      <div class="aa-lnum">
+        <span>${f.pri} as Advisor 1 · ${f.sec} as Advisor 2</span>
+        <b class="${over ? 'over' : add ? 'up' : ''}">${now}${add ? ` → ${total}` : ''}${over ? ' · over' : ''}</b>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function aaTray(){
+  if(AA.busy){
+    return `<div class="aa-tray idle"><div class="aa-tray-t"><span>Writing…</span></div></div>`;
+  }
+  if(!AA.pending.size && !AA.sel.size && AA.last.length){
+    return `<div class="aa-tray">
+      <div class="aa-tray-t"><b>${AA.last.length}</b> assigned as Advisor ${AA.lastRole}<span>
+        — their advisor can see them from now on.</span>
+      <span class="aa-tray-s">Nobody has been told. Announcing is not part of this page.</span></div>
+      <button class="aa-btn" onclick="aaUndo()">Undo</button></div>`;
+  }
+  if(!AA.pending.size && !AA.sel.size){
+    return `<div class="aa-tray idle">
+      <div class="aa-tray-t"><span>Tick the students you want, then press Assign on an advisor.</span>
+      <span class="aa-tray-s">Nothing is written until you press Apply, and Apply can be undone.</span></div>
+      <button class="aa-btn" disabled>Discard</button>
+      <button class="aa-btn pri" disabled>Apply</button></div>`;
+  }
+  if(!AA.pending.size){
+    return `<div class="aa-tray">
+      <div class="aa-tray-t"><b>${AA.sel.size}</b> selected<span> — now choose who they go to.</span>
+      <span class="aa-tray-s">Press Assign ${AA.sel.size} on an advisor at the right.</span></div>
+      <button class="aa-btn" onclick="aaDiscard()">Clear</button>
+      <button class="aa-btn pri" disabled>Apply</button></div>`;
+  }
+  const per = {};
+  AA.pending.forEach(v => per[v.email] = (per[v.email] || 0) + 1);
+  const worst = aaBench().map(f => { const l = aaLoadOf(f); return {f, t: l.now + l.add}; })
+                         .filter(x => x.t > AA_TARGET);
+  // Read from the staged rows, so a chair standing in another band still sees
+  // what they actually staged.
+  const roles = [...new Set([...AA.pending.values()].map(v => v.role))].sort();
+  return `<div class="aa-tray">
+    <div class="aa-tray-t">
+      <b>${AA.pending.size}</b> staged as <b>Advisor ${roles.join(' and ')}</b>${
+        AA.sel.size ? `<span> · ${AA.sel.size} still unaimed</span>` : ''}
+      <span class="aa-tray-s">${Object.entries(per).map(([k, v]) =>
+        `${esc(aaLastName(k))} +${v}`).join('  ·  ')}${worst.length
+        ? `  ·  <span style="color:var(--red);">over target: ${worst.map(x =>
+            esc(aaLastName(x.f.email)) + ' ' + x.t).join(', ')}</span>` : ''}</span>
+    </div>
+    <button class="aa-btn" onclick="aaDiscard()">Discard</button>
+    <button class="aa-btn pri" onclick="aaApply()">Apply</button></div>`;
+}
+
+function aaPage(b){
+  if(!AA.loaded && !AA.loading) aaLoad();
+  if(AA.err){
+    b.innerHTML = `<div class="error-banner"><strong>Could not load the assignment queue.</strong>
+      ${esc(AA.err)}</div>`;
+    return;
+  }
+  if(!AA.loaded){ b.innerHTML = `<div class="ov-wait">Loading the assignment queue…</div>`; return; }
+
+  const mine   = aaMine().join(' / ') || 'your programme';
+  const scope  = students.filter(st =>
+    aaHolds(st.major1) || aaHolds(st.major2) || aaHolds(st.minor)).length;
+  const left   = AA.queue.filter(r => !AA.done.has(r.student_id) && aaBandOf(r) !== 'none').length;
+  const own    = aaOpen('own').length;
+  const cur    = AA_BANDS.find(x => x.k === AA.band) || AA_BANDS[0];
+  const qOpen  = aaOpen(AA.band).length;
+  const q      = aaOpen(AA.band).filter(r => !AA.pending.has(r.student_id));
+  const allTick = q.length && q.every(r => AA.sel.has(r.student_id));
+
+  b.innerHTML = `
+    <div class="ov-scope">
+      <span class="ov-caption">${esc(mine)} · ${scope} students · ${left} needing an Advisor 1</span>
+      <span class="ov-meta">queue read ${esc(AA.checked)}</span>
+    </div>
+
+    <h2 class="ov-h1">Advisor Assignment</h2>
+    <p class="ov-sub">A student with no Advisor 1 is not merely unadvised — they are invisible.
+      Access to a student record runs through
+      <code style="font-family:'DM Mono',monospace;font-size:15px;">advisor1_email</code>, so an
+      empty field means no faculty member sees them anywhere in Telos. This page exists to empty
+      that field&rsquo;s queue.</p>
+
+    <div class="db-stats" style="grid-template-columns:repeat(4,1fr);">
+      <div class="db-stat"><div class="db-val">${scope}</div><div class="db-lbl">In your programme</div></div>
+      <div class="db-stat"><div class="db-val ${left ? 'bad' : 'ok'}">${left}</div><div class="db-lbl">Need Advisor 1</div></div>
+      <div class="db-stat"><div class="db-val ${own ? 'warn' : ''}">${own}</div><div class="db-lbl">Advisor 1 to assign</div></div>
+      <div class="db-stat"><div class="db-val ${AA.done.size ? 'ok' : ''}">${AA.done.size}</div><div class="db-lbl">Assigned today</div></div>
+    </div>
+
+    <div class="aa-bands">
+      ${AA_BANDS.map(x => `<button class="aa-band ${AA.band === x.k ? 'on' : ''}"
+        onclick="aaSetBand('${x.k}')">
+        <b>${aaOpen(x.k).length}</b><i>${esc(x.n)}</i>
+        <em class="${x.role ? '' : 'no'}">→ ${esc(x.act)}</em></button>`).join('')}
+    </div>
+
+    <div class="aa-work">
+      <div class="db-card">
+        <div class="aa-qhd">
+          <span>
+            <span class="aa-qn">${esc(cur.n)}</span>
+            <span class="aa-qs">· ${qOpen} open</span>
+            <span class="aa-qw">${cur.role ? '→ ' + esc(cur.act) : '→ no field to write'}</span>
+          </span>
+        </div>
+        ${AA.band === 'none' || !qOpen ? '' : `
+        <div class="aa-selall" onclick="aaSelectAll()">
+          <div class="aa-ck" style="${allTick ? 'background:var(--blue);border-color:var(--blue);' : ''}">${allTick ? '✓' : ''}</div>
+          <span>Select all ${q.length} unassigned</span>
+          ${AA.sel.size ? `<span class="aa-selc">${AA.sel.size} selected</span>` : ''}
+        </div>`}
+        <div style="max-height:430px;overflow-y:auto;">${aaRows()}</div>
+      </div>
+
+      <div class="db-card">
+        <div class="db-card-hd">Advisors <span>load after staging · target ${AA_TARGET}</span></div>
+        <div class="aa-bench-list">${aaBenchHtml()}</div>
+      </div>
+    </div>
+
+    <div class="db-card aa-sugg">
+      <div class="db-card-hd aa-sugg-hd">Suggest a distribution <span>how the button decides</span></div>
+      <div class="aa-sugg-l">
+        <div class="aa-rule"><b>1</b><span><u>Continuity.</u> Anyone who has already met an advisor stays with them.</span></div>
+        <div class="aa-rule"><b>2</b><span><u>Then lightest load.</u> The rest go to the advisor with the fewest advisees, recounted after each one.</span></div>
+      </div>
+      <div class="aa-sugg-r">
+        <button class="aa-btn pri lg" ${!cur.role || !qOpen || AA.busy ? 'disabled' : ''}
+          onclick="aaSuggest()">Suggest a distribution</button>
+        <span class="aa-sugg-n">${!cur.role ? 'Nothing to distribute in this band.'
+          : !qOpen ? 'Nothing to distribute here.'
+          : `${qOpen} student${qOpen === 1 ? '' : 's'} → staged, not written`}</span>
+      </div>
+    </div>
+
+    ${aaTray()}
+
+    <div class="aa-src">
+      <h4>What this screen reads and writes</h4>
+      <dl>
+        <dt>reads</dt><dd>v_advisor_queue for who needs an advisor, and faculty_profiles for
+          the bench. The queue&rsquo;s definition lives in the view, so this page and the database
+          cannot drift apart on who counts as unassigned.</dd>
+        <dt>writes</dt><dd>assign_advisor(), which checks the caller is the chair the rules
+          allow, updates students.advisor1 or advisor2 with the matching email, and records the
+          change — both in one transaction. Nothing here writes the students table directly.</dd>
+        <dt>grants</dt><dd>row-level access to the student record: the assignment is the
+          permission. It is granted on Apply, which is why Apply can be undone only while
+          nobody has been told.</dd>
+        <dt>sends</dt><dd>nothing. Announcing an assignment is outside this version; telling
+          the students is a chair&rsquo;s own email for now.</dd>
+      </dl>
+    </div>`;
+}
+
+
 // ── MY STUDENTS ──
 // ── MY STUDENTS ──
 //
@@ -6506,7 +7206,8 @@ function buildNsForm(st){
           ${hasLinked?`<span style="font-size:10px;color:var(--accent);margin-left:4px;">Auto-filled</span>`:''}
         </div>
         <input class="fi ${hasLinked?'af':''}" type="date" id="ns-date"
-          value="${autoDate}" ${hasLinked?'readonly':''}>
+          value="${autoDate}" ${hasLinked?'readonly':''} oninput="echoDate('ns-date')">
+        <div class="date-echo" id="ns-date-echo">${fmtDateEcho(autoDate)}</div>
         </div>
       
         <div class="fg"><div class="fl">Time
@@ -6762,7 +7463,8 @@ function buildEditForm(s) {
     </div>
     <div class="ns-body">
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;">
-      <div class="fg"><div class="fl">Date <span class="req">*</span></div><input class="fi" type="date" id="ed-date" value="${esc(s.date)}"></div>
+      <div class="fg"><div class="fl">Date <span class="req">*</span></div><input class="fi" type="date" id="ed-date" value="${esc(s.date)}" oninput="echoDate('ed-date')">
+        <div class="date-echo" id="ed-date-echo">${fmtDateEcho(s.date)}</div></div>
       <div class="fg"><div class="fl">Time</div><input class="fi" type="time" id="ed-time" value="${esc(s.meetingTime)}"></div>
       <div class="fg"><div class="fl">Type <span class="req">*</span></div><select class="fsel" id="ed-type">${typeOpts}</select></div>
       <div class="fg"><div class="fl">Format <span class="req">*</span></div><select class="fsel" id="ed-format">${fmtOpts}</select></div>
@@ -6783,7 +7485,8 @@ function buildEditForm(s) {
       </div>
       <div class="rg3">
         <div class="fg"><div class="fl">Follow-up required? <span class="req">*</span></div><select class="fsel" id="ed-fu">${fuOpts}</select></div>
-        <div class="fg"><div class="fl">Next meeting date</div><input class="fi" type="date" id="ed-nd" value="${esc(s.nextDate)}"></div>
+        <div class="fg"><div class="fl">Next meeting date</div><input class="fi" type="date" id="ed-nd" value="${esc(s.nextDate)}" oninput="echoDate('ed-nd')">
+          <div class="date-echo" id="ed-nd-echo">${fmtDateEcho(s.nextDate)}</div></div>
         <div class="fg"><div class="fl">Next meeting agenda</div><input class="fi" id="ed-na" value="${esc(s.nextAgenda)}" placeholder="Brief agenda"></div>
       </div>
       <div class="fg"><div class="fl">Major change note</div><input class="fi" id="ed-mc" value="${esc(s.majorChangeNote)}" placeholder="Leave blank if no change"></div>
@@ -7334,6 +8037,24 @@ const TZ_LIST = [
   'UTC',
 ];
 
+// A native date input shows the format its browser's locale dictates —
+// 31/08/2026 on one machine, 8/31/2026 on the next — and neither an attribute
+// nor CSS nor script can change it. What can be done is to say the date again
+// underneath, in the reader's own locale but with the month spelled, where no
+// order of the numbers can be misread.
+function fmtDateEcho(iso) {
+  if (!iso) return '';
+  const [y, m, d] = String(iso).split('-').map(Number);
+  if (!y || !m || !d) return '';
+  return new Date(y, m - 1, d).toLocaleDateString(undefined,
+    { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+}
+function echoDate(inputId) {
+  const el  = document.getElementById(inputId);
+  const out = document.getElementById(inputId + '-echo');
+  if (el && out) out.textContent = fmtDateEcho(el.value);
+}
+
 function markProfileDirty() {
   const btn = document.getElementById('btn-save-profile');
   if (btn) btn.disabled = false;
@@ -7419,12 +8140,6 @@ async function renderSettings() {
             Changes apply to future requests only
           </span>
           <button class="btn-log" onclick="saveAvailability()">Save changes</button>
-        </div>
-      </div>
-
-      <div id="mtg-cal-wrap" style="display:none;">
-        <div style="padding:40px;text-align:center;color:var(--text3);font-size:14px;">
-          Calendar view coming soon
         </div>
       </div>
 
@@ -8044,27 +8759,10 @@ function renderMeetings() {
     </div>`;
 }
 
-function filterMeetings(f, btn) {
-  document.querySelectorAll('#mtg-filter-chips .fchip').forEach(c => c.classList.remove('active'));
-  btn.classList.add('active');
-  ['upcoming','rescheduling','pending','past'].forEach(cat => {
-    const el = document.getElementById('mtg-rows-'+cat);
-    if (el) el.style.display = (f==='all'||f===cat) ? 'block' : 'none';
-  });
-}
-
 // 현재 캘린더 연월 상태
 let calYear  = new Date().getFullYear();
 let calMonth = new Date().getMonth(); // 0-indexed
 let calFilter = 'all';
-
-function switchMeetingView(v, btn) {
-  document.querySelectorAll('#mtg-view-tabs .fchip').forEach(c => c.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('mtg-list-wrap').style.display = v==='list' ? 'block' : 'none';
-  document.getElementById('mtg-cal-wrap').style.display  = v==='cal'  ? 'block' : 'none';
-  if (v==='cal') buildCalendar();
-}
 
 function moveCal(dir) {
   if (dir === 0) { calYear = new Date().getFullYear(); calMonth = new Date().getMonth(); }
@@ -8156,8 +8854,9 @@ function filterMeetings(f, btn) {
   calFilter = f;
   document.querySelectorAll('#mtg-filter-chips .fchip').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
-  // list view
-  ['upcoming','pending','past'].forEach(cat => {
+  // list view — rescheduling is a group of its own in the markup, and leaving
+  // it out of this list left those rows on screen under every filter.
+  ['upcoming','rescheduling','pending','past'].forEach(cat => {
     const el = document.getElementById('mtg-rows-'+cat);
     if (el) el.style.display = (f==='all'||f===cat) ? 'block' : 'none';
   });
@@ -8214,6 +8913,10 @@ function switchMeetingView(v, btn) {
   document.getElementById('mtg-list-wrap').style.display = v==='list' ? 'block' : 'none';
   const calWrap = document.getElementById('mtg-cal-wrap');
   if (calWrap) calWrap.style.display = v==='cal' ? 'block' : 'none';
+  // Showing the calendar is not the same as drawing it. The version of this
+  // function that was overridden did both; the one that survived only showed,
+  // which is why the calendar tab opened on an empty grid.
+  if (v === 'cal') buildCalendar();
 }
 
   
