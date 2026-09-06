@@ -2967,6 +2967,79 @@ async function sendProposal(meetingId) {
   }
 }
   
+// ── students this advisor has taught ─────────────────────────────
+// Read from v_student_taught_by, never from course_offerings directly, so the
+// rule about what counts - major courses only, Innovation Foundations left out
+// because sixty people in one core course is not a teaching relationship -
+// lives in the view and not in two places.
+//
+// Names are not asked for. The roster is already in memory and carries the
+// current spelling; a copy in the view would be a second version of it.
+const TAUGHT = { loaded:false, loading:false, err:null, rows:[], all:false };
+const TAUGHT_FOLD = 10;   // rows before the list asks to be opened
+
+async function taughtLoad(){
+  if(TAUGHT.loaded || TAUGHT.loading || !FACULTY_EMAIL) return;
+  TAUGHT.loading = true;
+  try {
+    TAUGHT.rows = await sbGet('v_student_taught_by',
+      `faculty_email=eq.${encodeURIComponent(FACULTY_EMAIL)}` +
+      `&select=student_id,courses_taken,courses_completed,last_term&${OV_LIMIT}`);
+    TAUGHT.loaded = true;
+  } catch(e){
+    TAUGHT.err = e.message;
+  } finally {
+    TAUGHT.loading = false;
+    if(currentPage === 'overview' && OV.page === 'advisees') renderOverview();
+  }
+}
+function taughtShowAll(){ TAUGHT.all = true; renderOverview(); }
+
+// 'Spring 2027' is the second half of academic year 2026 - the import writes
+// the calendar year into the label, not the academic one. So the plain string
+// sorts wrong twice over, and the key is built rather than compared.
+function taughtTermKey(t){
+  const m = /^(Fall|Spring) (\d{4})$/.exec(t || '');
+  return m ? Number(m[2]) * 10 + (m[1] === 'Spring' ? 0 : 1) : 0;
+}
+
+function ovTaughtCard(){
+  const hd = n => `<div class="ov-card-hd">Students I have taught${
+    n == null ? '' : ` <span class="text-muted" style="font-weight:400;font-size:17px;">${n} students</span>`}</div>`;
+  if(TAUGHT.err)     return `<div class="ov-card">${hd()}<div class="ov-item"><div class="text-muted">Could not load: ${esc(TAUGHT.err)}</div></div></div>`;
+  if(!TAUGHT.loaded) return `<div class="ov-card">${hd()}<div class="ov-item"><div class="text-muted">Loading…</div></div></div>`;
+
+  // Most recent term first: the student an advisor is looking for is usually
+  // one they are teaching now. Within a term the heavier relationship leads.
+  const rows = TAUGHT.rows
+    .map(r => ({ ...r, st: students.find(s => s.id === String(r.student_id)) }))
+    .sort((a, b) => taughtTermKey(b.last_term) - taughtTermKey(a.last_term)
+                 || b.courses_taken - a.courses_taken
+                 || (a.st?.name || '').localeCompare(b.st?.name || ''));
+
+  if(!rows.length) return `<div class="ov-card">${hd(0)}<div class="ov-item"><div class="text-muted">No teaching records yet. Only major courses count — Innovation Foundations is not included.</div></div></div>`;
+
+  const shown = TAUGHT.all ? rows : rows.slice(0, TAUGHT_FOLD);
+  return `<div class="ov-card">
+      ${hd(rows.length)}
+      ${shown.map(r => {
+        const mine = r.st && (r.st.advisor1_email === FACULTY_EMAIL || r.st.advisor2_email === FACULTY_EMAIL);
+        const n = r.courses_taken;
+        return `<div class="ov-item">
+          <div class="ov-dot dot-green"></div>
+          <div class="ov-name">${esc(r.st ? r.st.name : r.student_id)}</div>
+          <div class="ov-detail">${esc(r.last_term || 'term unknown')} · ${n} course${n > 1 ? 's' : ''}${
+            r.st && r.st.cohort ? ' · ' + esc(r.st.cohort) : ''}</div>
+          ${mine ? `<span class="bdg bdg-green" style="font-size:11px;">My advisee</span>` : ''}
+          ${r.st ? `<span class="go-link" onclick="goToStudent('${r.st.id}')">View →</span>` : ''}
+        </div>`;
+      }).join('')}
+      ${rows.length > shown.length
+        ? `<div class="ov-item"><span class="go-link" onclick="taughtShowAll()">Show all ${rows.length} →</span></div>`
+        : ''}
+    </div>`;
+}
+
 // ── OVERVIEW ──
 function ovAdviseeHome() {
   const mine = myStudents();
@@ -3078,6 +3151,7 @@ function ovAdviseeHome() {
           <span class="go-link" onclick="goToLog('${s.logId}')">View →</span>
         </div>`).join('') : '<div class="ov-item"><div class="text-muted">No sessions recorded yet</div></div>'}
       </div>
+      ${ovTaughtCard()}
     </div>
 `;
 }
@@ -3356,7 +3430,9 @@ function ovGo(k){
 function ovRenderBody(){
   const b = document.getElementById('ov-body');
   if(!b) return;
-  if(OV.page === 'advisees'){ b.innerHTML = ovAdviseeHome();       return; }
+  // Fired here rather than at sign-in: an account that never opens My Advising
+  // never pays for the query, and the card redraws itself when it lands.
+  if(OV.page === 'advisees'){ taughtLoad(); b.innerHTML = ovAdviseeHome(); return; }
   if(OV.page === 'chair'   ){ b.innerHTML = renderProgramSummary(); return; }
   // Reads its own view rather than the registry, so like the two pages below
   // it must not wait on v_student_credit_progress.
