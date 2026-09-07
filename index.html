@@ -1993,6 +1993,8 @@ function mapStudent(r) {
     visionText:          r.vision_text          || '',
     careerGoalTags:      r.career_goal_tags     || [],
     careerGoalText:      r.career_goal_text     || '',
+    postGradTags:        r.post_grad_tags       || [],
+    postGradText:        r.post_grad_text       || '',
     researchTags:        r.research_interest_tags || [],
     researchText:        r.research_interest_text || '',
     expTags:             r.experiences_tags     || [],
@@ -6356,7 +6358,8 @@ let msgDraft    = {};   // { student_id: text }
 let msgVis      = {};   // { student_id: rung }
 let msgAbout    = {};   // { student_id: {kind,key,label} | null }
 
-const PROFILE_LABEL = {vision:'My Mission', career:'Career goal', research:'Research interest',
+const PROFILE_LABEL = {vision:'My Mission', career:'Career goal',
+  postgrad:'Path after graduation', research:'Research interest',
   exp:'Significant experiences', strength:'Strengths', concerns:'Concerns & support needed'};
 
 async function loadMsgsFor(sid){
@@ -7105,6 +7108,7 @@ function closeStud(){openStudId=null;showFormFor=null;renderStudBody();}
 const PROFILE_DEFS = [
   { key:'vision',   tags:'visionTags',     text:'visionText',    label:'My Mission' },
   { key:'career',   tags:'careerGoalTags', text:'careerGoalText',label:'Career goal' },
+  { key:'postgrad', tags:'postGradTags',   text:'postGradText',  label:'Path after graduation' },
   { key:'research', tags:'researchTags',   text:'researchText',  label:'Research interest' },
   { key:'exp',      tags:'expTags',        text:'expText',       label:'Significant experiences' },
   { key:'strength', tags:'strengthTags',   text:'strengthText',  label:'Strengths' },
