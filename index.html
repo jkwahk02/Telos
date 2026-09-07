@@ -189,6 +189,18 @@ button,input,select,textarea{font-family:inherit;}
 .ov-chip2:hover{border-color:var(--blue-b);background:var(--blue-l);}
 .ov-chip2 u{text-decoration:none;color:var(--text);font-weight:600;}
 .ov-chip2 b{font-family:'DM Mono',monospace;color:var(--text);}
+.ts-tbl{width:100%;border-collapse:collapse;font-size:15px;}
+.ts-tbl th{text-align:left;font-size:12px;font-weight:600;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.06em;padding:8px 16px;white-space:nowrap;
+  border-bottom:1px solid var(--border-em);cursor:pointer;user-select:none;}
+.ts-tbl th:hover{color:var(--text2);}
+.ts-tbl td{padding:7px 16px;border-bottom:1px solid var(--border);vertical-align:top;}
+.ts-tbl tbody tr{cursor:pointer;}
+.ts-tbl tbody tr:hover td{background:var(--surface2);}
+.ts-mono{font-family:'DM Mono',monospace;font-size:13.5px;color:var(--text2);}
+.ts-off{display:inline-block;background:var(--surface2);border:1px solid var(--border);
+  border-radius:4px;padding:1px 6px;margin:0 4px 3px 0;
+  font-family:'DM Mono',monospace;font-size:12.5px;}
 .ov-chip2 em{font-style:normal;font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);}
 @media (max-width:920px){
   .ov-split{grid-template-columns:1fr;}
@@ -2970,23 +2982,24 @@ async function sendProposal(meetingId) {
 }
   
 // ── students this advisor has taught ─────────────────────────────
-// Read from v_student_taught_by, never from course_offerings directly, so the
-// rule about what counts - major courses only, Innovation Foundations left out
-// because sixty people in one core course is not a teaching relationship -
-// lives in the view and not in two places.
+// Read from v_student_taught_courses, never from course_offerings or the
+// enrolment history directly, so what counts as teaching - major courses only,
+// Innovation Foundations left out because sixty people in one core course is
+// not an advising relationship - is decided in the view and not in two places.
 //
-// Names are not asked for. The roster is already in memory and carries the
-// current spelling; a copy in the view would be a second version of it.
-const TAUGHT = { loaded:false, loading:false, err:null, rows:[], all:false };
-const TAUGHT_FOLD = 10;   // rows before the list asks to be opened
+// One row per student per offering. Everything else the card shows - cohort,
+// declarations, who advises them - comes from the roster already in memory,
+// so this is the only request the card makes.
+const TAUGHT = { loaded:false, loading:false, err:null, rows:[],
+                 open:false, sortBy:'name', sortDir:1 };
 
 async function taughtLoad(){
   if(TAUGHT.loaded || TAUGHT.loading || !FACULTY_EMAIL) return;
   TAUGHT.loading = true;
   try {
-    TAUGHT.rows = await sbGet('v_student_taught_by',
+    TAUGHT.rows = await sbGet('v_student_taught_courses',
       `faculty_email=eq.${encodeURIComponent(FACULTY_EMAIL)}` +
-      `&select=student_id,courses_taken,courses_completed,last_term&${OV_LIMIT}`);
+      `&select=student_id,offering,course_id,section,term_label,is_completed&${OV_LIMIT}`);
     TAUGHT.loaded = true;
   } catch(e){
     TAUGHT.err = e.message;
@@ -2995,51 +3008,299 @@ async function taughtLoad(){
     if(currentPage === 'overview' && OV.page === 'advisees') renderOverview();
   }
 }
-function taughtShowAll(){ TAUGHT.all = true; renderOverview(); }
 
-// 'Spring 2027' is the second half of academic year 2026 - the import writes
-// the calendar year into the label, not the academic one. So the plain string
-// sorts wrong twice over, and the key is built rather than compared.
-function taughtTermKey(t){
+// 'Spring 2027' is the second half of academic year 2026 - the label carries the
+// calendar year, not the academic one. So the plain string sorts wrong twice
+// over and the key is built rather than compared.
+function tsKey(t){
   const m = /^(Fall|Spring) (\d{4})$/.exec(t || '');
   return m ? Number(m[2]) * 10 + (m[1] === 'Spring' ? 0 : 1) : 0;
 }
+function tsAdvOf(st){
+  if(!st) return 'none';
+  if(st.advisor1_email === FACULTY_EMAIL || st.advisor2_email === FACULTY_EMAIL) return 'mine';
+  if(st.advisor1_email || st.advisor2_email) return 'other';
+  return st.held ? 'interim' : 'none';
+}
+const TS_COHORTS = ['C1','C2','C3','C4'];
+const TS_PROGS   = ['DSAI','BI','HSS','NS','Self'];
+const TS_ADVS    = [['mine','Me'], ['other','Another'], ['interim','Interim'], ['none','Nobody']];
+const TS_SCH = { DSAI:'--sch-dsai', BI:'--sch-bi', HSS:'--sch-hss', NS:'--sch-ns', Self:'--sch-self' };
+
+// The roster spells programmes out in full and in more than one way; the matrix
+// needs one short token per programme or the columns cannot be matched.
+function tsProg(v){
+  const s = (v || '').toLowerCase();
+  if(!s) return '';
+  if(s.includes('data science')) return 'DSAI';
+  if(s.includes('business'))     return 'BI';
+  if(s.includes('humanities'))   return 'HSS';
+  if(s.includes('natural'))      return 'NS';
+  if(s.includes('self'))         return 'Self';
+  return '';
+}
+function tsDecl(st){
+  return st ? [tsProg(st.major1), tsProg(st.major2), tsProg(st.minor)].filter(Boolean) : [];
+}
+
+// One entry per student, joined to the roster once so the drawing code never
+// searches it again.
+function tsStudents(){
+  const by = new Map();
+  TAUGHT.rows.forEach(r => {
+    const id = String(r.student_id);
+    if(!by.has(id)){
+      const st = students.find(x => x.id === id);
+      by.set(id, { id, st,
+        name:   st ? st.name : id,
+        cohort: st && /(\d{4})/.test(st.cohort || '') ? 'C' + (Number(RegExp.$1) - 2022) : 'C?',
+        decl:   tsDecl(st),
+        adv:    tsAdvOf(st),
+        courses: [] });
+    }
+    by.get(id).courses.push(r);
+  });
+  return [...by.values()];
+}
+function tsOfferings(list){
+  const m = new Map();
+  list.forEach(s => s.courses.forEach(c => {
+    const k = c.offering + ' · ' + c.term_label;
+    if(!m.has(k)) m.set(k, { key:k, label:c.offering, base:c.course_id,
+                             sec:c.section || '00', term:c.term_label, students:[] });
+    m.get(k).students.push(s);
+  }));
+  // Course first, then term newest-first inside it, then section. Sorting on the
+  // printed label would file "DA200" and "DA200-1" apart and split one course
+  // into two blocks.
+  return [...m.values()].sort((a,b) =>
+    a.base.localeCompare(b.base) || tsKey(b.term) - tsKey(a.term) || a.sec.localeCompare(b.sec));
+}
 
 function ovTaughtCard(){
-  const hd = n => `<div class="ov-card-hd">Students I have taught${
-    n == null ? '' : ` <span class="text-muted" style="font-weight:400;font-size:17px;">${n} students</span>`}</div>`;
-  if(TAUGHT.err)     return `<div class="ov-card">${hd()}<div class="ov-item"><div class="text-muted">Could not load: ${esc(TAUGHT.err)}</div></div></div>`;
-  if(!TAUGHT.loaded) return `<div class="ov-card">${hd()}<div class="ov-item"><div class="text-muted">Loading…</div></div></div>`;
+  const hd = extra => `<div class="ov-card-hd">Students I have taught
+    <span style="font-weight:400;color:var(--text3);">${extra}</span></div>`;
+  if(TAUGHT.err)     return `<div class="ov-card" style="margin-top:12px;">${hd('')}<div class="ov-item"><div class="text-muted">Could not load: ${esc(TAUGHT.err)}</div></div></div>`;
+  if(!TAUGHT.loaded) return `<div class="ov-card" style="margin-top:12px;">${hd('')}<div class="ov-item"><div class="text-muted">Loading…</div></div></div>`;
 
-  // Most recent term first: the student an advisor is looking for is usually
-  // one they are teaching now. Within a term the heavier relationship leads.
-  const rows = TAUGHT.rows
-    .map(r => ({ ...r, st: students.find(s => s.id === String(r.student_id)) }))
-    .sort((a, b) => taughtTermKey(b.last_term) - taughtTermKey(a.last_term)
-                 || b.courses_taken - a.courses_taken
-                 || (a.st?.name || '').localeCompare(b.st?.name || ''));
+  const list = tsStudents();
+  if(!list.length) return `<div class="ov-card" style="margin-top:12px;">${hd('')}
+    <div class="ov-item"><div class="text-muted">No teaching records yet. Only major courses
+      count — Innovation Foundations is not included.</div></div></div>`;
 
-  if(!rows.length) return `<div class="ov-card">${hd(0)}<div class="ov-item"><div class="text-muted">No teaching records yet. Only major courses count — Innovation Foundations is not included.</div></div></div>`;
-
-  const shown = TAUGHT.all ? rows : rows.slice(0, TAUGHT_FOLD);
-  return `<div class="ov-card">
-      ${hd(rows.length)}
-      ${shown.map(r => {
-        const mine = r.st && (r.st.advisor1_email === FACULTY_EMAIL || r.st.advisor2_email === FACULTY_EMAIL);
-        const n = r.courses_taken;
-        return `<div class="ov-item">
-          <div class="ov-dot dot-green"></div>
-          <div class="ov-name">${esc(r.st ? r.st.name : r.student_id)}</div>
-          <div class="ov-detail">${esc(r.last_term || 'term unknown')} · ${n} course${n > 1 ? 's' : ''}${
-            r.st && r.st.cohort ? ' · ' + esc(r.st.cohort) : ''}</div>
-          ${mine ? `<span class="bdg bdg-green" style="font-size:11px;">My advisee</span>` : ''}
-          ${r.st ? `<span class="go-link" onclick="goToStudent('${r.st.id}')">View →</span>` : ''}
-        </div>`;
-      }).join('')}
-      ${rows.length > shown.length
-        ? `<div class="ov-item"><span class="go-link" onclick="taughtShowAll()">Show all ${rows.length} →</span></div>`
-        : ''}
+  const offs = tsOfferings(list);
+  return `<div class="ov-card" style="margin-top:12px;">
+      ${hd(`${list.length} students · ${offs.length} offerings`)}
+      <div style="padding:14px 16px;">
+        <p style="font-size:14.5px;color:var(--text2);line-height:1.6;margin:0 0 12px;"
+           id="ts-lede"></p>
+        <div id="ts-mx"></div>
+      </div>
+      <div style="padding:0 16px 12px;display:flex;flex-wrap:wrap;align-items:center;" id="ts-lg"></div>
+      <div id="ts-sel" hidden></div>
+      <div class="ov-item" style="background:var(--surface2);">
+        <div class="ov-name" style="font-size:15px;color:var(--text2);" id="ts-foot"></div>
+        <span class="go-link" onclick="tsToggle()">${
+          TAUGHT.open ? 'Hide the table' : 'Show all as a table →'}</span>
+      </div>
+      <div id="ts-tbl" ${TAUGHT.open ? '' : 'hidden'}></div>
     </div>`;
+}
+
+// Drawn after the card's HTML is in the document, the same way the analytics
+// pages draw into a box they were handed.
+function tsDraw(){
+  const box = document.getElementById('ts-mx');
+  if(!box || !TAUGHT.loaded) return;
+  const list = tsStudents();
+  if(!list.length) return;
+  const offs = tsOfferings(list);
+
+  const ink = ovVar('--text'), ink3 = ovVar('--text3');
+  const ln = ovVar('--border-em'), sf = ovVar('--surface');
+  const LBL = 150, NW = 104, CW = 56, CH = 42, GAP = 46, TOP = 66, BARW = 56;
+  const AW = TS_COHORTS.length * CW, BW = TS_PROGS.length * CW, DW = TS_ADVS.length * CW;
+  const NX = LBL + 14, AX = LBL + NW, BX = AX + AW + GAP, DX = BX + BW + GAP;
+  const W = DX + DW + 8, H = TOP + offs.length * CH + 10;
+
+  let MAX = 1, MAXN = 1;
+  offs.forEach(o => {
+    MAXN = Math.max(MAXN, o.students.length);
+    TS_COHORTS.forEach(c => MAX = Math.max(MAX, o.students.filter(s => s.cohort === c).length));
+    TS_PROGS.forEach(p => MAX = Math.max(MAX, o.students.filter(s => s.decl.includes(p)).length));
+    TS_ADVS.forEach(([k]) => MAX = Math.max(MAX, o.students.filter(s => s.adv === k).length));
+  });
+  const shade = v => 0.10 + 0.90 * (v / MAX);
+
+  const svg = ovEl('svg', { viewBox:`0 0 ${W} ${H}`, width:'100%', style:`max-width:${W}px` });
+  const head = (x, w, label) => svg.appendChild(ovEl('text', { x:x + w/2, y:22,
+    'text-anchor':'middle', 'font-size':13, 'font-weight':600, fill:ink3,
+    'letter-spacing':'0.06em' }, label));
+  head(NX, BARW, 'STUDENTS');
+  head(AX, AW, 'COHORT');
+  head(BX, BW, 'PROGRAMME DECLARED');
+  head(DX, DW, 'ADVISED BY');
+  svg.appendChild(ovEl('text', { x:LBL - 14, y:22, 'text-anchor':'end', 'font-size':13,
+    'font-weight':600, fill:ink3, 'letter-spacing':'0.06em' }, 'MY COURSE'));
+  svg.appendChild(ovEl('text', { x:LBL - 14, y:44, 'text-anchor':'end', 'font-size':13,
+    fill:ink3 }, 'one row per offering ↓'));
+
+  TS_COHORTS.forEach((c, j) => svg.appendChild(ovEl('text', { x:AX + j*CW + CW/2, y:50,
+    'text-anchor':'middle', 'font-size':13.5, 'font-family':'DM Mono, monospace',
+    fill:ink3, 'font-weight':600 }, c)));
+  TS_PROGS.forEach((p, j) => svg.appendChild(ovEl('text', { x:BX + j*CW + CW/2, y:50,
+    'text-anchor':'middle', 'font-size':13.5, 'font-family':'DM Mono, monospace',
+    fill:ovVar(TS_SCH[p]), 'font-weight':600 }, p)));
+  // 'Me' wears the accent because it is the one column about the reader; the
+  // others are states of the world.
+  TS_ADVS.forEach(([k, lbl], j) => svg.appendChild(ovEl('text', { x:DX + j*CW + CW/2, y:50,
+    'text-anchor':'middle', 'font-size': lbl.length > 6 ? 12 : 13,
+    'font-family':'DM Mono, monospace', 'font-weight':600,
+    fill: k === 'mine' ? ovVar('--blue') : ink3 }, lbl)));
+
+  const cell = (x, y, sub, title, ctx) => {
+    const v = sub.length, g = ovEl('g', v ? { style:'cursor:pointer' } : {});
+    g.appendChild(ovEl('rect', { x:x+1, y:y+1, width:CW-2, height:CH-2, rx:3,
+      fill: v ? ink : sf, 'fill-opacity': v ? shade(v) : 1,
+      stroke: v ? 'none' : ln, 'stroke-width':1 }));
+    g.appendChild(ovEl('text', { x:x + CW/2, y:y + CH/2, 'text-anchor':'middle',
+      'dominant-baseline':'middle', 'font-size': v ? 16 : 13,
+      'font-family':'DM Mono, monospace', 'font-weight': v ? 500 : 400,
+      fill: v ? (shade(v) > 0.55 ? '#fff' : ink) : ink3 }, v ? String(v) : '·'));
+    if(v){
+      g.appendChild(ovEl('title', {}, `${title} · ${ctx} · ${v} student${v===1?'':'s'}`));
+      g.addEventListener('click', () => tsSel(title, ctx, sub));
+    }
+    svg.appendChild(g);
+  };
+
+  offs.forEach((o, i) => {
+    const y = TOP + i * CH;
+    svg.appendChild(ovEl('text', { x:LBL - 14, y:y + CH/2 - 6, 'text-anchor':'end',
+      'dominant-baseline':'middle', 'font-size':15.5, fill:ink, 'font-weight':600 }, o.label));
+    svg.appendChild(ovEl('text', { x:LBL - 14, y:y + CH/2 + 11, 'text-anchor':'end',
+      'dominant-baseline':'middle', 'font-size':12.5, 'font-family':'DM Mono, monospace',
+      fill:ink3 }, o.term));
+    // The row total used to live inside the label as "n=29", where it could be
+    // read but not compared. These offerings run from 1 student to 29 and that
+    // spread is the first thing about them, so the bar carries the comparison
+    // and the number stays for the exact value.
+    const n = o.students.length;
+    svg.appendChild(ovEl('rect', { x:NX, y:y + CH/2 - 4, width:BARW, height:8, rx:4,
+      fill:ink, 'fill-opacity':0.07 }));
+    svg.appendChild(ovEl('rect', { x:NX, y:y + CH/2 - 4, width:Math.max(3, BARW * n / MAXN),
+      height:8, rx:4, fill:ovVar('--blue') }));
+    svg.appendChild(ovEl('text', { x:NX + BARW + 10, y:y + CH/2, 'dominant-baseline':'middle',
+      'font-size':15, 'font-family':'DM Mono, monospace', 'font-weight':500, fill:ink },
+      String(n)));
+
+    TS_COHORTS.forEach((c, j) =>
+      cell(AX + j*CW, y, o.students.filter(s => s.cohort === c), o.key, 'cohort ' + c));
+    TS_PROGS.forEach((p, j) =>
+      cell(BX + j*CW, y, o.students.filter(s => s.decl.includes(p)), o.key, p));
+    TS_ADVS.forEach(([k], j) =>
+      cell(DX + j*CW, y, o.students.filter(s => s.adv === k), o.key,
+        { mine:'advised by me', other:'advised by another faculty member',
+          interim:'held on an interim assignment', none:'no advisor assigned' }[k]));
+  });
+
+  box.innerHTML = ''; box.appendChild(svg);
+
+  const ramp = [1,2,3,4,5,6].map(i => {
+    const v = Math.round(MAX * i / 6);
+    return `<span style="display:inline-block;width:22px;height:13px;background:${ink};opacity:${
+      shade(v).toFixed(2)};"></span>`;
+  }).join('');
+  const declSum = list.reduce((n, s) => n + s.decl.length, 0);
+  const lg = document.getElementById('ts-lg');
+  if(lg) lg.innerHTML =
+    `<span class="ov-i" style="gap:8px;">students&nbsp;1${ramp}${MAX}</span>` +
+    `<span class="ov-i">${declSum} declarations across ${list.length} students: the right panel
+      counts primary, second and minor alike, so it sums past the row totals.</span>`;
+
+  // Every sentence that names a number is generated, the rule this page's
+  // sibling states for itself.
+  const latest = offs.map(o => o.term).sort((a,b) => tsKey(b) - tsKey(a))[0];
+  const nowN = new Set(offs.filter(o => o.term === latest)
+    .flatMap(o => o.students.map(s => s.id))).size;
+  const mine = list.filter(s => s.adv === 'mine').length;
+  const noadv = list.filter(s => s.adv === 'none').length;
+  const repeat = list.filter(s => s.courses.length > 1).length;
+  const lede = document.getElementById('ts-lede');
+  if(lede) lede.textContent =
+    `Click any cell for the students in it. ${nowN} of these ${list.length} are in a room with me` +
+    ` this term (${latest}); ${repeat} have taken more than one of my courses. ${mine} are already` +
+    ` my advisees and ${noadv} have no advisor at all.`;
+  const foot = document.getElementById('ts-foot');
+  if(foot) foot.textContent = `All ${list.length} students, ${offs.length} offerings, ${
+    latest} back to ${offs.map(o => o.term).sort((a,b) => tsKey(a) - tsKey(b))[0]}`;
+
+  if(TAUGHT.open) tsTable();
+}
+
+function tsSel(title, ctx, sub){
+  const p = document.getElementById('ts-sel');
+  if(!p) return;
+  p.hidden = false;
+  // The whole declaration, not just the primary: a student reached through the
+  // NS column because NS is their minor would otherwise be labelled DSAI, and
+  // the cell they were clicked out of looks wrong.
+  const chips = sub.slice(0, 40).map(s =>
+    `<span class="ov-chip2" onclick="goPage('students');selectStud('${esc(s.id)}')">
+       <u>${esc(s.name)}</u><em>${esc(s.cohort)} · ${
+         s.decl.length ? esc(s.decl.join('/')) : 'not declared'}</em></span>`).join('');
+  p.innerHTML =
+    `<div class="ov-selh"><strong>${esc(title)}</strong> · ${esc(ctx)} · ${sub.length}
+       student${sub.length === 1 ? '' : 's'}
+       <button class="ov-x" onclick="document.getElementById('ts-sel').hidden=true">Close</button></div>
+     <div class="ov-chips">${chips}${sub.length > 40
+       ? `<span class="ov-chip2"><em>+${sub.length - 40} more</em></span>` : ''}</div>`;
+}
+
+function tsToggle(){ TAUGHT.open = !TAUGHT.open; renderOverview(); }
+function tsSort(k){
+  if(TAUGHT.sortBy === k) TAUGHT.sortDir = -TAUGHT.sortDir;
+  else { TAUGHT.sortBy = k; TAUGHT.sortDir = 1; }
+  tsTable();
+}
+
+const TS_COLS = [
+  ['name',   'Student',    r => r.name],
+  ['cohort', 'Cohort',     r => r.cohort],
+  ['prog',   'Programme',  r => r.decl.join(' · ') || ' '],
+  ['adv',    'Advised by', r => ({ mine:'0', other:'1', interim:'2', none:'3' })[r.adv]],
+  ['off',    'Offerings',  r => String(100 - r.courses.length).padStart(3, '0')],
+];
+
+function tsTable(){
+  const box = document.getElementById('ts-tbl');
+  if(!box) return;
+  const get = TS_COLS.find(c => c[0] === TAUGHT.sortBy)[2];
+  const rows = tsStudents().sort((a, b) =>
+    String(get(a)).localeCompare(String(get(b)), undefined, { numeric:true }) * TAUGHT.sortDir
+    || a.name.localeCompare(b.name));
+  const LBL = { mine:'Me', other:'Another', interim:'Interim', none:'Nobody' };
+  box.innerHTML = `
+    <table class="ts-tbl">
+      <thead><tr>${TS_COLS.map(([k, lbl]) =>
+        `<th onclick="tsSort('${k}')">${lbl}${TAUGHT.sortBy === k
+          ? `<span style="color:var(--blue);margin-left:4px;">${
+              TAUGHT.sortDir > 0 ? '↑' : '↓'}</span>` : ''}</th>`).join('')}
+      </tr></thead>
+      <tbody>${rows.map(r => `
+        <tr onclick="goPage('students');selectStud('${esc(r.id)}')">
+          <td style="font-weight:500;">${esc(r.name)}</td>
+          <td class="ts-mono">${esc(r.cohort)}</td>
+          <td>${r.decl.length ? esc(r.decl.join(' · '))
+                : '<span style="color:var(--text3)">not declared</span>'}</td>
+          <td>${r.adv === 'mine' ? '<span class="bdg bdg-green">Me</span>'
+                : `<span style="color:var(--text2)">${LBL[r.adv]}</span>`}</td>
+          <td>${r.courses.slice().sort((a,b) => tsKey(b.term_label) - tsKey(a.term_label))
+                .map(c => `<span class="ts-off">${esc(c.offering)} ${
+                  esc((c.term_label || '').split(' ')[1] || '')}</span>`).join('')}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
 }
 
 // ── OVERVIEW ──
@@ -3153,8 +3414,8 @@ function ovAdviseeHome() {
           <span class="go-link" onclick="goToLog('${s.logId}')">View →</span>
         </div>`).join('') : '<div class="ov-item"><div class="text-muted">No sessions recorded yet</div></div>'}
       </div>
-      ${ovTaughtCard()}
     </div>
+    ${ovTaughtCard()}
 `;
 }
 
@@ -3434,7 +3695,9 @@ function ovRenderBody(){
   if(!b) return;
   // Fired here rather than at sign-in: an account that never opens My Advising
   // never pays for the query, and the card redraws itself when it lands.
-  if(OV.page === 'advisees'){ taughtLoad(); b.innerHTML = ovAdviseeHome(); return; }
+  if(OV.page === 'advisees'){
+    taughtLoad(); b.innerHTML = ovAdviseeHome(); tsDraw(); return;
+  }
   if(OV.page === 'chair'   ){ b.innerHTML = renderProgramSummary(); return; }
   // Reads its own view rather than the registry, so like the two pages below
   // it must not wait on v_student_credit_progress.
