@@ -176,6 +176,13 @@ button,input,select,textarea{font-family:inherit;}
 .fta::placeholder{color:var(--text3);}
 .fta-lbl{font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
 .sc-foot{padding:9px 14px;background:var(--surface2);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+/* One save for the whole profile, pinned to the bottom while anything is unsaved */
+.psave{position:sticky;bottom:12px;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--teal-b);border-radius:var(--r-lg);padding:10px 14px;margin-top:12px;box-shadow:0 3px 14px rgba(0,0,0,.10);}
+.psave-txt{font-size:15px;color:var(--text2);}
+.psave-txt b{font-weight:600;color:var(--teal);}
+.psave-btns{display:flex;align-items:center;gap:10px;}
+.psave-discard{font-size:14px;color:var(--text3);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;}
+.psave-discard:hover{color:var(--text2);}
 .char-c{font-size:12px;color:var(--text3);}
 .save-status{font-size:14px;color:var(--accent);font-weight:500;}
 
@@ -1186,6 +1193,12 @@ async function sbGet(table, params='') {
 async function sbPatch(table,col,val,row){
   const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${encodeURIComponent(val)}`,{method:'PATCH',headers:sbHeaders(),body:JSON.stringify(row)});
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||`PATCH failed: ${r.status}`);}
+  // Every request asks for return=representation, so a PATCH that matched no
+  // row comes back 200 with []. Row security refusing a write looks exactly
+  // like this. Reporting it as a save is how writing silently goes nowhere.
+  const body=await r.json().catch(()=>null);
+  if(Array.isArray(body)&&body.length===0) throw new Error('Nothing was saved - the record was not found, or the database refused the change');
+  return body;
 }
 async function sbInsert(table,row){
   const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{method:'POST',headers:sbHeaders(),body:JSON.stringify(row)});
@@ -1377,6 +1390,7 @@ async function loadData(){
     const rows=await sbGet(TBL_STUDENTS,`email=eq.${encodeURIComponent(email)}&select=*`);
     if(!rows.length) throw new Error('Student record not found for '+email);
     studentData=rows[0];
+    profileDraft={};
     const sid=studentData.id;
 
     // 2. 병렬 로드
@@ -3155,6 +3169,25 @@ function openMeetingHistoryFromOverview(meetingId){
 }
   
 // ── MY PROFILE ──
+// Chips and typing stay here until Save is pressed. They used to be written
+// straight into studentData, which made an unsaved section come back from
+// another tab looking Filled with Save greyed out - while the text, held
+// nowhere at all, quietly disappeared on the way. Filled now means what the
+// database holds, and anything unsaved says so.
+let profileDraft = {};   // { key: {tags, text} }
+
+function draftFor(key){
+  const f=PROFILE_FIELDS.find(x=>x.key===key);
+  if(!profileDraft[key]) profileDraft[key]={tags:(studentData[f.tags]||[]).slice(),
+                                            text:studentData[f.text]||''};
+  return profileDraft[key];
+}
+function markUnsaved(key){
+  const status=document.getElementById('status-'+key);
+  if(status) status.textContent='Unsaved';
+  updateSaveBar();
+}
+
 function calcProfilePct(s){
   const filled=PROFILE_FIELDS.filter(f=>isFilled(s,f)).length;
   return Math.round(filled/PROFILE_FIELDS.length*100);
@@ -3207,8 +3240,9 @@ function renderProfile(){
   const sectionCards=PROFILE_FIELDS.map((f,i)=>{
     const filled=isFilled(s,f);
     const isActive=!filled&&PROFILE_FIELDS.slice(0,i).every(pf=>isFilled(s,pf));
-    const tags=s[f.tags]||[];
-    const text=s[f.text]||'';
+    const draft=profileDraft[f.key];
+    const tags=draft?draft.tags:(s[f.tags]||[]);
+    const text=draft?draft.text:(s[f.text]||'');
     const dotCls=filled?'sd-done':isActive?'sd-active':'sd-todo';
     const hdrCls=filled?'filled-bg':isActive?'active-bg':'';
     const cardCls=filled?'filled':'';
@@ -3238,10 +3272,7 @@ function renderProfile(){
       </div>
       <div class="sc-foot">
         <span class="char-c" id="char-${f.key}">${text.length} characters</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span class="save-status" id="status-${f.key}"></span>
-          <button class="btn-sm-teal" id="btn-${f.key}" disabled onclick="saveSection('${f.key}','${f.tags}','${f.text}')">Save</button>
-        </div>
+        <span class="save-status" id="status-${f.key}">${draft?'Unsaved':''}</span>
       </div>
     </div>`;
   }).join('');
@@ -3260,17 +3291,69 @@ function renderProfile(){
         </div>
       </div>
       <div>${sectionCards}</div>
+    </div>
+    <div class="psave" id="psave">
+      <span class="psave-txt" id="psave-txt"></span>
+      <div class="psave-btns">
+        <button class="psave-discard" onclick="discardProfileChanges()">Discard changes</button>
+        <button class="btn-sm-teal" id="psave-btn" onclick="saveProfile()">Save changes</button>
+      </div>
     </div>`;
+  updateSaveBar();
+}
+
+// The bar is the only save on this page. Section-by-section saving let a
+// student fill in four cards, press Save on one, and leave believing the rest
+// had gone in - which is exactly what happened.
+function updateSaveBar(){
+  const bar=document.getElementById('psave');
+  if(!bar) return;
+  const n=Object.keys(profileDraft).length;
+  const btn=document.getElementById('psave-btn');
+  const txt=document.getElementById('psave-txt');
+  const dis=bar.querySelector('.psave-discard');
+  if(btn){btn.textContent='Save changes';btn.disabled=n===0;}
+  if(dis) dis.hidden=n===0;
+  if(txt) txt.innerHTML = n===0 ? 'All changes saved'
+    : n===1 ? `<b>1 section</b> has unsaved changes`
+            : `<b>${n} sections</b> have unsaved changes`;
+}
+
+async function saveProfile(){
+  const keys=Object.keys(profileDraft);
+  if(!keys.length) return;
+  const btn=document.getElementById('psave-btn');
+  const patch={};
+  keys.forEach(k=>{
+    const f=PROFILE_FIELDS.find(x=>x.key===k);
+    patch[f.tags]=profileDraft[k].tags;
+    patch[f.text]=(profileDraft[k].text||'').trim();
+  });
+  if(btn){btn.textContent='Saving…';btn.disabled=true;}
+  try{
+    await sbPatch(TBL_STUDENTS,'id',studentData.id,patch);
+    Object.assign(studentData,patch);
+    profileDraft={};
+    showToast('Profile saved');
+    renderProfile();
+    renderOverview();
+  }catch(e){
+    if(btn){btn.textContent='Save changes';btn.disabled=false;}
+    showToast('Not saved: '+e.message);
+  }
+}
+
+function discardProfileChanges(){
+  if(!Object.keys(profileDraft).length) return;
+  if(!confirm('Discard the changes you have not saved?')) return;
+  profileDraft={};
+  renderProfile();
 }
 
 function toggleChip(key,tagsCol,el,val){
   el.classList.toggle('on');
-  const tags=Array.from(document.querySelectorAll(`#sec-${key} .chip.on`)).map(c=>c.textContent.trim());
-  studentData[tagsCol]=tags;
-  const btn=document.getElementById('btn-'+key);
-  const status=document.getElementById('status-'+key);
-  if(btn) btn.disabled=false;
-  if(status) status.textContent='Unsaved';
+  draftFor(key).tags=Array.from(document.querySelectorAll(`#sec-${key} .chip.on`)).map(c=>c.textContent.trim());
+  markUnsaved(key);
   applyStarter(key,val,el.classList.contains('on'));
 }
 
@@ -3295,39 +3378,16 @@ function applyStarter(key,chip,on){
   // Six starters do not fit three rows. Grow the box to what it now holds.
   ta.style.height='auto';
   ta.style.height=(ta.scrollHeight+2)+'px';   // +2 for the border-box border
+  draftFor(key).text=ta.value;
   const counter=document.getElementById('char-'+key);
   if(counter) counter.textContent=`${ta.value.length} characters`;
 }
 
 function onTextInput(key,textCol,ta){
-  const btn=document.getElementById('btn-'+key);
+  draftFor(key).text=ta.value;
   const counter=document.getElementById('char-'+key);
-  const status=document.getElementById('status-'+key);
   if(counter) counter.textContent=`${ta.value.length} characters`;
-  if(btn) btn.disabled=false;
-  if(status) status.textContent='Unsaved';
-}
-
-async function saveSection(key,tagsCol,textCol){
-  const ta=document.getElementById('fta-'+key);
-  const btn=document.getElementById('btn-'+key);
-  const status=document.getElementById('status-'+key);
-  const tags=studentData[tagsCol]||[];
-  const text=ta?.value.trim()||'';
-  if(btn){btn.textContent='Saving…';btn.disabled=true;}
-  try{
-    await sbPatch(TBL_STUDENTS,'id',studentData.id,{[tagsCol]:tags,[textCol]:text});
-    studentData[tagsCol]=tags;
-    studentData[textCol]=text;
-    if(btn){btn.textContent='Save';btn.disabled=true;}  // ← 추가 (저장 완료 후 변경 없으므로 disabled 유지)
-    if(status){status.textContent='Saved ✓';setTimeout(()=>{status.textContent='';},2500);}
-    showToast('Saved');
-    // 프로필 완성도 갱신
-    renderOverview();
-  }catch(e){
-    if(status) status.textContent=`Failed: ${e.message}`;
-    if(btn){btn.textContent='Save';btn.disabled=false;}
-  }
+  markUnsaved(key);
 }
 
 // ── MEETINGS ──
