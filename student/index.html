@@ -124,7 +124,7 @@ button,input,select,textarea{font-family:inherit;}
 .prog-pct{font-size:17px;font-weight:600;color:var(--accent);}
 .prog-track{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-bottom:12px;}
 .prog-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s;}
-.step-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
+.step-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:6px;}
 .step-item{display:flex;flex-direction:column;align-items:center;gap:5px;}
 .step-dot{width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;}
 .sd-done{background:var(--teal-l);color:var(--teal);}
@@ -1044,6 +1044,19 @@ const PROFILE_FIELDS = [
     chips:['Build something of my own','Work in global organizations','Academic / research career','Social / public impact','Return to my home country','Lead a team or organization','Live and work internationally','Still figuring it out'] },
   { key:'career',   tags:'career_goal_tags',          text:'career_goal_text',          label:'Career goal',             theory:'Self-Determination Theory',    hint:'What kind of work do you want to do, and where?',
     chips:['AI / ML engineer','Product manager','Data scientist','Researcher','Entrepreneur','Consultant','Policy / public sector','Not sure yet'] },
+  // Selecting a path writes an opening sentence into the box below it. Students
+  // stall on the blank textarea more than on the choice itself; the starter is
+  // theirs to overwrite, and unselecting the chip takes its line back out.
+  { key:'postgrad', tags:'post_grad_tags',              text:'post_grad_text',            label:'Path after graduation',    theory:'Career Construction Theory',   hint:'Which paths are you considering after you graduate? Pick every one you are weighing.',
+    chips:['Ph.D.',"Master's / MBA",'Global company','International org / NGO','Startup','Other'],
+    starters:{
+      'Ph.D.':"I want to continue to a Ph.D., and the research I would want to pursue is ___.",
+      "Master's / MBA":"I plan to apply to a master's or MBA program, most likely in ___.",
+      'Global company':"I want to begin my career at a global company, working in ___.",
+      'International org / NGO':"I want to work at an international organization or NGO on ___.",
+      'Startup':"I want to build something of my own, and the problem I would start with is ___.",
+      'Other':"The path I have in mind after graduation is ___.",
+    } },
   { key:'research', tags:'research_interest_tags',     text:'research_interest_text',    label:'Research interest',        theory:'Inquiry-Based Learning',       hint:'What topics or questions do you find yourself reading about?',
     chips:['NLP / LLMs','Computer vision','AI ethics','Data visualization','Social science × data','Climate / sustainability','Finance / markets','Healthcare AI','Policy & governance'] },
   { key:'exp',      tags:'experiences_tags',           text:'experiences_text',          label:'Significant experiences',  theory:'Experiential Learning · Kolb', hint:'What experiences have shaped how you think or what you care about?',
@@ -2729,6 +2742,7 @@ function reqNoteAuthor(n){
 }
 
 const STU_PROFILE_LABEL = {vision:'My Mission', career:'Career goal',
+  postgrad:'Path after graduation',
   research:'Research interest', exp:'Significant experiences',
   strength:'Strengths', concerns:'Concerns & support needed'};
 
@@ -3257,6 +3271,32 @@ function toggleChip(key,tagsCol,el,val){
   const status=document.getElementById('status-'+key);
   if(btn) btn.disabled=false;
   if(status) status.textContent='Unsaved';
+  applyStarter(key,val,el.classList.contains('on'));
+}
+
+// One line per selected chip. Added when the chip goes on, removed when it goes
+// off, and matched by exact line so anything the student wrote is left alone.
+function applyStarter(key,chip,on){
+  const f=PROFILE_FIELDS.find(x=>x.key===key);
+  const line=f&&f.starters&&f.starters[chip];
+  const ta=document.getElementById('fta-'+key);
+  if(!line||!ta) return;
+  let lines=ta.value.split('\n');
+  const at=lines.findIndex(l=>l.trim()===line);
+  if(on){
+    if(at>=0) return;
+    if(ta.value.trim()==='') lines=[line];
+    else lines.push(line);
+  }else{
+    if(at<0) return;
+    lines.splice(at,1);
+  }
+  ta.value=lines.join('\n').replace(/^\n+/,'').replace(/\n+$/,'');
+  // Six starters do not fit three rows. Grow the box to what it now holds.
+  ta.style.height='auto';
+  ta.style.height=(ta.scrollHeight+2)+'px';   // +2 for the border-box border
+  const counter=document.getElementById('char-'+key);
+  if(counter) counter.textContent=`${ta.value.length} characters`;
 }
 
 function onTextInput(key,textCol,ta){
