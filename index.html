@@ -852,13 +852,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 /* ── Advisor Assignment ───────────────────────────────────────────────────
    A chair's worklist for the students who have no Advisor 1. Everything here
    is new; the sizes are taken from the rules above rather than invented. */
-.aa-src{background:var(--surface2);border:1px solid var(--border-em);border-radius:var(--r);
-  padding:14px 18px;margin:26px 0 0;font-size:15.5px;color:var(--text2);line-height:1.65;}
-.aa-src h4{font-size:12.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
   color:var(--text3);margin:0 0 8px;}
-.aa-src dl{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;margin:0;}
-.aa-src dt{font-family:'DM Mono',monospace;font-size:13.5px;color:var(--text);white-space:nowrap;}
-.aa-src dd{margin:0;}
 
 /* The two lists are one comparison, so they share a bottom edge and the
    advisor rows take the slack rather than leaving it under them. */
@@ -914,6 +908,18 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .aa-row{display:flex;align-items:center;gap:12px;padding:10px 16px;
   border-bottom:1px solid var(--border);cursor:pointer;}
 .aa-row:last-child{border-bottom:none;}
+/* Open, the row hands its rule to the panel below so the two read as one. */
+.aa-row.open{border-bottom:none;}
+.aa-exp-b{flex:0 0 auto;width:22px;height:22px;border-radius:5px;display:flex;
+  align-items:center;justify-content:center;color:var(--text3);font-size:11px;
+  line-height:1;cursor:pointer;transition:transform .15s,background .12s;}
+.aa-exp-b:hover{background:var(--surface3);color:var(--text);}
+.aa-exp-b.on{transform:rotate(180deg);color:var(--text2);}
+.aa-exp{padding:2px 16px 13px 47px;border-bottom:1px solid var(--border);
+  background:var(--surface2);}
+.aa-exp-n{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);
+  line-height:1.6;margin-top:7px;}
+.aa-exp-n span{color:var(--text2);}
 .aa-row:hover{background:var(--surface2);}
 .aa-row.sel{background:var(--blue-l);}
 .aa-row.pend{background:var(--amber-l);}
@@ -963,6 +969,19 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .aa-fn{flex:1;min-width:0;}
 .aa-fn u{text-decoration:none;display:block;font-size:17px;color:var(--text);}
 .aa-fn small{display:block;font-size:13.5px;color:var(--text3);margin-top:2px;}
+/* Topics, on an advisor or on a student. One weight for all of them: fill and
+   outline already mean first and second major on the chips in the queue rows,
+   and a second meaning for the same signal on the same screen is a trap. Blue
+   is the one distinction, and it earns it - it means somebody open in this
+   band named that topic. */
+.aa-tp{display:flex;flex-wrap:wrap;gap:4px;margin:-2px 0 11px;}
+.aa-tp span{font-size:11.5px;line-height:1.3;padding:2px 8px;border-radius:20px;
+  white-space:nowrap;background:var(--surface3);color:var(--text3);
+  border:1px solid transparent;cursor:default;}
+.aa-tp span.hit{background:var(--blue-l);color:var(--blue);border-color:var(--blue-b);
+  font-weight:500;}
+.aa-exp-c{font-size:10.5px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text3);margin:9px 0 5px;}
 .aa-lbar{height:11px;border-radius:6px;background:var(--surface3);overflow:hidden;
   display:flex;position:relative;}
 .aa-lnow{height:100%;background:var(--blue-m);}
@@ -5537,6 +5556,8 @@ const AA = {
   taught: new Map(),          // student id -> [{email, courses[], lastKey}] strongest first
   topics: new Map(),          // advisor email -> [{topic_key, facet, evidence}]
   labels: new Map(),          // topic key -> label, for the words on the row
+  facets: new Map(),          // topic key -> subject | approach, to group them
+  open:   new Set(),          // rows expanded to show what the student said
 };
 
 const AA_TARGET = 16;   // advisees a programme is willing to let one person carry
@@ -5630,9 +5651,10 @@ async function aaLoadRules(){
         + `&select=student_id,faculty_email,offering,term_label&${OV_LIMIT}`)
         .catch(e => { console.warn('taught history unavailable:', e.message); return null; }) : [],
     sbGet('v_faculty_topics',
-        `faculty_email=in.(${list(bench)})&select=faculty_email,topic_key,facet,evidence`)
+        `faculty_email=in.(${list(bench)})&select=faculty_email,topic_key,facet,evidence,rank`
+        + `&order=facet.desc,rank.asc`)
         .catch(e => { console.warn('advisor topics unavailable:', e.message); return null; }),
-    sbGet('advising_topics', `active=eq.true&select=key,label`)
+    sbGet('advising_topics', `active=eq.true&select=key,label,facet`)
         .catch(() => null),
   ]);
 
@@ -5666,6 +5688,7 @@ async function aaLoadRules(){
   })();
 
   AA.labels = new Map((labels || []).map(t => [t.key, t.label]));
+  AA.facets = new Map((labels || []).map(t => [t.key, t.facet]));
 }
 
 // ── the bench ────────────────────────────────────────────────────────────
@@ -5924,13 +5947,55 @@ function aaRows(){
     const chips = r.major1
       ? aaChip(r.major1, 1) + aaChip(r.major2, 2) + aaChip(r.minor, 3)
       : `<span class="cp r3" style="color:var(--text3);border-color:var(--text3);">none</span>`;
-    return `<div class="aa-row ${cls}" onclick="aaToggle('${esc(id)}')">
+    const open = AA.open.has(id);
+    return `<div class="aa-row ${cls}${open ? ' open' : ''}" onclick="aaToggle('${esc(id)}')">
       <div class="aa-ck">${tick}</div>
       <div class="aa-nm"><u>${esc(r.student_name)}</u><small>${esc(id)} · ${esc(shortCohort(r.cohort))}</small></div>
       <div class="aa-cps">${chips}</div>
       ${aaRowTag(r)}
-    </div>`;
+      <div class="aa-exp-b${open ? ' on' : ''}" onclick="aaExpand(event,'${esc(id)}')"
+        title="What this student said about themselves">▾</div>
+    </div>${open ? aaRowDetail(r) : ''}`;
   }).join('');
+}
+
+// The row itself is the tick - a chair works through these in runs - so the
+// expander is its own control and stops the click getting that far.
+function aaExpand(ev, id){
+  ev.stopPropagation();
+  AA.open.has(id) ? AA.open.delete(id) : AA.open.add(id);
+  renderOverview();
+}
+
+// The evidence rules 2 and 3 actually ran on, in full rather than the one word
+// the row has space for. Behind a click because thirteen rows of this at once
+// is a wall.
+function aaRowDetail(r){
+  const tags   = r.interest_tags || [];
+  const taught = (AA.taught && AA.taught.get(String(r.student_id))) || [];
+  // Grouped under the same two words the student saw when they chose, rather
+  // than distinguished by the weight of the pill: fill already means first
+  // major on the chips in the row above this one.
+  const group = (facet, caption) => {
+    const list = tags.filter(k => AA.facets.get(k) === facet);
+    return list.length ? `<div class="aa-exp-c">${caption}</div><div class="aa-tp">${
+      list.map(k => `<span>${esc(AA.labels.get(k) || k)}</span>`).join('')}</div>` : '';
+  };
+  // A key with no facet is a retired topic. It still belongs to the student, so
+  // it is shown rather than dropped, just without a heading to sit under.
+  const orphans = tags.filter(k => !AA.facets.has(k));
+  const pills  = tags.length
+    ? group('subject', 'Subjects') + group('approach', 'How they work')
+      + (orphans.length ? `<div class="aa-tp">${orphans.map(k =>
+          `<span>${esc(k)}</span>`).join('')}</div>` : '')
+    // Not a shrug. It says which rules can still reach this student, which is
+    // the question a chair looking at an empty profile is actually asking.
+    : `<div class="aa-exp-n">Nothing on their profile yet — only continuity, teaching and load can place them.</div>`;
+  const met = taught.length
+    ? `<div class="aa-exp-n">Taught by ${taught.map(t =>
+        `${esc(aaLastName(t.email))} <span>(${esc(t.courses.join(', '))})</span>`).join(' · ')}</div>`
+    : '';
+  return `<div class="aa-exp">${pills}${met}</div>`;
 }
 
 // Three different nothings, and they are not interchangeable. "Nothing
@@ -5959,8 +6024,37 @@ function aaEmpty(){
     <p>The counts above say which band has the work.</p></div>`;
 }
 
+// Topics anyone still open in this band actually named. Without it the pills
+// below are decoration: a chair reads six words per advisor and skims past.
+// With it the bench becomes a map of where this band's students point.
+function aaWanted(){
+  const w = new Set();
+  aaOpen(AA.band).forEach(r => (r.interest_tags || []).forEach(k => w.add(k)));
+  return w;
+}
+// Three, strongest first, and the rest counted rather than listed - somebody
+// who teaches six courses would otherwise fill the row.
+//
+// Every pill has the same weight. An earlier version filled the subjects and
+// outlined the approaches, which collided with the programme chips two lines
+// above, where fill already means first major and outline means second. One
+// signal, one meaning, on one screen; the subjects come first in the order and
+// that is enough here, because which axis a topic sits on is not what a chair
+// is deciding on.
+function aaTopicPills(f, wanted){
+  const list = (AA.topics && AA.topics.get(f.email)) || [];
+  if(!list.length) return '';
+  const shown = list.slice(0, 3), extra = list.length - shown.length;
+  return `<div class="aa-tp">${shown.map(t =>
+    `<span class="${wanted.has(t.topic_key) ? 'hit' : ''}"
+       title="${esc(t.evidence || 'set by this advisor')}">${
+       esc(AA.labels.get(t.topic_key) || t.topic_key)}</span>`).join('')}${
+    extra ? `<span>+${extra}</span>` : ''}</div>`;
+}
+
 function aaBenchHtml(){
   const bench = aaBench();
+  const wanted = aaWanted();
   if(!bench.length) return `<div class="aa-empty"><div class="aa-empty-i mute">–</div>
     <h4>No advisors on file for this programme.</h4>
     <p>faculty_profiles lists nobody whose programme matches yours.</p></div>`;
@@ -5979,6 +6073,7 @@ function aaBenchHtml(){
         <button class="aa-btn ${AA.sel.size ? 'pri' : ''}" ${AA.sel.size && !AA.busy ? '' : 'disabled'}
           onclick="aaAssignTo('${f.email}')">${AA.sel.size ? `Assign ${AA.sel.size}` : 'Assign'}</button>
       </div>
+      ${aaTopicPills(f, wanted)}
       <div class="aa-lbar">
         <div class="aa-lnow" style="width:${wNow}%"></div>
         <div class="aa-ladd" style="width:${wAdd}%"></div>
@@ -6139,24 +6234,7 @@ function aaPage(b){
       </div>
     </div>
 
-    ${aaTray()}
-
-    <div class="aa-src">
-      <h4>What this screen reads and writes</h4>
-      <dl>
-        <dt>reads</dt><dd>v_advisor_queue for who needs an advisor, and faculty_profiles for
-          the bench. The queue&rsquo;s definition lives in the view, so this page and the database
-          cannot drift apart on who counts as unassigned.</dd>
-        <dt>writes</dt><dd>assign_advisor(), which checks the caller is the chair the rules
-          allow, updates students.advisor1 or advisor2 with the matching email, and records the
-          change — both in one transaction. Nothing here writes the students table directly.</dd>
-        <dt>grants</dt><dd>row-level access to the student record: the assignment is the
-          permission. It is granted on Apply, which is why Apply can be undone only while
-          nobody has been told.</dd>
-        <dt>sends</dt><dd>nothing. Announcing an assignment is outside this version; telling
-          the students is a chair&rsquo;s own email for now.</dd>
-      </dl>
-    </div>`;
+    ${aaTray()}`;
 }
 
 
