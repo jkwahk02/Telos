@@ -1054,9 +1054,33 @@ const CIVIC_RAISE_TERM = { year: 2026, season: 'Fall' };
 
 const PROFILE_FIELDS = [
   { key:'vision',   tags:'vision_tags',                text:'vision_text',               label:'My Mission',               theory:'Global Mission Alignment',     hint:'What kind of life, impact, or contribution do you imagine for yourself? What is your purpose?',
-    chips:['Build something of my own','Work in global organizations','Academic / research career','Social / public impact','Return to my home country','Lead a team or organization','Live and work internationally','Still figuring it out'] },
+    chips:['Build something of my own','Work in global organizations','Academic / research career','Social / public impact','Return to my home country','Lead a team or organization','Live and work internationally','Still figuring it out'],
+    // Every starter must be a DIFFERENT string. applyStarter finds its line by
+    // exact match, so two chips sharing a sentence would leave the second
+    // unable to add it and the first able to delete it out from under the other.
+    starters:{
+      'Build something of my own':    "I want to build something of my own, and the thing I would want it to change is ___.",
+      'Work in global organizations': "I want to work in a global organization, and what draws me to that scale is ___.",
+      'Academic / research career':   "I am drawn to an academic path, and the questions I would want to spend years on are ___.",
+      'Social / public impact':       "I want my work to matter publicly, and the problem I keep returning to is ___.",
+      'Return to my home country':    "I want to bring what I learn back home, and what I think is needed there is ___.",
+      'Lead a team or organization':  "I want to lead, and the kind of team I would want to build is ___.",
+      'Live and work internationally':"I want to live and work across countries, and the places I have in mind are ___.",
+      // The student who most needs a way in is the one who ticks this.
+      'Still figuring it out':        "I am still working out what I want, and what I do know is ___.",
+    } },
   { key:'career',   tags:'career_goal_tags',          text:'career_goal_text',          label:'Career goal',             theory:'Self-Determination Theory',    hint:'What kind of work do you want to do, and where?',
-    chips:['AI / ML engineer','Product manager','Data scientist','Researcher','Entrepreneur','Consultant','Policy / public sector','Not sure yet'] },
+    chips:['AI / ML engineer','Product manager','Data scientist','Researcher','Entrepreneur','Consultant','Policy / public sector','Not sure yet'],
+    starters:{
+      'AI / ML engineer':       "I want to build AI systems, and the kind of problem I would want to work on is ___.",
+      'Product manager':        "I want to shape products, and the product I wish existed is ___.",
+      'Data scientist':         "I want to work with data, and the questions I would want to answer are ___.",
+      'Researcher':             "I want to do research, and the field I would want to go deep in is ___.",
+      'Entrepreneur':           "I want to start something, and the problem I would start with is ___.",
+      'Consultant':             "I want to advise organizations, and the kind of problem I would want to be brought in on is ___.",
+      'Policy / public sector': "I want to work on policy, and the issue I care most about is ___.",
+      'Not sure yet':           "I have not settled on a direction, and what I am currently drawn to is ___.",
+    } },
   // Selecting a path writes an opening sentence into the box below it. Students
   // stall on the blank textarea more than on the choice itself; the starter is
   // theirs to overwrite, and unselecting the chip takes its line back out.
@@ -1082,7 +1106,24 @@ const PROFILE_FIELDS = [
   { key:'strength', tags:'strength_tags',              text:'strength_text',             label:'Strengths',                theory:'Strengths-Based Advising',     hint:'What do you do well, or what do others tend to rely on you for?',
     chips:['Analytical thinking','Communication','Coding / technical','Creativity','Cross-cultural fluency','Leadership','Perseverance','Systems thinking','Empathy','Fast learner'] },
   { key:'concerns', tags:'concerns_tags',              text:'concerns_text',             label:'Concerns & support needed',theory:'Person-Centered · Rogers',     hint:"What's making things harder right now?",
-    chips:['Workload / time management','Academic performance','Career uncertainty','Research direction','Financial pressure','Mental health / wellbeing','Relationships / belonging','Language / culture','Nothing major right now'] },
+    chips:['Workload / time management','Academic performance','Career uncertainty','Research direction','Financial pressure','Mental health / wellbeing','Relationships / belonging','Language / culture','Nothing major right now'],
+    // Openings only, never claims. The other sections say what the student
+    // wants; this one would otherwise have the app say how they are, and a
+    // sentence about somebody's mental health that they did not write is not a
+    // starter - it is words put in their mouth. So the three that touch money,
+    // health and belonging all open the same way: here is the floor, say as
+    // much or as little as you want.
+    starters:{
+      'Workload / time management':'What is taking most of my time right now is ___.',
+      'Academic performance':      'The course I am finding hardest is ___, and what makes it hard is ___.',
+      'Career uncertainty':        'What I am unsure about in my direction is ___.',
+      'Research direction':        'The research direction I am weighing is ___.',
+      'Financial pressure':        'What I would want my advisor to know about my situation is ___.',
+      'Mental health / wellbeing': 'What I would want my advisor to know about how I am doing is ___.',
+      'Relationships / belonging': 'What I would want my advisor to know about how I am settling in is ___.',
+      'Language / culture':        'The part I find hardest to follow is ___.',
+      'Nothing major right now':   'Things are steady at the moment. What I would still like to talk about is ___.',
+    } },
 ];
 
 const TZ_LIST = [
