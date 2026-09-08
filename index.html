@@ -948,6 +948,11 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .tg-done{background:var(--green-l);color:var(--green);}
 .aa-to{font-family:'DM Mono',monospace;font-size:13px;color:var(--blue);
   flex:0 0 auto;font-weight:500;}
+/* The rule that chose a name, beside the name it chose. Quiet on purpose: it
+   is provenance, not state, and the pill next to it is the state. */
+.aa-why{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);
+  flex:0 0 auto;white-space:nowrap;}
+@media (max-width:900px){.aa-why{display:none;}}
 
 /* Naming a person is not the same gesture as sending eleven students to them,
    so the name is not the click - the button is, and it says how many. */
@@ -987,6 +992,11 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .aa-rule b{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);
   flex:0 0 18px;padding-top:2px;}
 .aa-rule u{text-decoration:none;color:var(--text);}
+/* A rule whose evidence did not load is greyed, not removed. A card that had
+   four rules yesterday and two today reads as the chair's mistake. */
+.aa-rule.off{opacity:.45;}
+.aa-rule i{font-style:normal;display:block;margin-top:3px;
+  font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);}
 
 /* The tray is the commit point, so it does not scroll away, and it never says
    just "12 selected" - it says what will be written, to whom, and at what cost. */
@@ -1222,6 +1232,10 @@ let FACULTY_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 // which is what every account starts as — a cap is one advisor's decision, not
 // a rule of the school.
 let FACULTY_MAX_MEETING = null;
+// A personal meeting room, filled into the link box on every meeting this
+// advisor confirms. It is a default and not a setting the meeting inherits:
+// the box stays editable, because a meeting sometimes needs its own room.
+let FACULTY_MEETING_LINK = '';
 let SCHOOL_FACULTY_NAMES = []; // 같은 school 소속 교수 이름 목록
 let FACULTY_PROGRAMS = [];     // signed-in faculty's programmes (array since Aug 2026)
 let FACULTY_ROWS = [];         // every faculty row: email, name, role, chair, programs
@@ -1636,6 +1650,7 @@ async function hydrateFacultyProfile(email, token, user){
     FACULTY_SCHOOL = FACULTY_PROGRAMS[0] || '';
     FACULTY_TIMEZONE = profData[0].timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     FACULTY_MAX_MEETING = profData[0].max_meeting_minutes ?? null;
+    FACULTY_MEETING_LINK = profData[0].default_meeting_link || '';
     
     // 첫 로그인 시 timezone이 null이면 브라우저 값으로 DB에 저장
     if (!profData[0].timezone) {
@@ -2401,7 +2416,7 @@ function buildConfirmedExpand(m, st) {
       </div>`
     : `<div style="display:flex;align-items:center;gap:8px;">
         <input id="zoom-confirmed-${m.id}" class="fi" placeholder="Zoom / meeting link"
-          value="${esc(currentLink)}"
+          value="${esc(currentLink || FACULTY_MEETING_LINK)}"
           style="flex:1;height:32px;font-size:13px;background:var(--surface);">
         <button onclick="event.stopPropagation();saveConfirmedLink('${m.id}')"
           style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
@@ -2639,7 +2654,7 @@ function buildPendingExpand(m, st) {
     actionHtml = `
       <div style="border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2);">
         <div style="display:flex;align-items:center;gap:8px;">
-          <input id="zoom-${m.id}" data-zoom-id="${m.id}" class="fi" placeholder="Zoom link (optional)" style="flex:1;min-width:0;height:34px;background:var(--surface);">
+          <input id="zoom-${m.id}" data-zoom-id="${m.id}" class="fi" placeholder="Zoom link (optional)" value="${esc(FACULTY_MEETING_LINK)}" style="flex:1;min-width:0;height:34px;background:var(--surface);">
           <button class="btn-log" onclick="confirmMeetingRequest(${m.id})" ${sel===null?'disabled style="opacity:.4;cursor:default;"':''}>✓ Confirm</button>
           <button class="btn-cancel" style="background:var(--surface);color:var(--text2);border:1px solid var(--border-em);" onclick="rescheduleMeetingRequest(${m.id})">Ask to reschedule</button>
         </div>
@@ -5516,6 +5531,12 @@ const AA = {
   last:   [],                 // the batch Undo would reverse
   lastRole: 1,
   busy:   false,
+  // What the middle two rules need. Loaded with the queue, for this bench and
+  // these students only, so the page makes three small requests rather than
+  // reading the whole of anybody's teaching history.
+  taught: new Map(),          // student id -> [{email, courses[], lastKey}] strongest first
+  topics: new Map(),          // advisor email -> [{topic_key, facet, evidence}]
+  labels: new Map(),          // topic key -> label, for the words on the row
 };
 
 const AA_TARGET = 16;   // advisees a programme is willing to let one person carry
@@ -5581,12 +5602,70 @@ async function aaLoad(){
     AA.checked = new Date().toLocaleString('en-GB',
       { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
     AA.loaded = true;
+    await aaLoadRules();
   } catch(e){
     AA.err = e.message;
   } finally {
     AA.loading = false;
     if(currentPage === 'overview' && OV.page === 'assign') renderOverview();
   }
+}
+
+// What rules 2 and 3 read. Both are scoped to this bench and this queue, so a
+// chair fetches a few hundred rows rather than every instructor's roster.
+//
+// A failure here is not a failure of the page. Suggest falls back to the rules
+// it still has evidence for and the card says which one went quiet - a chair
+// who is told "this rule is skipped" can still work; one who is silently given
+// a worse distribution cannot tell.
+async function aaLoadRules(){
+  const bench = aaBench().map(f => f.email);
+  const ids   = AA.queue.map(r => r.student_id);
+  const list  = a => a.map(encodeURIComponent).join(',');
+  if(!bench.length) return;
+
+  const [taught, topics, labels] = await Promise.all([
+    ids.length ? sbGet('v_student_taught_courses',
+        `faculty_email=in.(${list(bench)})&student_id=in.(${list(ids)})`
+        + `&select=student_id,faculty_email,offering,term_label&${OV_LIMIT}`)
+        .catch(e => { console.warn('taught history unavailable:', e.message); return null; }) : [],
+    sbGet('v_faculty_topics',
+        `faculty_email=in.(${list(bench)})&select=faculty_email,topic_key,facet,evidence`)
+        .catch(e => { console.warn('advisor topics unavailable:', e.message); return null; }),
+    sbGet('advising_topics', `active=eq.true&select=key,label`)
+        .catch(() => null),
+  ]);
+
+  // null means the request failed and the rule stands down; [] means it
+  // succeeded and there is nothing there, which is a different fact.
+  AA.taught = taught === null ? null : (() => {
+    const by = new Map();
+    (taught || []).forEach(r => {
+      const id = String(r.student_id);
+      if(!by.has(id)) by.set(id, new Map());
+      const per = by.get(id);
+      if(!per.has(r.faculty_email)) per.set(r.faculty_email,
+        { email:r.faculty_email, courses:[], lastKey:0 });
+      const e = per.get(r.faculty_email);
+      if(!e.courses.includes(r.offering)) e.courses.push(r.offering);
+      e.lastKey = Math.max(e.lastKey, tsKey(r.term_label));
+    });
+    // More courses first, then more recently. Ranked once here so the rule
+    // reads a list rather than sorting inside a loop over students.
+    return new Map([...by].map(([id, per]) => [id, [...per.values()]
+      .sort((a,b) => (b.courses.length - a.courses.length) || (b.lastKey - a.lastKey))]));
+  })();
+
+  AA.topics = topics === null ? null : (() => {
+    const by = new Map();
+    topics.forEach(t => {
+      if(!by.has(t.faculty_email)) by.set(t.faculty_email, []);
+      by.get(t.faculty_email).push(t);
+    });
+    return by;
+  })();
+
+  AA.labels = new Map((labels || []).map(t => [t.key, t.label]));
 }
 
 // ── the bench ────────────────────────────────────────────────────────────
@@ -5653,26 +5732,97 @@ function aaAssignTo(email){
 }
 function aaDiscard(){ AA.pending.clear(); AA.sel.clear(); renderOverview(); }
 
-// Continuity first, then the lightest load, recounted after each one. Both
-// rules are printed beside the button: a chair has to be able to see why a
-// name came up before they let it stand.
+// Which of the bench taught this student, strongest link first.
+function aaTaughtBy(id, bench){
+  return ((AA.taught && AA.taught.get(String(id))) || [])
+    .filter(t => bench.some(f => f.email === t.email));
+}
+
+// A topic that half the bench works in separates nobody, so it is not allowed
+// to decide. What is left is the one or two advisors whose work is actually
+// unusual here - which is the only thing a stated interest can honestly pick
+// out. The ceiling is relative because a bench of four and a bench of nine do
+// not mean the same thing by "a few".
+function aaRareTopics(bench){
+  if(!AA.topics) return new Set();
+  const n = new Map();
+  bench.forEach(f => (AA.topics.get(f.email) || [])
+    .forEach(t => n.set(t.topic_key, (n.get(t.topic_key) || 0) + 1)));
+  const ceiling = Math.max(1, Math.floor(bench.length / 2));
+  return new Set([...n].filter(([, c]) => c <= ceiling).map(([k]) => k));
+}
+
+// Advisors who work in something this student named, most shared topics first.
+function aaInterestMatch(r, bench, rare){
+  const want = (r.interest_tags || []).filter(k => rare.has(k));
+  if(!want.length || !AA.topics) return [];
+  return bench
+    .map(f => ({ f, shared: (AA.topics.get(f.email) || [])
+      .filter(t => want.includes(t.topic_key)).map(t => t.topic_key) }))
+    .filter(x => x.shared.length)
+    .sort((a, b) => b.shared.length - a.shared.length);
+}
+
+// Four rules, in order of how much they know about the student: somebody they
+// have already sat with, somebody who taught them, somebody who works on what
+// they said they care about, and - when none of that exists - whoever is
+// carrying least. The first three are printed on the row that they decided,
+// because a chair has to be able to see why a name came up before letting it
+// stand. Load is recounted after every single placement, under every rule, so
+// no rule can hand one advisor a whole cohort.
 function aaSuggest(){
   const bench = aaBench();
   if(!bench.length) return;
   const role = AA_BANDS.find(b => b.k === AA.band)?.role || 1;
-  aaOpen(AA.band)
-    .filter(r => !AA.pending.has(r.student_id))
-    .forEach(r => {
-      const st = students.find(x => String(x.id) === String(r.student_id));
-      const met = st && st.sessions > 0 && st.advisor1_email
-        ? bench.find(f => f.email === st.advisor1_email) : null;
-      if(met){ AA.pending.set(r.student_id, { email: met.email, role }); return; }
-      const lightest = bench.slice().sort((a, b) => {
-        const la = aaLoadOf(a), lb = aaLoadOf(b);
-        return (la.now + la.add) - (lb.now + lb.add);
-      })[0];
-      AA.pending.set(r.student_id, { email: lightest.email, role });
-    });
+  const load = new Map(bench.map(f => {
+    const l = aaLoadOf(f); return [f.email, l.now + l.add];
+  }));
+  const stage = (r, email, why, note) => {
+    AA.pending.set(r.student_id, { email, role, why, note });
+    load.set(email, load.get(email) + 1);
+  };
+  // A relationship does not entitle anyone to a caseload. Past the target the
+  // relationship rules stand down and the student falls to the load rule.
+  const under = e => load.get(e) < AA_TARGET;
+
+  // 1) Continuity, and it runs to completion first so that it never competes
+  //    with a weaker rule for the same remaining capacity.
+  const rest = [];
+  aaOpen(AA.band).filter(r => !AA.pending.has(r.student_id)).forEach(r => {
+    const st  = students.find(x => String(x.id) === String(r.student_id));
+    const met = st && st.sessions > 0 && st.advisor1_email
+      ? bench.find(f => f.email === st.advisor1_email) : null;
+    met ? stage(r, met.email, 'met') : rest.push(r);
+  });
+
+  // 2) Taught. Fewest options first: a student with one former instructor is
+  //    settled before a student with three, or the second takes the only place
+  //    the first had.
+  const cand = new Map(rest.map(r => [r.student_id, aaTaughtBy(r.student_id, bench)]));
+  const left = rest.filter(r => !cand.get(r.student_id).length);
+  rest.filter(r => cand.get(r.student_id).length)
+      .sort((a, b) => cand.get(a.student_id).length - cand.get(b.student_id).length)
+      .forEach(r => {
+        const pick = cand.get(r.student_id).find(c => under(c.email));
+        pick ? stage(r, pick.email, 'taught', pick.courses[0]) : left.push(r);
+      });
+
+  // 3) Interest. This is the rule for a first-year: nobody has advised them and
+  //    nobody has taught them, and what they wrote down is all there is.
+  const rare  = aaRareTopics(bench);
+  const still = [];
+  left.forEach(r => {
+    const m = aaInterestMatch(r, bench, rare).find(x => under(x.f.email));
+    m ? stage(r, m.f.email, 'interest', AA.labels.get(m.shared[0]) || m.shared[0])
+      : still.push(r);
+  });
+
+  // 4) Lightest load.
+  still.forEach(r => {
+    const f = bench.slice().sort((a, b) => load.get(a.email) - load.get(b.email))[0];
+    stage(r, f.email, 'load');
+  });
+
   AA.sel.clear();
   renderOverview();
 }
@@ -5726,18 +5876,34 @@ async function aaUndo(){
       back.push([id, rec.email]);
     } catch(e){ showToast(`Could not undo: ${e.message}`); }
   }
-  back.forEach(([id, email]) => AA.pending.set(id, email));
+  // Back to staged, in the shape the tray and the rows expect. This used to
+  // put a bare string here, and an undone row then lost the name it was going
+  // to - the tray counted it and no row said where.
+  back.forEach(([id, email]) => AA.pending.set(id, { email, role: AA.lastRole }));
   AA.last = []; AA.busy = false;
   await aaReloadStudents().catch(()=>{});
   renderOverview();
 }
 
 // ── drawing ──────────────────────────────────────────────────────────────
+// Why this name came up. Only the three rules that know something about the
+// student are named: the lightest load is what happens when none of them
+// applied, and a word on every remaining row would read as information when it
+// is the absence of it. The note carries the checkable part - a course code, a
+// topic - because "taught" alone is a claim a chair cannot test.
+function aaWhy(p){
+  if(!p || !p.why || p.why === 'load') return '';
+  const txt = p.why === 'met'    ? 'met before'
+            : p.why === 'taught' ? `taught ${p.note || ''}`.trim()
+            :                      `interest: ${p.note || ''}`.trim();
+  return `<span class="aa-why">${esc(txt)}</span>`;
+}
 function aaRowTag(r){
   const d = AA.done.get(r.student_id);
   if(d) return `<span class="aa-tag tg-done">→ ${esc(aaLastName(d.email))}</span>`;
   const pend = AA.pending.get(r.student_id);
-  if(pend) return `<span class="aa-tag tg-pend">→ ${esc(aaLastName(pend.email))}</span>`;
+  if(pend) return aaWhy(pend)
+    + `<span class="aa-tag tg-pend">→ ${esc(aaLastName(pend.email))}</span>`;
   if(r.held_by) return `<span class="aa-tag tg-other">${esc(aaLastName(r.held_by_email) || r.held_by)} · interim</span>`;
   if((r.status || '').toLowerCase().includes('leave')) return `<span class="aa-tag tg-loa">On leave</span>`;
   return `<span class="aa-tag tg-never">No advisor</span>`;
@@ -5853,6 +6019,15 @@ function aaTray(){
   }
   const per = {};
   AA.pending.forEach(v => per[v.email] = (per[v.email] || 0) + 1);
+  // What the distribution is made of. The chair reads this before Apply and
+  // learns in one line whether this batch followed relationships or fell
+  // through to load - which is the thing the four rules exist to make visible.
+  const byWhy = {};
+  AA.pending.forEach(v => { if(v.why) byWhy[v.why] = (byWhy[v.why] || 0) + 1; });
+  const WHY_WORD = { met:'kept with someone they know', taught:'with an instructor who taught them',
+                     interest:'matched on a stated interest', load:'placed by load' };
+  const mix = ['met','taught','interest','load']
+    .filter(k => byWhy[k]).map(k => `${byWhy[k]} ${WHY_WORD[k]}`).join('  ·  ');
   const worst = aaBench().map(f => { const l = aaLoadOf(f); return {f, t: l.now + l.add}; })
                          .filter(x => x.t > AA_TARGET);
   // Read from the staged rows, so a chair standing in another band still sees
@@ -5862,6 +6037,7 @@ function aaTray(){
     <div class="aa-tray-t">
       <b>${AA.pending.size}</b> staged as <b>Advisor ${roles.join(' and ')}</b>${
         AA.sel.size ? `<span> · ${AA.sel.size} still unaimed</span>` : ''}
+      ${mix ? `<span class="aa-tray-s">${esc(mix)}</span>` : ''}
       <span class="aa-tray-s">${Object.entries(per).map(([k, v]) =>
         `${esc(aaLastName(k))} +${v}`).join('  ·  ')}${worst.length
         ? `  ·  <span style="color:var(--red);">over target: ${worst.map(x =>
@@ -5945,7 +6121,14 @@ function aaPage(b){
       <div class="db-card-hd aa-sugg-hd">Suggest a distribution <span>how the button decides</span></div>
       <div class="aa-sugg-l">
         <div class="aa-rule"><b>1</b><span><u>Continuity.</u> Anyone who has already met an advisor stays with them.</span></div>
-        <div class="aa-rule"><b>2</b><span><u>Then lightest load.</u> The rest go to the advisor with the fewest advisees, recounted after each one.</span></div>
+        <div class="aa-rule ${AA.taught === null ? 'off' : ''}"><b>2</b><span><u>Then whoever taught them.</u>
+          The instructor they took the most courses with, most recently, while that advisor is under the target.
+          ${AA.taught === null ? '<i>teaching history unavailable — this rule is skipped</i>' : ''}</span></div>
+        <div class="aa-rule ${AA.topics === null ? 'off' : ''}"><b>3</b><span><u>Then what they said they care about.</u>
+          An advisor working on a topic the student named — and one that no more than half the bench shares, since a topic
+          everyone works on names nobody.
+          ${AA.topics === null ? '<i>advisor topics unavailable — this rule is skipped</i>' : ''}</span></div>
+        <div class="aa-rule"><b>4</b><span><u>Then the lightest load.</u> The rest go to the advisor with the fewest advisees, recounted after each one.</span></div>
       </div>
       <div class="aa-sugg-r">
         <button class="aa-btn pri lg" ${!cur.role || !qOpen || AA.busy ? 'disabled' : ''}
@@ -8420,6 +8603,26 @@ function markProfileDirty() {
   if (status) status.textContent = '';
 }
 
+// Saved on its own rather than through Save profile, because it sits in
+// Integrations and a button two cards away is not where anyone looks for it.
+// A blank field is a real value: it means stop filling this in for me.
+async function saveMeetingLink() {
+  const el = document.getElementById('prof-meeting-link');
+  const v  = (el?.value || '').trim();
+  if (v && !/^https?:\/\//i.test(v)) {
+    showToast('A meeting link must start with http:// or https://');
+    return;
+  }
+  try {
+    await sbUpdate('faculty_profiles', 'email', FACULTY_EMAIL, { default_meeting_link: v || null });
+    FACULTY_MEETING_LINK = v;
+    showToast(v ? 'Default meeting link saved' : 'Default meeting link cleared');
+    renderSettings();
+  } catch(e) {
+    showToast(`Failed: ${e.message}`);
+  }
+}
+
 async function saveProfile() {
   const name = document.getElementById('prof-name')?.value.trim();
   const tz   = document.getElementById('tz-select')?.value;
@@ -8540,6 +8743,34 @@ async function renderSettings() {
                </div>`
             : ''
           }
+
+          <!-- A stored room, not a connection. Zoom's own sign-in would need a
+               server to hold the secret, and this app is one HTML file with an
+               anon key; what it would buy is a different link per meeting,
+               which advising does not need. -->
+          <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:32px;height:32px;border-radius:var(--r);background:${FACULTY_MEETING_LINK?'var(--green-l)':'var(--surface2)'};border:1px solid ${FACULTY_MEETING_LINK?'var(--green-b)':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6.5 9.5l3-3M9 6.5l1.5-1.5a2.121 2.121 0 013 3L12 10M7 9.5l-1.5 1.5a2.121 2.121 0 01-3-3L4 6.5" stroke="${FACULTY_MEETING_LINK?'var(--green)':'var(--text3)'}" stroke-width="1.3" stroke-linecap="round"/></svg>
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:14px;font-weight:500;color:var(--text);">Default meeting link</div>
+                <div style="font-size:12px;color:var(--text3);margin-top:1px;">Your personal meeting room. It fills the link box on every meeting you confirm, and you can still change it there.</div>
+              </div>
+              ${FACULTY_MEETING_LINK
+                ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--green-l);color:var(--green);white-space:nowrap;">Set</span>`
+                : ''}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+              <input id="prof-meeting-link" class="fi" placeholder="https://taejae-ac-kr.zoom.us/j/1234567890"
+                value="${esc(FACULTY_MEETING_LINK)}"
+                style="flex:1;min-width:0;height:32px;font-size:13px;background:var(--surface);">
+              <button onclick="saveMeetingLink()"
+                style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;">
+                Save
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
