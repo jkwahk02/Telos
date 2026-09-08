@@ -1992,7 +1992,8 @@ async function loadData() {
     document.getElementById('setup-banner').style.display = 'none';
     console.log('[Supabase] Loaded:', students.length, 'students,', sessions.length, 'sessions');
     renderCurrent();
-    if (typeof google !== 'undefined') connectGoogleCalendar();
+    // Silent: this runs after a data load, not after a click.
+    if (typeof google !== 'undefined') connectGoogleCalendar(true);
 
   } catch(e) {
     console.error('Supabase load error:', e);
@@ -2244,17 +2245,39 @@ async function saveConfirmedLink(meetingId) {
   }
 }
 
-function connectGoogleCalendar() {
+// Two ways in, and they are not the same request.
+//
+// The button in Settings is a real click, so it may open a window and may ask
+// which account. The attempt made automatically after data loads has no gesture
+// behind it, and a browser blocks any window opened that way WITHOUT SAYING SO -
+// which is why a reload looked like the calendar had simply forgotten itself.
+// So the automatic one asks for nothing: it takes a token only if Google can
+// issue one without interaction, and otherwise leaves the page as it was with
+// the Connect button still sitting in Settings.
+//
+// The token is never stored, and cannot usefully be. Google's browser flow
+// issues an access token good for about an hour and no refresh token, so every
+// reload starts disconnected; only the calendar id survives, in localStorage.
+function connectGoogleCalendar(silent) {
   const client = google.accounts.oauth2.initTokenClient({
     client_id: GCAL_CLIENT_ID,
     scope: GCAL_SCOPE,
-    prompt: 'select_account',
+    prompt: silent ? '' : 'select_account',
     callback: async (resp) => {
-      if (resp.error) { showToast('Google sign-in failed: ' + resp.error); return; }
+      if (resp.error) { if (!silent) showToast('Google sign-in failed: ' + resp.error); return; }
       gcalToken = resp.access_token;
-      showToast('Signed in to Google — setting up Telos Meetings calendar…');
+      if (!silent) showToast('Signed in to Google — setting up Telos Meetings calendar…');
       await ensureTelosMeetingsCalendar();
-      renderSettings();
+      if (currentPage === 'settings') renderSettings();
+    },
+    // Without this a blocked window leaves no trace anywhere - not a toast, not
+    // a console line - and the only way to find out what happened is to guess.
+    error_callback: (err) => {
+      console.warn('[GCal] token request failed:', err && err.type, err && err.message);
+      if (silent) return;
+      showToast(err && err.type === 'popup_failed_to_open'
+        ? 'Your browser blocked the Google window. Allow pop-ups for this site, then press Connect again.'
+        : 'Google sign-in was not completed.');
     },
   });
   client.requestAccessToken();
@@ -3135,9 +3158,9 @@ function ovTaughtCard(){
       <div style="padding:14px 16px;">
         <p style="font-size:14.5px;color:var(--text2);line-height:1.6;margin:0 0 12px;"
            id="ts-lede"></p>
-        <div id="ts-mx"></div>
+        <div class="ov-cw" id="ts-mx"></div>
       </div>
-      <div style="padding:0 16px 12px;display:flex;flex-wrap:wrap;align-items:center;" id="ts-lg"></div>
+      <div style="padding:0 16px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:5px 20px;" id="ts-lg"></div>
       <div id="ts-sel" hidden></div>
       <div class="ov-item" style="background:var(--surface2);">
         <div class="ov-name" style="font-size:15px;color:var(--text2);" id="ts-foot"></div>
@@ -3173,29 +3196,31 @@ function tsDraw(){
   });
   const shade = v => 0.10 + 0.90 * (v / MAX);
 
-  const svg = ovEl('svg', { viewBox:`0 0 ${W} ${H}`, width:'100%', style:`max-width:${W}px` });
+  // No max-width: .ov-cw makes it fill the column the way the Major
+  // Declarations charts do, and the type below is sized for that scale.
+  const svg = ovEl('svg', { viewBox:`0 0 ${W} ${H}`, width:'100%' });
   const head = (x, w, label) => svg.appendChild(ovEl('text', { x:x + w/2, y:22,
-    'text-anchor':'middle', 'font-size':13, 'font-weight':600, fill:ink3,
+    'text-anchor':'middle', 'font-size':15.5, 'font-weight':600, fill:ink3,
     'letter-spacing':'0.06em' }, label));
   head(NX, BARW, 'STUDENTS');
   head(AX, AW, 'COHORT');
   head(BX, BW, 'PROGRAMME DECLARED');
   head(DX, DW, 'ADVISED BY');
-  svg.appendChild(ovEl('text', { x:LBL - 14, y:22, 'text-anchor':'end', 'font-size':13,
+  svg.appendChild(ovEl('text', { x:LBL - 14, y:22, 'text-anchor':'end', 'font-size':15.5,
     'font-weight':600, fill:ink3, 'letter-spacing':'0.06em' }, 'MY COURSE'));
-  svg.appendChild(ovEl('text', { x:LBL - 14, y:44, 'text-anchor':'end', 'font-size':13,
+  svg.appendChild(ovEl('text', { x:LBL - 14, y:44, 'text-anchor':'end', 'font-size':15.5,
     fill:ink3 }, 'one row per offering ↓'));
 
   TS_COHORTS.forEach((c, j) => svg.appendChild(ovEl('text', { x:AX + j*CW + CW/2, y:50,
-    'text-anchor':'middle', 'font-size':13.5, 'font-family':'DM Mono, monospace',
+    'text-anchor':'middle', 'font-size':16, 'font-family':'DM Mono, monospace',
     fill:ink3, 'font-weight':600 }, c)));
   TS_PROGS.forEach((p, j) => svg.appendChild(ovEl('text', { x:BX + j*CW + CW/2, y:50,
-    'text-anchor':'middle', 'font-size':13.5, 'font-family':'DM Mono, monospace',
+    'text-anchor':'middle', 'font-size':16, 'font-family':'DM Mono, monospace',
     fill:ovVar(TS_SCH[p]), 'font-weight':600 }, p)));
   // 'Me' wears the accent because it is the one column about the reader; the
   // others are states of the world.
   TS_ADVS.forEach(([k, lbl], j) => svg.appendChild(ovEl('text', { x:DX + j*CW + CW/2, y:50,
-    'text-anchor':'middle', 'font-size': lbl.length > 6 ? 12 : 13,
+    'text-anchor':'middle', 'font-size': lbl.length > 6 ? 14.5 : 15.5,
     'font-family':'DM Mono, monospace', 'font-weight':600,
     fill: k === 'mine' ? ovVar('--blue') : ink3 }, lbl)));
 
@@ -3205,7 +3230,7 @@ function tsDraw(){
       fill: v ? ink : sf, 'fill-opacity': v ? shade(v) : 1,
       stroke: v ? 'none' : ln, 'stroke-width':1 }));
     g.appendChild(ovEl('text', { x:x + CW/2, y:y + CH/2, 'text-anchor':'middle',
-      'dominant-baseline':'middle', 'font-size': v ? 16 : 13,
+      'dominant-baseline':'middle', 'font-size': v ? 19 : 15.5,
       'font-family':'DM Mono, monospace', 'font-weight': v ? 500 : 400,
       fill: v ? (shade(v) > 0.55 ? '#fff' : ink) : ink3 }, v ? String(v) : '·'));
     if(v){
@@ -3218,9 +3243,9 @@ function tsDraw(){
   offs.forEach((o, i) => {
     const y = TOP + i * CH;
     svg.appendChild(ovEl('text', { x:LBL - 14, y:y + CH/2 - 6, 'text-anchor':'end',
-      'dominant-baseline':'middle', 'font-size':15.5, fill:ink, 'font-weight':600 }, o.label));
+      'dominant-baseline':'middle', 'font-size':18.5, fill:ink, 'font-weight':600 }, o.label));
     svg.appendChild(ovEl('text', { x:LBL - 14, y:y + CH/2 + 11, 'text-anchor':'end',
-      'dominant-baseline':'middle', 'font-size':12.5, 'font-family':'DM Mono, monospace',
+      'dominant-baseline':'middle', 'font-size':15, 'font-family':'DM Mono, monospace',
       fill:ink3 }, o.term));
     // The row total used to live inside the label as "n=29", where it could be
     // read but not compared. These offerings run from 1 student to 29 and that
@@ -3232,7 +3257,7 @@ function tsDraw(){
     svg.appendChild(ovEl('rect', { x:NX, y:y + CH/2 - 4, width:Math.max(3, BARW * n / MAXN),
       height:8, rx:4, fill:ovVar('--blue') }));
     svg.appendChild(ovEl('text', { x:NX + BARW + 10, y:y + CH/2, 'dominant-baseline':'middle',
-      'font-size':15, 'font-family':'DM Mono, monospace', 'font-weight':500, fill:ink },
+      'font-size':18, 'font-family':'DM Mono, monospace', 'font-weight':500, fill:ink },
       String(n)));
 
     TS_COHORTS.forEach((c, j) =>
@@ -3255,8 +3280,12 @@ function tsDraw(){
   const declSum = list.reduce((n, s) => n + s.decl.length, 0);
   const lg = document.getElementById('ts-lg');
   if(lg) lg.innerHTML =
+    // Two different kinds of thing: a colour key, and a sentence explaining why
+    // the right panel outnumbers the rows. They sat flush against each other, so
+    // the key's top value and the sentence's first number read as one number -
+    // "25" and "124" became "25124". The sentence takes a line of its own.
     `<span class="ov-i" style="gap:8px;">students&nbsp;1${ramp}${MAX}</span>` +
-    `<span class="ov-i">${declSum} declarations across ${list.length} students: the right panel
+    `<span class="ov-i" style="flex:0 0 100%;">${declSum} declarations across ${list.length} students: the right panel
       counts primary, second and minor alike, so it sums past the row totals.</span>`;
 
   // Every sentence that names a number is generated, the rule this page's
