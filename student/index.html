@@ -168,6 +168,12 @@ button,input,select,textarea{font-family:inherit;}
 .sc-body{padding:12px 14px;display:flex;flex-direction:column;gap:9px;}
 .hint{font-size:14px;color:var(--text3);line-height:1.5;}
 .chip-row{display:flex;flex-wrap:wrap;gap:5px;}
+.chip-row+.chip-facet{margin-top:12px;}
+.chip-facet{font-size:11px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;}
+.chip-kept{font-size:11px;color:var(--text3);font-weight:400;margin-left:6px;}
+.chip-more{margin-top:11px;padding-top:10px;border-top:1px solid var(--border);
+  font-size:13px;color:var(--accent);cursor:pointer;user-select:none;}
+.chip-more:hover{text-decoration:underline;}
 .chip{font-size:14px;padding:4px 10px;border-radius:20px;border:1px solid var(--border-em);background:var(--surface2);color:var(--text2);cursor:pointer;user-select:none;transition:all .12s;}
 .chip:hover{border-color:var(--accent-b);color:var(--accent);}
 .chip.on{background:var(--teal-l);border-color:var(--teal-b);color:var(--teal);font-weight:500;}
@@ -1064,8 +1070,13 @@ const PROFILE_FIELDS = [
       'Startup':"I want to build something of my own, and the problem I would start with is ___.",
       'Other':"The path I have in mind after graduation is ___.",
     } },
-  { key:'research', tags:'research_interest_tags',     text:'research_interest_text',    label:'Research interest',        theory:'Inquiry-Based Learning',       hint:'What topics or questions do you find yourself reading about?',
-    chips:['NLP / LLMs','Computer vision','AI ethics','Data visualization','Social science × data','Climate / sustainability','Finance / markets','Healthcare AI','Policy & governance'] },
+  // The only field whose chips are not written here. They come from
+  // advising_topics, because what a student is offered depends on what they
+  // declared and because the faculty app picks from the same list - the nine
+  // that used to sit here were all Data Science ones, which is what a
+  // Humanities student was being asked to describe themselves with.
+  { key:'research', tags:'research_interest_tags',     text:'research_interest_text',    label:'Research interest',        theory:'Inquiry-Based Learning',       hint:'What subjects interest you, and how do you like to work on them?',
+    topics:true },
   { key:'exp',      tags:'experiences_tags',           text:'experiences_text',          label:'Significant experiences',  theory:'Experiential Learning · Kolb', hint:'What experiences have shaped how you think or what you care about?',
     chips:['Research project','Internship / work','Team leadership','Living abroad','Personal challenge','Competition / hackathon','Community / volunteering','Creative work'] },
   { key:'strength', tags:'strength_tags',              text:'strength_text',             label:'Strengths',                theory:'Strengths-Based Advising',     hint:'What do you do well, or what do others tend to rely on you for?',
@@ -1094,6 +1105,11 @@ let studentData   = null;
 let scheduledMeetings = [];  // status='scheduled' 전체
 let allMeetings   = [];      // 히스토리용
 let allFaculty    = [];      // faculty_profiles 전체
+// The topic vocabulary, from advising_topics. It is read rather than written
+// into this page because the faculty app chooses from the same list and the
+// two must not drift; see Telos_Advising_Topics.sql.
+let advisingTopics = [];
+let showAllTopics  = false;  // the escape hatch out of the programme filter
 let availMap      = {};      // { faculty_email: [slots] }
 let selfDesigned  = [];      // 자기설계전공의 승인 교과목록 (course_id 배열)
 let reqItems      = [];      // student_requirement_status (본인)
@@ -1394,7 +1410,7 @@ async function loadData(){
     const sid=studentData.id;
 
     // 2. 병렬 로드
-    const [meetingRows,histRows,facultyRows,studentLogRows,
+    const [meetingRows,histRows,facultyRows,topicRows,studentLogRows,
            reqRows,reqSumRows,reqCatRows,reqPlanRows,lineageRows,reqNoteRows,reqConfirmRows,
            selfDesignRows] = await Promise.all([
       sbGet(TBL_MEETING,`student_id=eq.${sid}&status=in.(scheduled,rescheduling)&order=meeting_date.asc`),
@@ -1403,6 +1419,9 @@ async function loadData(){
         `student_id=eq.${sid}&order=meeting_date.desc&select=id,meeting_date,faculty_email,meeting_format,meeting_type,status,student_agenda,student_log_id`
       ),
       sbGet(TBL_FACULTY, `select=id,name_en,email,program,is_chair,timezone,max_meeting_minutes`),
+      sbGet('advising_topics',
+        `active=eq.true&select=key,label,facet,programs,sort&order=facet.desc,sort.asc`)
+        .catch(e=>{console.warn('advising topics unavailable:',e.message);return[];}),
       sbGet(TBL_STUDENT_LOG, `student_id=eq.${sid}&select=student_log_id,meeting_id,reflection,key_takeaway,next_step`),
       // 졸업요건 — 마이그레이션 전이면 뷰가 없으므로 개별 fallback
       sbGet(VW_REQ_STATUS,   `student_id=eq.${sid}&order=sort_order.asc`).catch(e=>{console.warn('requirements unavailable:',e.message);return[];}),
@@ -1460,6 +1479,7 @@ async function loadData(){
     allMeetings       = histRows;
     sessionCount      = histRows.filter(m => m.status === 'completed').length;
     allFaculty        = facultyRows;
+    advisingTopics    = topicRows || [];
     
     // 3. Availability 로드 (어드바이저 + chair 대상)
     const targetEmails=[studentData.advisor1_email,studentData.advisor2_email,
@@ -3198,6 +3218,53 @@ function isFilled(s,f){
   return tags.length>0||text.length>0;
 }
 
+// ── topic chips ───────────────────────────────────────────────────────────
+// A student is offered the topics open to everyone, the ones their own
+// programmes carry, and anything they have already chosen. The third is not a
+// nicety: declarations change, and a filter applied to what is STORED would
+// make a past choice disappear from the page without saying so. The filter is
+// on what is offered, never on what is held.
+const FACET_LABEL = { subject:'Subjects', approach:'How you like to work' };
+
+function myPrograms(){
+  return [studentData?.major1, studentData?.major2, studentData?.minor].filter(Boolean);
+}
+function topicOffered(t, tags){
+  return showAllTopics
+      || !(t.programs || []).length
+      || (t.programs || []).some(p => myPrograms().includes(p))
+      || tags.includes(t.key);
+}
+// Shown on a chip that is only here because it was chosen: the student changed
+// programme, or reached past it. Without the word it reads as a stray.
+function topicKept(t, tags){
+  return !showAllTopics && tags.includes(t.key) && (t.programs || []).length
+      && !(t.programs || []).some(p => myPrograms().includes(p));
+}
+function toggleAllTopics(){ showAllTopics = !showAllTopics; renderProfile(); }
+
+function topicChips(f, tags){
+  // An empty chip row on the first page a new student meets is worse than an
+  // unfiltered one, so a vocabulary that failed to load falls back to nothing
+  // being hidden rather than nothing being shown.
+  if(!advisingTopics.length){
+    return `<div class="chip-row"><span class="text-muted" style="font-size:13px;">
+      Topic list unavailable — you can still write in your own words below.</span></div>`;
+  }
+  const rows = ['subject','approach'].map(facet => {
+    const list = advisingTopics.filter(t => t.facet === facet && topicOffered(t, tags));
+    if(!list.length) return '';
+    return `<div class="chip-facet">${FACET_LABEL[facet]}</div>
+      <div class="chip-row">${list.map(t => `<div class="chip${tags.includes(t.key)?' on':''}"
+        data-val="${esc(t.key)}"
+        onclick="toggleChip('${f.key}','${f.tags}',this,'${esc(t.key)}')">${esc(t.label)}${
+          topicKept(t, tags) ? '<span class="chip-kept">kept</span>' : ''}</div>`).join('')}</div>`;
+  }).join('');
+  return rows + `<div class="chip-more" onclick="toggleAllTopics()">${showAllTopics
+    ? 'Show fewer'
+    : `Show all ${advisingTopics.length} topics`}</div>`;
+}
+
 function renderProfile(){
   const s=studentData;
   const infoRows=[
@@ -3249,9 +3316,12 @@ function renderProfile(){
     const badgeCls=filled?'sb-filled':'sb-empty';
     const badgeTxt=filled?'Filled':'Empty';
 
-    const chipHtml=f.chips.map(c=>`<div class="chip${tags.includes(c)?' on':''}"
+    const chipHtml=f.topics
+      ? topicChips(f,tags)
+      : `<div class="chip-row">${f.chips.map(c=>`<div class="chip${tags.includes(c)?' on':''}"
+      data-val="${esc(c)}"
       onclick="toggleChip('${f.key}','${f.tags}',this,'${c.replace(/'/g,"\\'")}')">
-      ${esc(c)}</div>`).join('');
+      ${esc(c)}</div>`).join('')}</div>`;
 
     return `<div class="sec-card ${cardCls}" id="sec-${f.key}">
       <div class="sc-hd ${hdrCls}">
@@ -3262,7 +3332,7 @@ function renderProfile(){
       </div>
       <div class="sc-body">
         <div class="hint">${esc(f.hint)}</div>
-        <div class="chip-row">${chipHtml}</div>
+        ${chipHtml}
         <div>
           <div class="fta-lbl">In your own words</div>
           <textarea class="fta" id="fta-${f.key}" rows="3"
@@ -3352,7 +3422,11 @@ function discardProfileChanges(){
 
 function toggleChip(key,tagsCol,el,val){
   el.classList.toggle('on');
-  draftFor(key).tags=Array.from(document.querySelectorAll(`#sec-${key} .chip.on`)).map(c=>c.textContent.trim());
+  // What is stored is data-val, not the text. A topic chip shows a label and
+  // holds a key, and reading textContent would put the label into the column
+  // the advisor match compares on - and would pick up the "kept" marker with it.
+  draftFor(key).tags=Array.from(document.querySelectorAll(`#sec-${key} .chip.on`))
+    .map(c=>c.dataset.val ?? c.textContent.trim());
   markUnsaved(key);
   applyStarter(key,val,el.classList.contains('on'));
 }
@@ -4294,8 +4368,14 @@ function buildRequestForm(){
   // at the cap and the chip says why when it is pressed.
   const durCap = facultyCap();
   if(durCap && meetingDuration > durCap) meetingDuration = durCap;
-  const durChips=[20,30,60,90,120].map(m=>{
-    const lbl=m===20?'20 min':m===30?'30 min':m===60?'1 hour':m===90?'1.5 hours':'2 hours';
+  // The advisor types their own number, so a cap of 25 is as legitimate as one
+  // of 20 and belongs on screen. Without this the request is held at 25 while
+  // no chip is lit, and the student is looking at a length nothing names.
+  const durOpts=[15,20,30,60,90,120];
+  if(durCap && !durOpts.includes(durCap)) durOpts.push(durCap);
+  durOpts.sort((a,b)=>a-b);
+  const durChips=durOpts.map(m=>{
+    const lbl=m===15?'15 min':m===20?'20 min':m===30?'30 min':m===60?'1 hour':m===90?'1.5 hours':m===120?'2 hours':`${m} min`;
     const over=durCap && m>durCap;
     return `<button class="dur-chip ${meetingDuration===m?'on':''}"${over?' style="opacity:.45;"':''}
       onclick="${over?'capMsg()':`meetingDuration=${m};selectedMeetingSlots=[];renderMeetings()`};event.stopPropagation()">${lbl}</button>`;
