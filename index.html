@@ -4414,20 +4414,9 @@ function ovMajors(box){
       <span class="ov-caption">University · all ${total} students</span>
     </div>
     <h2 class="ov-h1">Major Declarations</h2>
-    <p class="ov-sub">What every student has declared — primary major, second major, minor — and who has not
-      declared yet. Read from <code style="font-family:'DM Mono',monospace;font-size:15px;">students</code>, the same
-      columns the roster reads, so a name here and a name there are the same student.</p>
-    <p class="ov-sub" style="margin-top:-6px;">A declaration has two independent parts and the page keeps them
-      apart. <strong>Which program</strong> is the first chart and the last. <strong>What form the declaration
-      takes</strong> — single, double, or a major with a minor — is the one in between. A self-designed major
-      belongs to the programs: it answers which, not what form.</p>
-    ${ovSource([{ what:'major declarations', detail:`the official major-status file the registrar shared at
-      17:28 on 20 August 2026, which they mark as still in progress. This is a different file from the coursework
-      and grade extract that arrived at 10:36 the same day; that one drives Credit Progress and Program
-      Requirements and has no bearing on what is shown here.` }],
-      `${nodec} students have no declaration on record — most of them Cohort 4 (2026), who have not reached the
-      declaration stage, and a few in Cohort 3 whose forms had not arrived. Anything decided after the file was
-      shared is not here yet.`)}
+    ${ovSource([{ what:'major declarations', detail:`the registrar's major-status file of 20 August 2026,
+      which they mark as still in progress.` }],
+      `${nodec} students carry no declaration in it. Anything decided since is not here.`)}
 
     <div class="ov-hero">
       ${tile('', 'declared', declared, '/ ' + total)}
@@ -4438,32 +4427,26 @@ function ovMajors(box){
     <p class="ov-note" style="margin:0 0 4px;" id="mj-lede"></p>
 
     <h3 class="ov-h2" style="margin-top:26px;">How many students study in each program</h3>
-    <p class="ov-sub2">The first thing to know about a declaration is which program it names. Headcount by school
-      counts each student once, but a student who takes a program as a second major or a minor studies in it just
-      as much. So each program is counted three ways, sorted by the total. <strong>The ${nodec} students who have
-      not declared are not in this figure</strong> — they name no program to be counted under — so the bars sum to
-      the ${declared} declared rather than to all ${total}.</p>
+    <p class="ov-sub2">Each program counted three ways — primary major, second major, minor — sorted by the
+      total. The bars sum to the ${declared} declared, not to all ${total}: the ${nodec} who have not declared
+      name no program.</p>
     <div class="ov-cw"><svg id="mj-load" viewBox="0 0 900 ${30 + load.length * 54}"></svg></div>
     <div class="ov-lg" id="mj-load-lg"></div>
     <div class="ov-selp" id="mj-sel1" hidden></div>
     <p class="ov-note" id="mj-load-note"></p>
 
     <h3 class="ov-h2">Single, double, or major with a minor</h3>
-    <p class="ov-sub2">The form of the declaration, by cohort — no programs here, only how many commitments the
-      student took on. A mosaic: <strong>column width is the cohort's headcount</strong> and <strong>block height is
-      its share of that cohort</strong>, so every block's area is the number of students in it and the columns
-      together are the whole university. Click a block for the students in it.</p>
+    <p class="ov-sub2"><strong>Column width is the cohort's headcount, block height its share of that
+      cohort</strong> — so a block's area is the students in it. Click one for the names.</p>
     <div class="ov-cw"><svg id="mj-mos" viewBox="0 0 900 306"></svg></div>
     <div class="ov-lg" id="mj-mos-lg"></div>
     <div class="ov-selp" id="mj-sel2" hidden></div>
     <p class="ov-note" id="mj-mos-note"></p>
 
     <h3 class="ov-h2">What pairs with what</h3>
-    <p class="ov-sub2">Rows are the primary major, columns the program paired with it, kept in two panels because a
-      second major and a minor are different commitments. Weight is the number of students, so the heavy cells are
-      the combinations the university actually produces. <strong>The ${nodec} students who have not declared are
-      not in this figure</strong> — a pairing needs a primary major to pair from — so it covers the ${declared}
-      declared, unlike the two charts above it.</p>
+    <p class="ov-sub2">Rows are the primary major, columns what it pairs with; two panels because a second
+      major and a minor are different commitments. Weight is the number of students. The ${declared} declared
+      only — a pairing needs a primary major to pair from.</p>
     <div class="ov-cw"><svg id="mj-pair" viewBox="0 0 900 ${76 + pairs.list.length * 44}"></svg></div>
     <div class="ov-lg" id="mj-pair-lg"></div>
     <div class="ov-selp" id="mj-sel3" hidden></div>
