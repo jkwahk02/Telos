@@ -898,6 +898,37 @@ tr.req-cant>td{opacity:.4;}
 .ov-adv-btn{font-size:17px;font-weight:600;padding:7px 16px;border-radius:var(--r);background:var(--accent);color:#fff;border:none;cursor:pointer;font-family:inherit;white-space:nowrap;margin-left:auto;}
 .ov-adv-btn.disabled{opacity:.4;cursor:default;pointer-events:none;}
 .ov-adv-section-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px;padding:0 2px;}
+
+/* ── advisor profile, expanding inside the card ─────────────────────────
+   One control opens it - the strip along the foot. The header row above keeps
+   the action the student came for and never moves, so Request meeting does not
+   shift under the cursor when the card opens. */
+.fp-strip{border-top:1px solid var(--teal-b);background:#F7FCFA;padding:7px 12px;
+  display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--teal);
+  font-weight:500;cursor:pointer;user-select:none;width:100%;text-align:left;
+  border-left:none;border-right:none;border-bottom:none;font-family:inherit;}
+.fp-strip:hover{background:var(--teal-l);}
+.fp-strip .cv{font-size:9px;transition:transform .15s;display:inline-block;}
+.fp-strip .sum{color:var(--text2);font-weight:400;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ov-adv-card.open .fp-strip .cv{transform:rotate(90deg);}
+.fp-body{border-top:1px solid var(--border);}
+.fp-sec{padding:12px 14px;border-bottom:1px solid var(--border);}
+.fp-k{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:7px;}
+.fp-t{font-size:14px;color:var(--text);line-height:1.6;}
+.fp-li{font-size:14px;color:var(--text2);line-height:1.65;display:flex;gap:9px;}
+.fp-li b{color:var(--text);font-weight:500;font-family:'DM Mono',monospace;font-size:13px;flex-shrink:0;min-width:52px;}
+.fp-li i{font-style:normal;color:var(--text);font-weight:500;min-width:88px;flex-shrink:0;}
+.fp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+.fp-chip{font-size:13px;padding:3px 11px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);}
+.fp-tz{font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);}
+.fp-a{color:var(--accent);text-decoration:none;font-size:14px;}
+.fp-two{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fp-foot{padding:9px 14px;background:var(--surface2);display:flex;align-items:center;gap:12px;}
+.fp-empty{padding:16px 14px;font-size:14px;color:var(--text3);line-height:1.6;}
+.btn-link{font-size:13.5px;font-weight:500;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;font-family:inherit;}
+@media (max-width:560px){.fp-two{grid-template-columns:1fr;}
+  .ov-adv-body{flex-wrap:wrap;}
+  .ov-adv-body .btn-sm-teal{width:100%;margin-top:2px;}}
 /* SETTINGS */
 .settings-section-divider{padding:6px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);display:flex;align-items:center;gap:6px;}
 .settings-field-row{display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);}
@@ -1146,6 +1177,13 @@ let studentData   = null;
 let scheduledMeetings = [];  // status='scheduled' 전체
 let allMeetings   = [];      // 히스토리용
 let allFaculty    = [];      // faculty_profiles 전체
+// Which advisor card is showing its profile, by email. One at a time: the
+// Overview stack already runs long, and two open profiles push Recent meetings
+// off the screen.
+let advOpen       = null;
+// What each advisor teaches, read from the catalogue rather than typed by
+// anybody: { email: [{course_id, title, term}] }.
+let facCourses    = {};
 // The topic vocabulary, from advising_topics. It is read rather than written
 // into this page because the faculty app chooses from the same list and the
 // two must not drift; see Telos_Advising_Topics.sql.
@@ -1459,7 +1497,17 @@ async function loadData(){
         TBL_MEETING,
         `student_id=eq.${sid}&order=meeting_date.desc&select=id,meeting_date,faculty_email,meeting_format,meeting_type,status,student_agenda,student_log_id`
       ),
-      sbGet(TBL_FACULTY, `select=id,name_en,email,program,is_chair,timezone,max_meeting_minutes`),
+      // The profile columns are asked for separately from the six the app has
+      // always needed. If a deployment has not run Telos_My_Profile.sql, or a
+      // column grant keeps them from students, this read fails and the base
+      // one below still returns the roster - the advisor cards then render
+      // exactly as they did before, without a profile to open.
+      sbGet(TBL_FACULTY, `select=id,name_en,email,program,is_chair,timezone,max_meeting_minutes,`
+        + `academic_title,bio,education,experience,languages,advising_note,links,hidden_courses,expertise_tags`)
+        .catch(e => {
+          console.warn('faculty profile columns unavailable:', e.message);
+          return sbGet(TBL_FACULTY, `select=id,name_en,email,program,is_chair,timezone,max_meeting_minutes`);
+        }),
       sbGet('advising_topics',
         `active=eq.true&select=key,label,facet,programs,sort&order=facet.desc,sort.asc`)
         .catch(e=>{console.warn('advising topics unavailable:',e.message);return[];}),
@@ -1525,6 +1573,7 @@ async function loadData(){
     // 3. Availability 로드 (어드바이저 + chair 대상)
     const targetEmails=[studentData.advisor1_email,studentData.advisor2_email,
       facultyRows.find(f=>f.is_chair)?.email].filter(Boolean);
+    if(targetEmails.length) loadAdvisorCourses(targetEmails);
     if(targetEmails.length){
       const availRows=await sbGet(TBL_AVAIL,
         `faculty_email=in.(${targetEmails.map(e=>encodeURIComponent(e)).join(',')})&is_active=eq.true&order=day_of_week.asc,start_time.asc`);
@@ -1814,7 +1863,18 @@ function renderOverview(){
       ${myAdvisors.map(f=>{
         const isChair = f.is_chair;
         const initials = (f.name_en||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-        return `<div class="ov-adv-card">
+        // The strip is offered only when there is something behind it. An
+        // advisor with no profile and no catalogue entry gets the card exactly
+        // as it was before, rather than a control that opens onto nothing.
+        const open    = advOpen === f.email;
+        const summary = advStripSummary(f);
+        const strip   = (advHasProfile(f) || summary) ? `
+          <button class="fp-strip" onclick="advToggle('${esc(f.email)}')">
+            <span class="cv">▶</span>
+            <span>${open ? 'Hide profile' : 'Profile'}</span>
+            ${!open && summary ? `<span class="sum">· ${esc(summary)}</span>` : ''}
+          </button>` : '';
+        return `<div class="ov-adv-card${open ? ' open' : ''}">
           <div class="ov-adv-hd">
             <span class="ov-adv-lbl">Advisor</span>
             ${isChair?`<span class="bdg bdg-teal" style="font-size:10px;">Chair</span>`:''}
@@ -1830,6 +1890,8 @@ function renderOverview(){
               Request meeting →
             </button>
           </div>
+          ${strip}
+          ${advProfileBody(f)}
         </div>`;
       }).join('')}
     </div>` : '';
@@ -4180,6 +4242,244 @@ function facLabel(f, fallback) {
   return /^(prof\.?|dr\.?|professor)\s/i.test(name) ? name : `Prof. ${name}`;
 }
 function facInProgram(f, name) { return !!name && facProgramList(f).includes(name); }
+
+// ══════════════════════════════════════════════════════════════════════════
+// ADVISOR PROFILE
+//
+// The card on Overview keeps its one action - Request meeting - in the header
+// where it has always been. Everything added here hangs below it: a strip that
+// carries the two facts a student is deciding on (what this advisor teaches,
+// when they are free), and behind it the profile the advisor wrote in the
+// faculty app.
+//
+// It expands in place rather than opening a dialog. A profile is read once and
+// left, so taking over the screen to show it would cost the student their
+// place in a page they were already reading.
+//
+// Nothing here is required to exist. An advisor who has written nothing still
+// gets a card, still gets courses (those come from the catalogue), and the
+// strip simply has less to say.
+// ══════════════════════════════════════════════════════════════════════════
+
+// 'Fall 2026' is the term that starts in September; Spring belongs to the
+// calendar year it falls in. July and August have no teaching, so they look
+// ahead to the coming Fall rather than back at a term that has ended.
+function advTermNow(){
+  const d = new Date(), y = d.getFullYear(), m = d.getMonth();
+  return m >= 8 || m === 7 ? `Fall ${y}` : m <= 5 ? `Spring ${y}` : `Fall ${y}`;
+}
+function advTermKey(t){
+  const m = /^(Fall|Spring) (\d{4})$/.exec(t || '');
+  return m ? Number(m[2]) * 10 + (m[1] === 'Spring' ? 0 : 1) : 0;
+}
+
+// Read once, for the two or three advisors whose cards are on screen. Both
+// reads are allowed to fail: v_course_instructor is security_invoker, so a
+// deployment that has not granted students the catalogue underneath it returns
+// nothing here and the Teaching section is left out rather than shown empty.
+async function loadAdvisorCourses(emails){
+  const inList = emails.map(e => encodeURIComponent(e)).join(',');
+  const rows = await sbGet('v_course_instructor',
+    `faculty_email=in.(${inList})&select=faculty_email,course_id,term`)
+    .catch(e => { console.warn('course instructor unavailable:', e.message); return []; });
+  if(!rows.length) return;
+
+  const ids = [...new Set(rows.map(r => r.course_id))];
+  const titles = {};
+  if(ids.length){
+    const courseRows = await sbGet('courses',
+      `course_id=in.(${ids.map(i => encodeURIComponent(i)).join(',')})&select=course_id,title`)
+      .catch(() => []);
+    courseRows.forEach(c => { titles[c.course_id] = c.title; });
+  }
+
+  const byEmail = {};
+  rows.forEach(r => {
+    (byEmail[r.faculty_email] = byEmail[r.faculty_email] || []).push({
+      course_id: r.course_id, term: r.term, title: titles[r.course_id] || '',
+    });
+  });
+  // One line per course per term - the same course in two sections is one line.
+  Object.keys(byEmail).forEach(email => {
+    const seen = new Set();
+    byEmail[email] = byEmail[email]
+      .filter(c => { const k = c.term + '|' + c.course_id; if(seen.has(k)) return false; seen.add(k); return true; })
+      .sort((a, b) => advTermKey(b.term) - advTermKey(a.term) || a.course_id.localeCompare(b.course_id));
+  });
+  facCourses = { ...facCourses, ...byEmail };
+  if(currentPage === 'overview') renderOverview();
+}
+
+// What the advisor chose to keep off the card is honoured here. If the profile
+// columns could not be read at all, hidden_courses is undefined - and then the
+// profile body is not rendered either, so nothing is exposed that was hidden.
+function advCoursesOf(f){
+  const hidden = Array.isArray(f?.hidden_courses) ? f.hidden_courses : [];
+  return (facCourses[f?.email] || []).filter(c => !hidden.includes(c.course_id));
+}
+function advCoursesThisTerm(f){
+  const now = advTermNow();
+  return advCoursesOf(f).filter(c => c.term === now);
+}
+
+// Weekly office hours, read in the student's own timezone FIRST.
+//
+// The day moves, not just the clock: 14:00 Monday in Seoul is 21:00 Sunday in
+// San Francisco. Converting the time and keeping the weekday - which is what a
+// student does in their head, and what a naive implementation does too - is
+// how a meeting gets missed by a day.
+function advHoursOf(f){
+  const slots = (availMap[f?.email] || []).filter(s => s.is_active !== false);
+  if(!slots.length) return null;
+  const facTz = f.timezone || 'Asia/Seoul';
+  const myTz  = STUDENT_TIMEZONE;
+  const DOW   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  const own = slots.map(s =>
+    `${DOW[s.day_of_week]} ${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)}`).join(', ');
+  if(!myTz || myTz === facTz) return { mine: null, own, ownTz: tzAbbr(facTz) };
+
+  const mine = slots.map(s => {
+    const on = advNextDateFor(s.day_of_week, facTz);
+    const a  = convertDateTime(on, s.start_time.slice(0,5), facTz, myTz);
+    const b  = convertDateTime(on, s.end_time.slice(0,5),   facTz, myTz);
+    const dayOf = x => DOW[new Date(x.date + 'T00:00:00Z').getUTCDay()];
+    // A converted slot can end on the next day. 22:00-00:00 reads as a slot
+    // that ends before it starts, so midnight is written as 24:00 and a real
+    // spill over into the next day carries that day's name.
+    if(a.date === b.date) return `${dayOf(a)} ${a.time}–${b.time}`;
+    if(b.time === '00:00') return `${dayOf(a)} ${a.time}–24:00`;
+    return `${dayOf(a)} ${a.time}–${dayOf(b)} ${b.time}`;
+  }).join(', ');
+  return { mine, own, ownTz: tzAbbr(facTz) };
+}
+// The next occurrence of that weekday, counted in the advisor's timezone -
+// which is where the slot's clock time is meaningful.
+function advNextDateFor(dow, tz){
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: tz });
+  const [y, m, d] = today.split('-').map(Number);
+  const base = new Date(Date.UTC(y, m - 1, d));
+  base.setUTCDate(base.getUTCDate() + ((dow - base.getUTCDay() + 7) % 7));
+  return base.toISOString().slice(0, 10);
+}
+
+// A faculty member types a site as "kwahk.taejae.ac.kr" as often as with the
+// scheme, and an href without one is read as a path on this site.
+function advUrl(v){
+  const s = String(v || '').trim();
+  if(!s) return '';
+  return /^https?:\/\//i.test(s) ? s : 'https://' + s;
+}
+// ORCID is stored as the number. The link is the app's business, so that a
+// profile does not depend on every advisor pasting the same URL shape.
+function advOrcid(v){
+  const s = String(v || '').trim();
+  if(!s) return null;
+  const id = (s.match(/\d{4}-\d{4}-\d{4}-\d{3}[\dX]/i) || [])[0];
+  return id ? { id, url: 'https://orcid.org/' + id } : { id: s, url: advUrl(s) };
+}
+
+function advHasProfile(f){
+  return !!(f && (f.bio || f.advising_note ||
+    (Array.isArray(f.education)  && f.education.length) ||
+    (Array.isArray(f.experience) && f.experience.length) ||
+    (f.links && Object.values(f.links).some(Boolean))));
+}
+
+// The strip's summary is the whole reason it is there: a student who only
+// wants to know what this advisor teaches and when they are free never has to
+// open anything.
+function advStripSummary(f){
+  const bits = [];
+  const courses = advCoursesThisTerm(f);
+  if(courses.length) bits.push('teaches ' + courses.map(c => c.course_id).join(', '));
+  const h = advHoursOf(f);
+  if(h){
+    const days = [...new Set((h.mine || h.own).split(', ').map(x => x.split(' ')[0]))];
+    bits.push(days.join(' & ') + ' office hours');
+  }
+  return bits.join(' · ');
+}
+
+function advSection(label, inner){
+  return `<div class="fp-sec"><div class="fp-k">${label}</div>${inner}</div>`;
+}
+
+function advProfileBody(f){
+  const open = advOpen === f.email;
+  if(!open) return '';
+  const courses = advCoursesThisTerm(f);
+  const past = advCoursesOf(f).filter(c => c.term !== advTermNow()).slice(0, 3);
+  const hours = advHoursOf(f);
+  const topics = (f.expertise_tags || [])
+    .map(k => advisingTopics.find(t => t.key === k)?.label)
+    .filter(Boolean);
+  const links = (f.links && typeof f.links === 'object') ? f.links : {};
+  const orcid = advOrcid(links.orcid);
+  const edu = Array.isArray(f.education)  ? f.education  : [];
+  const exp = Array.isArray(f.experience) ? f.experience : [];
+  const row = (l, v) => `<div class="fp-li"><i>${l}</i><span>${v}</span></div>`;
+  const yr  = r => `<div class="fp-li"><b>${esc(String(r.year || ''))}</b><span>${esc(String(r.text || ''))}</span></div>`;
+
+  let body = '';
+
+  if(f.bio || topics.length){
+    body += advSection('About',
+      (f.bio ? `<div class="fp-t">${esc(f.bio)}</div>` : '') +
+      (topics.length ? `<div class="fp-chips">${topics.map(t =>
+        `<span class="fp-chip">${esc(t)}</span>`).join('')}</div>` : ''));
+  }
+
+  if(courses.length || past.length){
+    body += advSection(courses.length ? 'Teaching this term' : 'Recently taught',
+      (courses.length ? courses : past).map(c =>
+        `<div class="fp-li"><b>${esc(c.course_id)}</b><span>${esc(c.title || '')}
+          ${courses.length ? '' : `<span class="fp-tz">${esc(c.term)}</span>`}</span></div>`).join(''));
+  }
+
+  if(f.advising_note || topics.length || hours || f.languages){
+    body += advSection('Advising',
+      (f.advising_note ? `<div class="fp-t" style="margin-bottom:10px;">${esc(f.advising_note)}</div>` : '') +
+      (hours ? row('Office hours', hours.mine
+          ? `${esc(hours.mine)} <span class="fp-tz">your time</span><br>
+             <span class="fp-tz">${esc(hours.own)} ${esc(hours.ownTz)}</span>`
+          : `${esc(hours.own)} <span class="fp-tz">${esc(hours.ownTz)}</span>`) : '') +
+      (f.languages ? row('Language', esc(f.languages)) : ''));
+  }
+
+  if(edu.length || exp.length){
+    body += `<div class="fp-sec"><div class="fp-two">
+      ${edu.length ? `<div><div class="fp-k">Education</div>${edu.map(yr).join('')}</div>` : '<div></div>'}
+      ${exp.length ? `<div><div class="fp-k">Before Taejae</div>${exp.map(yr).join('')}</div>` : '<div></div>'}
+    </div></div>`;
+  }
+
+  const linkRows = [
+    links.site    ? row('Site',    `<a class="fp-a" href="${esc(advUrl(links.site))}" target="_blank" rel="noopener">${esc(String(links.site).replace(/^https?:\/\//, ''))}</a>`) : '',
+    links.scholar ? row('Scholar', `<a class="fp-a" href="${esc(advUrl(links.scholar))}" target="_blank" rel="noopener">Google Scholar profile</a>`) : '',
+    orcid         ? row('ORCID',   `<a class="fp-a" href="${esc(orcid.url)}" target="_blank" rel="noopener">${esc(orcid.id)}</a>`) : '',
+  ].filter(Boolean).join('');
+  if(linkRows) body += advSection('Links', linkRows);
+
+  if(!body){
+    body = `<div class="fp-empty">${esc(facLabel(f))} has not written a profile yet.
+      You can still request a meeting, and anything they add will appear here.</div>`;
+  }
+
+  return `<div class="fp-body">${body}
+    <div class="fp-foot">
+      <div style="margin-left:auto;display:flex;gap:14px;align-items:center;">
+        <button class="btn-link" onclick="goToPage('messages')">Message</button>
+        <button class="btn-link" onclick="advToggle('${esc(f.email)}')">Hide profile ▲</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function advToggle(email){
+  advOpen = (advOpen === email) ? null : email;
+  renderOverview();
+}
 
 function getFacTz(facultyEmail) {
   return allFaculty.find(f=>f.email===facultyEmail)?.timezone || null;

@@ -1108,8 +1108,10 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
    Two pages behind one tab. They borrow the Overview split and the settings
    card, so almost everything here is either a form row or a list row; what is
    new is the evaluation item list and the weighting bar. */
+/* Wide, but not unbounded: a field that runs the width of a 32-inch monitor
+   is as hard to write in as a narrow one is. */
 .pf-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
-  overflow:hidden;margin-bottom:14px;}
+  overflow:hidden;margin-bottom:14px;max-width:1080px;}
 .pf-hd{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
 .pf-hd h3{font-size:17px;font-weight:600;margin:0;}
 .pf-hd .hint{font-size:13px;color:var(--text3);font-weight:400;}
@@ -1139,6 +1141,15 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .pf-facet:first-child{margin-top:0;}
 .pf-note{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);
   line-height:1.7;margin:10px 0 0;}
+/* Every field on these two pages takes the width it is given. The page is a
+   writing surface - a bio, four answers per evaluation item - and a 320px box
+   in a 900px column makes a paragraph look like a label. The drag handle is
+   off for the same reason: the box is already tall enough that resizing it is
+   not something anyone should have to do. */
+.pf-card .fi{width:100%;max-width:none;}
+.pf-card textarea.fi{resize:none;height:auto;min-height:92px;line-height:1.65;
+  padding:11px 13px;font-size:14.5px;}
+.pf-itb textarea.fi{min-height:80px;}
 .pf-q{margin-top:14px;}
 .pf-ql{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:5px;}
 .pf-ql span{font-weight:400;color:var(--text3);}
@@ -9108,10 +9119,10 @@ function pfIdentityCard(r, roleLabel){
       </div>
       <div class="pf-row edit"><div class="lbl">Display name</div>
         <div class="val"><input class="fi" id="pf-name" value="${esc(r.name_en || FACULTY)}"
-          style="height:32px;font-size:14px;max-width:320px;" oninput="pfTouch()"></div></div>
+          style="height:34px;font-size:14.5px;" oninput="pfTouch()"></div></div>
       <div class="pf-row edit"><div class="lbl">Academic title</div>
         <div class="val"><input class="fi" id="pf-title" value="${esc(r.academic_title || '')}"
-          placeholder="Professor" style="height:32px;font-size:14px;max-width:320px;" oninput="pfTouch()"></div></div>
+          placeholder="Professor" style="height:34px;font-size:14.5px;" oninput="pfTouch()"></div></div>
     </div>`;
 }
 
@@ -9169,8 +9180,7 @@ function pfInterestsCard(r){
           : 'None chosen — your topics are taken from the courses you teach. Choosing any here replaces that.'}</p>
         <div class="pf-q" style="margin-top:18px;">
           <div class="pf-ql">Short statement <span>— two or three sentences, shown in full on the card</span></div>
-          <textarea class="fi" id="pf-bio" rows="3" maxlength="400"
-            style="height:auto;padding:9px 11px;line-height:1.55;font-size:14px;"
+          <textarea class="fi" id="pf-bio" rows="4" maxlength="400"
             oninput="pfTouch();document.getElementById('pf-bio-n').textContent=this.value.length;"
             >${esc(r.bio || '')}</textarea>
           <p class="pf-note"><span id="pf-bio-n">${(r.bio || '').length}</span> / 400 characters</p>
@@ -9245,13 +9255,12 @@ function pfAdvisingCard(r){
     <div class="pf-card">
       <div class="pf-hd"><h3>Advising</h3><span class="hint">how a student reaches you</span></div>
       <div class="pf-row edit top"><div class="lbl" style="padding-top:8px;">How to work with me</div>
-        <div class="val"><textarea class="fi" id="pf-advnote" rows="2"
-          style="height:auto;padding:9px 11px;line-height:1.55;font-size:14px;"
+        <div class="val"><textarea class="fi" id="pf-advnote" rows="3"
           placeholder="What to bring, what to expect, when to write instead of booking."
           oninput="pfTouch()">${esc(r.advising_note || '')}</textarea></div></div>
       <div class="pf-row edit"><div class="lbl">Languages</div>
         <div class="val"><input class="fi" id="pf-lang" value="${esc(r.languages || '')}"
-          placeholder="Korean, English" style="height:32px;font-size:14px;max-width:320px;"
+          placeholder="Korean, English" style="height:34px;font-size:14.5px;"
           oninput="pfTouch()"></div></div>
       <div class="pf-row"><div class="lbl">Office hours</div>
         <div class="val" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -9392,12 +9401,14 @@ function pfTrackBar(){
   const bar = IS_CHAIR
     ? seg(50, 'blue', 'Teaching', 50) + seg(30, 'teal', 'Program Leadership', 30) + seg(20, 'amber-d', 'Academic Services', 20)
     : seg(60, 'blue', 'Teaching', 60) + seg(30, 'amber-d', 'Academic Services', 30) + seg(10, 'gray-m', 'President', 10);
+  // Who reviews what, and who you sit down with, differ by track: a faculty
+  // member meets their Program Chair, a chair meets the President.
   const key = IS_CHAIR
     ? `<span><i style="background:var(--blue);"></i>AIEIC teaching evaluation — Fall report in January, Spring in July</span>
        <span><i style="background:var(--teal);"></i>12 items, reviewed by program faculty peers</span>
-       <span><i style="background:var(--amber-d);"></i>13 items, 2 points each</span>`
+       <span><i style="background:var(--amber-d);"></i>13 items, 2 points each, completed by the President</span>`
     : `<span><i style="background:var(--blue);"></i>AIEIC teaching evaluation, both semesters</span>
-       <span><i style="background:var(--amber-d);"></i>13 items, 3 points each, reviewed by your Dean or Chair</span>
+       <span><i style="background:var(--amber-d);"></i>13 items, 3 points each, reviewed by your Program Chair</span>
        <span><i style="background:var(--gray-m);"></i>President's integrated review</span>`;
   return `
     <div class="ov-scope" style="margin-bottom:10px;">
@@ -9415,9 +9426,10 @@ function pfTrackBar(){
 function pfCycleStrip(){
   const m = new Date().getMonth();            // 0 = January
   const stage = m >= 8 ? 0 : m === 0 ? 1 : m <= 5 ? 2 : m === 6 ? 3 : 4;
+  const counterpart = IS_CHAIR ? 'the President' : 'your Program Chair';
   const cells = [
     ['Fall',        'Teach &amp; capture',    'Keep a light record of meaningful work.'],
-    ['Jan wk 3',    'Review &amp; adjust',    'Fall AIEIC report; meet the Dean or Chair and agree on actions.'],
+    ['Jan wk 3',    'Review &amp; adjust',    `Fall AIEIC report; meet ${counterpart} and agree on actions.`],
     ['Spring',      'Apply &amp; update',     'Act on the feedback; update evidence as you go.'],
     ['Jul wk 3',    'Submit &amp; prepare',   'Spring report; submit the Self-Evaluation Report.'],
     ['Aug wk 1–4',  'Discuss &amp; finalize', 'Result disclosed; re-evaluation available in weeks 3–4.'],
@@ -9480,7 +9492,7 @@ function pfTeachingCard(){
           </div>` : ''}
           <div style="margin-top:9px;display:flex;gap:7px;align-items:center;">
             <input class="fi" id="pf-act-${r.id}" placeholder="Add an action agreed at the meeting"
-              style="height:30px;font-size:13.5px;max-width:420px;">
+              style="height:34px;font-size:14px;">
             <button class="btn-log" style="height:30px;font-size:13px;" onclick="pfActionAdd(${r.id})">Add</button>
           </div>
         </div></div>`;
@@ -9590,8 +9602,7 @@ function pfItemOpen(area, no){
 function pfItemBody(area, no, e, ev){
   const q = (id, label, hint, val) => `
     <div class="pf-q"><div class="pf-ql">${label}${hint ? ` <span>— ${hint}</span>` : ''}</div>
-      <textarea class="fi" id="${id}" rows="2"
-        style="height:auto;padding:9px 11px;line-height:1.55;font-size:14px;">${esc(val || '')}</textarea></div>`;
+      <textarea class="fi" id="${id}" rows="3">${esc(val || '')}</textarea></div>`;
   return `
     <div class="pf-itb">
       ${q(`pf-e-what-${area}-${no}`, 'What did you do?',   '', e?.what)}
@@ -9607,7 +9618,7 @@ function pfItemBody(area, no, e, ev){
         </div>
         <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;">
           <input class="fi" id="pf-ev-${area}-${no}" placeholder="A link, or a line naming the evidence"
-            style="height:30px;font-size:13.5px;max-width:420px;">
+            style="height:34px;font-size:14px;">
           <button class="btn-log" style="height:30px;font-size:13px;"
             onclick="pfEvidenceAdd('${area}',${no})">Attach</button>
         </div>
@@ -9811,7 +9822,7 @@ function pfAttachMetric(i){
 function pfNextDateCard(){
   const m = new Date().getMonth();
   const next = m >= 8 || m === 0
-    ? ['January, week 3', 'the Fall AIEIC report arrives and you meet the Dean or Program Chair.']
+    ? ['January, week 3', `the Fall AIEIC report arrives and you meet ${IS_CHAIR ? 'the President' : 'your Program Chair'}.`]
     : m <= 5
       ? ['July, week 3', 'the Spring report arrives and the Self-Evaluation Report is due.']
       : ['August, weeks 1–4', 'the result is disclosed; a re-evaluation can be requested in weeks 3–4.'];
