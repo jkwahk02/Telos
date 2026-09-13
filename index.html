@@ -1104,6 +1104,84 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .mtg-meta-dot{width:3px;height:3px;border-radius:50%;background:var(--text3);flex-shrink:0;}
 .mtg-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 
+/* ── MEETINGS ─────────────────────────────────────────────
+   One card, one panel, one action bar, at the type sizes the rest of the app
+   uses. What was here before wrote 11-13px inline styles beside .bdg and
+   .btn-log, which are 17px, and that is why this page read smaller than every
+   other one.
+
+   Two weights of the same card: .cards for the pages where a row is a task and
+   several are open at once, .cards.tight for Past, where twenty-six of them
+   are read by scanning. */
+.m2-lede{font-size:18px;color:var(--text2);line-height:1.65;max-width:78ch;margin:0 0 20px;}
+.m2-lede b{color:var(--text);font-weight:600;}
+.m2-lede a{color:var(--blue);text-decoration:none;border-bottom:1px solid var(--blue-b);cursor:pointer;}
+.m2-list{display:block;}
+.m2-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  overflow:hidden;margin-bottom:14px;transition:box-shadow .12s,border-color .12s;}
+.m2-row:last-child{margin-bottom:0;}
+.m2-row.confirmed{border-left:3px solid var(--green-b);}
+.m2-row.resched{border-left:3px solid var(--amber-b);}
+.m2-row.pending{border-left:3px solid var(--blue-b);}
+.m2-row.past{border-left:3px solid var(--border-em);}
+/* Three sides only: border-color would repaint the state accent on the fourth. */
+.m2-row.open{box-shadow:0 3px 12px rgba(0,0,0,.06);border-top-color:var(--border-em);
+  border-right-color:var(--border-em);border-bottom-color:var(--border-em);}
+.m2-row.open .m2-hd{background:var(--surface2);}
+.m2-list.tight .m2-row{margin-bottom:8px;border-radius:var(--r);}
+.m2-list.tight .m2-hd{padding-top:11px;padding-bottom:11px;}
+.m2-list.tight .m2-date{font-size:16px;}
+.m2-hd{display:grid;grid-template-columns:150px 1fr auto auto;align-items:center;gap:16px;
+  padding:14px 18px;cursor:pointer;}
+.m2-hd:hover{background:var(--surface2);}
+.m2-date{font-size:17px;font-weight:600;line-height:1.25;}
+.m2-time{font-family:'DM Mono',monospace;font-size:14.5px;color:var(--text2);display:flex;
+  align-items:center;gap:5px;margin-top:3px;}
+.m2-time.g{color:var(--green);}
+.m2-when-sub{font-size:14.5px;color:var(--text3);margin-top:3px;}
+.m2-name{font-size:18px;font-weight:600;letter-spacing:-.01em;}
+.m2-meta{font-size:15px;color:var(--text2);margin-top:3px;}
+.m2-meta i{font-style:normal;color:var(--text3);margin:0 7px;}
+.m2-caret{font-size:14px;color:var(--text3);white-space:nowrap;}
+.m2-panel{border-top:1px solid var(--border);}
+.m2-sec{padding:15px 18px;border-bottom:1px solid var(--border);}
+.m2-k{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:8px;}
+.m2-t{font-size:17px;line-height:1.6;}
+.m2-muted{color:var(--text3);}
+.m2-agenda{background:var(--blue-l);border-left:3px solid var(--blue-m);
+  border-radius:0 var(--r) var(--r) 0;padding:11px 14px;}
+.m2-agenda .m2-k{color:var(--blue);margin-bottom:4px;}
+.m2-agenda .m2-t{color:#0C447C;}
+.m2-linkrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.m2-link{flex:1;min-width:220px;display:flex;align-items:center;gap:8px;padding:8px 12px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);}
+.m2-link a{font-size:16px;color:var(--blue);text-decoration:none;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+.m2-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 18px;background:var(--surface2);}
+.m2-bar .right{margin-left:auto;display:flex;gap:10px;align-items:center;}
+.m2-note{font-size:15px;color:var(--text3);}
+.m2-month{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text3);margin:22px 0 9px;display:flex;align-items:center;gap:10px;}
+.m2-month:first-child{margin-top:0;}
+.m2-month:after{content:'';flex:1;height:1px;background:var(--border);}
+.m2-empty{padding:44px 18px;text-align:center;color:var(--text3);font-size:17px;line-height:1.7;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);}
+.m2-filters{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+/* availability, moved here from Settings */
+.av-row{display:grid;grid-template-columns:74px 160px 1fr auto;gap:14px;align-items:center;
+  padding:13px 16px;border-bottom:1px solid var(--border);}
+.av-row:last-child{border-bottom:none;}
+.av-when{font-family:'DM Mono',monospace;font-size:16px;}
+.av-stu{display:flex;gap:7px;flex-wrap:wrap;}
+.av-stu span{font-size:13.5px;padding:2px 9px;border-radius:20px;background:var(--surface2);
+  border:1px solid var(--border);color:var(--text2);}
+@media (max-width:900px){
+  .m2-hd{grid-template-columns:120px 1fr;row-gap:8px;}
+  .m2-hd > .bdg,.m2-caret{grid-column:2;justify-self:start;}
+  .av-row{grid-template-columns:1fr;gap:8px;}
+}
+
 /* ── MY PROFILE ───────────────────────────────────────────
    Two pages behind one tab. They borrow the Overview split and the settings
    card, so almost everything here is either a form row or a list row; what is
@@ -8685,7 +8763,7 @@ function renderCodebook(){
           <div>
             <div class="help-step-title">Set your availability</div>
             <div class="help-step-body">
-              Go to Settings and define your available time slots for meetings. Students can only request meetings within these times.
+              Go to Meetings › Availability and define your available time slots. Students can only request meetings within these times, and each slot is shown there in your students' time zones.
             </div>
           </div>
         </div>
@@ -8886,7 +8964,7 @@ function renderCodebook(){
       <div class="help-cards">
         <div class="help-card">
           <div class="help-card-title">Setting up your weekly slots</div>
-          <div class="help-card-body">Go to Settings and add your recurring availability under Weekly availability. Each slot has a day, start/end time, and format (Zoom or In-person). Active slots are visible to students; inactive slots are hidden but saved.</div>
+          <div class="help-card-body">Go to Meetings › Availability and add your recurring slots. Each slot has a day, start/end time, and format (Zoom or In-person). Active slots are visible to students; inactive slots are hidden but saved. Settings keeps a summary and a way back.</div>
         </div>
         <div class="help-card">
           <div class="help-card-title">How students use your availability</div>
@@ -8894,7 +8972,7 @@ function renderCodebook(){
         </div>
         <div class="help-card">
           <div class="help-card-title">Timezone setting</div>
-          <div class="help-card-body">Set your timezone in Settings → My profile so your slots display correctly for students in different time zones. Your slots are stored in UTC and automatically converted to each student's local time.</div>
+          <div class="help-card-body">Set your timezone in Settings → My profile so your slots display correctly for students in different time zones. Meetings › Availability shows each slot in your students' time zones as you edit it.</div>
         </div>
       </div>
     </div>`;
@@ -8965,23 +9043,19 @@ async function saveMeetingLink() {
 async function saveProfile() {
   const name = document.getElementById('prof-name')?.value.trim();
   const tz   = document.getElementById('tz-select')?.value;
-  const raw  = document.getElementById('prof-maxlen')?.value.trim() ?? '';
   const btn  = document.getElementById('btn-save-profile');
   const status = document.getElementById('prof-save-status');
   if (!name) { showToast('Name cannot be empty.'); return; }
-  // Blank is the meaningful value here, not an omission: it means no limit.
-  const maxLen = raw === '' ? null : parseInt(raw, 10);
-  if (maxLen !== null && (!Number.isFinite(maxLen) || maxLen < 10 || maxLen > 180)) {
-    showToast('Maximum meeting length must be between 10 and 180 minutes, or blank for no limit.');
-    return;
-  }
+  // max_meeting_minutes is deliberately absent. The field moved to Meetings >
+  // Availability, and reading a missing input here would have read '' - which
+  // means "no limit" - and quietly cleared the limit every time somebody saved
+  // their name.
   if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
   try {
     await sbUpdate('faculty_profiles', 'email', FACULTY_EMAIL,
-      { name_en: name, timezone: tz, max_meeting_minutes: maxLen });
+      { name_en: name, timezone: tz });
     FACULTY = name;
     FACULTY_TIMEZONE = tz;
-    FACULTY_MAX_MEETING = maxLen;
     document.getElementById('nav-name').textContent    = FACULTY;
     document.getElementById('dd-name').textContent     = FACULTY;
     document.getElementById('nav-avatar').textContent  = initials(FACULTY);
@@ -9367,7 +9441,7 @@ function pfAdvisingCard(r){
         <div class="val" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <span style="font-size:14px;">${esc(hours)}</span>
           <button class="pf-chip flat" style="font-size:12.5px;padding:3px 11px;"
-            onclick="goPage('settings')">Edit in Settings ›</button></div></div>
+            onclick="goPage('meetings');MTG.page='av';renderMeetings();">Edit in Meetings ›</button></div></div>
       <div class="pf-row"><div class="lbl">Meeting link</div>
         <div class="val" style="font-size:14px;color:var(--text2);">
           ${FACULTY_MEETING_LINK ? esc(FACULTY_MEETING_LINK) : 'not set'}</div></div>
@@ -10042,43 +10116,37 @@ async function renderSettings() {
   el.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:14px;">
 
-      <!-- AVAILABILITY -->
+      <!-- AVAILABILITY - now edited in Meetings -->
+      <!--
+        Moved rather than copied. Two editors on one table invite the question
+        of which is authoritative, and the reason for moving it was never the
+        address: a slot can only be judged next to the times it lands on for
+        the students, and that column lives on the Meetings page.
+
+        What stays here is a live summary, permanently - not as a transition
+        notice. Ten lines of it retire the whole class of "where did it go".
+      -->
       <div class="tbl-wrap" style="border-radius:var(--r-lg);">
         <div style="padding:11px 16px;border-bottom:1px solid var(--border);
-          display:flex;align-items:center;justify-content:space-between;">
+          display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
           <div>
             <div style="font-size:17px;font-weight:600;">Weekly availability</div>
             <div style="font-size:13px;color:var(--text3);margin-top:2px;">
-              Students see your active slots when requesting a meeting.
+              ${availSlots.filter(x => x.is_active !== false).length || 'No'} active slot${
+                availSlots.filter(x => x.is_active !== false).length === 1 ? '' : 's'}${
+                availSlots.filter(x => x.is_active !== false).length
+                  ? ' · ' + [...new Set(availSlots.filter(x => x.is_active !== false)
+                      .map(x => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][x.day_of_week]))].join(', ')
+                  : ''}
             </div>
-            <div style="font-size:11px;color:var(--text3);margin-top:4px;">
-              Times shown in ${tzLabelFac(FACULTY_TIMEZONE)}
-            </div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px;">
-              ${FACULTY_MAX_MEETING
-                ? `Meetings run ${FACULTY_MAX_MEETING} min — change under Max meeting length in My profile`
-                : 'Students choose how long the meeting runs — change under Max meeting length in My profile'}
+            <div style="font-size:12px;color:var(--text3);margin-top:5px;">
+              Edited under <strong>Meetings › Availability</strong>, where each slot is shown in your
+              students' time zones — and beside the requests it produces.
             </div>
           </div>
-          <span id="avail-count" class="bdg bdg-blue">— slots</span>
-        </div>
-        <div style="padding:16px;">
-          ${buildDayGrid()}
-          <div id="add-slot-form" style="display:none;"></div>
-          <div style="height:1px;background:var(--border);margin:14px 0;"></div>
-          <div style="font-size:13px;font-weight:600;color:var(--text3);
-            text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">
-            Slot details
-          </div>
-          <div id="slot-list"></div>
-        </div>
-        <div style="padding:10px 16px;background:var(--surface2);
-          border-top:1px solid var(--border);
-          display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-size:13px;color:var(--text3);">
-            Changes apply to future requests only
-          </span>
-          <button class="btn-log" onclick="saveAvailability()">Save changes</button>
+          <button class="btn-log" onclick="goPage('meetings');MTG.page='av';renderMeetings();">
+            Open Availability
+          </button>
         </div>
       </div>
 
@@ -10122,35 +10190,20 @@ async function renderSettings() {
             : ''
           }
 
-          <!-- A stored room, not a connection. Zoom's own sign-in would need a
-               server to hold the secret, and this app is one HTML file with an
-               anon key; what it would buy is a different link per meeting,
-               which advising does not need. -->
-          <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px;">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div style="width:32px;height:32px;border-radius:var(--r);background:${FACULTY_MEETING_LINK?'var(--green-l)':'var(--surface2)'};border:1px solid ${FACULTY_MEETING_LINK?'var(--green-b)':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6.5 9.5l3-3M9 6.5l1.5-1.5a2.121 2.121 0 013 3L12 10M7 9.5l-1.5 1.5a2.121 2.121 0 01-3-3L4 6.5" stroke="${FACULTY_MEETING_LINK?'var(--green)':'var(--text3)'}" stroke-width="1.3" stroke-linecap="round"/></svg>
+          <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px;
+            display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:240px;">
+              <div style="font-size:14px;font-weight:500;color:var(--text);">Default meeting link</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;">
+                ${FACULTY_MEETING_LINK ? esc(FACULTY_MEETING_LINK) : 'Not set'} — edited under
+                Meetings › Availability, with the booking rules it belongs to.
               </div>
-              <div style="flex:1;min-width:0;">
-                <div style="font-size:14px;font-weight:500;color:var(--text);">Default meeting link</div>
-                <div style="font-size:12px;color:var(--text3);margin-top:1px;">Your personal meeting room. It fills the link box on every meeting you confirm, and you can still change it there.</div>
-              </div>
-              ${FACULTY_MEETING_LINK
-                ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--green-l);color:var(--green);white-space:nowrap;">Set</span>`
-                : ''}
             </div>
-            <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-              <input id="prof-meeting-link" class="fi" placeholder="https://taejae-ac-kr.zoom.us/j/1234567890"
-                value="${esc(FACULTY_MEETING_LINK)}"
-                style="flex:1;min-width:0;height:32px;font-size:13px;background:var(--surface);">
-              <button onclick="saveMeetingLink()"
-                style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;">
-                Save
-              </button>
-            </div>
+            <button class="btn-cancel" onclick="goPage('meetings');MTG.page='av';renderMeetings();">
+              Open Availability
+            </button>
           </div>
-        </div>
-      </div>
+</div>
 
       <!-- MY PROFILE -->
       <div class="tbl-wrap" style="border-radius:var(--r-lg);">
@@ -10192,19 +10245,12 @@ async function renderSettings() {
             </select>
           </div>
         </div>
-        <div class="settings-field-row editable" style="align-items:flex-start;">
-          <div class="settings-edit-bar"></div>
-          <div class="settings-field-label" style="padding-top:13px;">Max meeting length</div>
-          <div class="settings-field-input">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input class="fi" id="prof-maxlen" type="number" min="10" max="180" step="5"
-                value="${FACULTY_MAX_MEETING ?? ''}" placeholder="No limit"
-                style="height:30px;font-size:14px;width:96px;" oninput="markProfileDirty()">
-              <span style="font-size:13px;color:var(--text2);">minutes</span>
-            </div>
-            <div style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;max-width:520px;">
-              The longest meeting a student may book with you. Leave blank for no limit.
-            </div>
+        <div class="settings-field-row">
+          <div class="settings-field-label">Max meeting length</div>
+          <div class="settings-field-val">
+            ${FACULTY_MAX_MEETING ? FACULTY_MAX_MEETING + ' minutes' : 'No limit'}
+            <span style="font-size:12px;color:var(--text3);margin-left:6px;">
+              set under Meetings › Availability</span>
           </div>
         </div>
 
@@ -10216,7 +10262,9 @@ async function renderSettings() {
 
     </div>`;
 
-  await loadAvailability();
+  // The summary above counts slots, so they have to be loaded. Guarded by the
+  // same flag My Profile uses, or the redraw would call this for ever.
+  if(!PROF.availTried){ PROF.availTried = true; await loadAvailability(); renderSettings(); }
 }
 
 async function loadAvailability() {
@@ -10397,7 +10445,7 @@ function openAddSlotForm(day) {
           </div>
           <div style="font-size:12px;color:var(--text3);margin-top:4px;line-height:1.5;">
             This is the window you are free, not the length of one meeting. That is set once for
-            all your blocks — Max meeting length, in My profile.</div>
+            all your blocks — Max meeting length, under Meetings › Availability.</div>
         </div>
         <div class="fg">
           <div class="fl">Note (optional)</div>
@@ -10522,208 +10570,382 @@ async function saveAvailability() {
   
 // ── CROSS-PAGE NAV ──
 
-function renderMeetings() {
-  const el = document.getElementById('page-meetings');
-  if (!el) return;
+// ══════════════════════════════════════════════════════════════════════════
+// MEETINGS
+//
+// Five pages behind one tab, sharing the submenu component Overview and My
+// Profile already use. What changed, and why:
+//
+//   THE TILES ARE GONE. Four grey KPI boxes said "Upcoming 1" and left you to
+//   scroll for who that was. The counts now sit on the menu item that takes you
+//   there - a number you can click - and a sentence under each heading says
+//   what they mean, including the thing a tile cannot: WHICH meeting is next.
+//
+//   ONE CARD, TWO WEIGHTS. Every row is the same four columns - when, who,
+//   state, control - so the eye reads down a column instead of re-finding it
+//   per row. Requests and Upcoming get air between cards, because each card is
+//   a task and several stand open at once; Past gets 8px and month headings,
+//   because twenty-six of them are read by scanning.
+//
+//   THE PAGE USES THE APP'S OWN COMPONENTS. It used to write 11-13px inline
+//   styles beside .bdg and .btn-log, which are 17px. That, and not the colour,
+//   is why it read smaller than every other page.
+//
+//   AVAILABILITY LIVES HERE. It is the supply side of every other page in this
+//   tab, and it cannot be judged without the students' timezones: a Friday
+//   16:00 slot in Seoul is Friday midnight in San Francisco and will never be
+//   booked. Settings keeps a summary and a way back.
+// ══════════════════════════════════════════════════════════════════════════
 
-  const allMtg = meetings.filter(m => m.facultyEmail === FACULTY_EMAIL)
-    .sort((a,b) => (a.meetingDate||'').localeCompare(b.meetingDate||''));
+const MTG = { page:null, open:{}, past:'term', q:'' };
 
-  const upcoming = allMtg.filter(m => m.advisorConfirmed && m.status === 'scheduled');
-  const pending  = allMtg.filter(m => !m.advisorConfirmed && m.status === 'scheduled');
-  const rescheduling  = allMtg.filter(m => m.status === 'rescheduling');
-  const past     = allMtg.filter(m => m.status === 'completed' || m.status === 'cancelled')
-    .sort((a,b) => (b.meetingDate||'').localeCompare(a.meetingDate||''));
-  const counts = {
-    all: allMtg.length,
-    upcoming: upcoming.length,
-    pending: pending.length,
-    rescheduling: rescheduling.length,
-    past: past.length
+// One split of the roster, used by the menu counts and by every page, so a
+// count and the list it opens can never disagree.
+function mtgSets(){
+  const mine = meetings.filter(m => m.facultyEmail === FACULTY_EMAIL);
+  const byDate = (a,b) => (a.meetingDate||'').localeCompare(b.meetingDate||'');
+  return {
+    upcoming: mine.filter(m => m.advisorConfirmed && m.status === 'scheduled').sort(byDate),
+    // Waiting on you, whichever way round: a student who proposed times, and a
+    // student who was asked to move and has not answered. One question - what
+    // needs an answer from me - so one list.
+    requests: mine.filter(m => (!m.advisorConfirmed && m.status === 'scheduled')
+                            || m.status === 'rescheduling').sort(byDate),
+    past: mine.filter(m => m.status === 'completed' || m.status === 'cancelled')
+              .sort((a,b) => (b.meetingDate||'').localeCompare(a.meetingDate||'')),
   };
-    
-  function dateBlock(m, cat) {
-    const cls = cat==='upcoming'?'db-g':cat==='pending'?'db-a':'db-gr';
-    const mc  = cat==='upcoming'?'g':cat==='pending'?'a':'gr';
-    const date = m.meetingDate ? new Date(m.meetingDate+'T00:00:00') : null;
-    const mon  = date ? date.toLocaleDateString('en-US',{month:'short'}) : 'TBD';
-    const day  = date ? date.getDate() : '—';
-    return `<div class="date-block ${cls}">
-      <div class="d-mon ${mc}">${mon}</div>
-      <div class="d-day ${mc}" style="${!date?'font-size:11px;':''}">${day}</div>
+}
+
+function renderMeetings(){
+  const el = document.getElementById('page-meetings');
+  if(!el) return;
+  const S = mtgSets();
+  // Land where the work is: Requests while any are open, Upcoming otherwise -
+  // the same fallthrough the Overview menu uses.
+  if(!MTG.page) MTG.page = S.requests.length ? 'req' : 'up';
+
+  const item = (k, label, icon, n, due) => `
+    <div class="ov-mi${MTG.page === k ? ' on' : ''}" onclick="mtgGo('${k}')" tabindex="0"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();mtgGo('${k}');}">
+      ${icon}<span>${label}</span>
+      ${n ? `<span class="ov-n" ${due ? '' : 'style="background:var(--gray-l);color:var(--gray-m);"'}>${n}</span>` : ''}
     </div>`;
-  }
 
-  function pill(cat, m) {
-    if (cat==='upcoming')      return `<span class="bdg bdg-green">Confirmed</span>`;
-    if (cat==='pending')       return `<span class="bdg bdg-amber">${m.createdBy==='advisor'?'Action needed':'Pending'}</span>`;
-    if (cat==='rescheduling')  return `<span class="bdg bdg-blue">Reschedule needed</span>`;
-    return `<span class="bdg bdg-gray">${m.status==='completed'?'Completed':'Cancelled'}</span>`;
-  }
-
-  function zoomBadge(m) {
-    if (m.meetingLink) return `<span style="font-size:11px;color:var(--blue);cursor:pointer;" onclick="window.open('${m.meetingLink}','_blank')">Join Zoom →</span>`;
-    return `<span style="font-size:11px;color:var(--text3);border:1px dashed var(--border-em);border-radius:20px;padding:2px 8px;cursor:pointer;">+ Add Zoom link</span>`;
-  }
-
-
-    
-  function buildRows(list, cat) {
-    if (!list.length) return `<div style="padding:20px 16px;text-align:center;font-size:14px;color:var(--text3);">No ${cat} meetings</div>`;
-    return list.map(m => {
-      const st = students.find(s => s.id === m.studentId);
-      const isPending = cat==='pending'||cat==='rescheduling';
-      const isConfirmed = cat==='upcoming';
-      const isPast = cat==='past';
-
-      const clickAction = isPending
-        ? `pendingExpanded['${m.id}']=!pendingExpanded['${m.id}'];renderMeetings()`
-        : isConfirmed
-        ? `confirmedExpanded['${m.id}']=!confirmedExpanded['${m.id}'];renderMeetings()`
-        : `pastExpanded['${m.id}']=!pastExpanded['${m.id}'];renderMeetings()`;
-
-      const dateStr = (() => {
-        if (isPending) {
-          const slots = Array.isArray(m.proposedSlots) ? m.proposedSlots : [];
-          const first = [...slots].sort((a,b)=>(a.facDateStr||a.dateStr||'').localeCompare(b.facDateStr||b.dateStr||''))[0];
-          const facDate = first?.facDateStr || first?.dateStr;
-          return facDate
-            ? new Date(facDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
-            : 'TBD';
-        }
-        return m.meetingDate
-          ? new Date(m.meetingDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
-          : 'TBD';
-      })();
-
-      const dtHtml = (() => {
-        if (isPending) {
-          const slots = Array.isArray(m.proposedSlots) ? m.proposedSlots : [];
-          const first = [...slots].sort((a,b)=>(a.facDateStr||a.dateStr||'').localeCompare(b.facDateStr||b.dateStr||''))[0];
-          const facDate = first?.facDateStr || first?.dateStr;
-          const fLabel = facDate
-            ? new Date(facDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
-            : 'TBD';
-          const extra = slots.length > 1 ? `+${slots.length-1} more` : '';
-          return `
-            <div class="mtg-dt-date">${fLabel}</div>
-            <div class="mtg-dt-sub">Proposed ${extra ? `· ${extra}` : ''}</div>`;
-        }
-        if (cat==='rescheduling') return `
-          <div class="mtg-dt-date">TBD</div>
-          <div class="mtg-dt-sub">Awaiting new slots</div>`;
-        const timeStr = m.confirmedStart;
-        const timeEnd = m.confirmedEnd;
-        const tc = isConfirmed ? 'g' : isPast ? 'gr' : '';
-        return `
-          <div class="mtg-dt-date">${dateStr}</div>
-          ${timeStr ? `<div class="mtg-dt-time ${tc}">${timeStr}${timeEnd?'–'+timeEnd:''} <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>` : ''}`;
-      })();
-
-      const metaItems = [
-        esc(shortCohort(st?.cohort||'')),
-        esc(shortMajor(st?.major1||'')),
-        `${esc(m.meetingType||'Regular')} · ${m.meetingDuration||30} min · ${esc(m.meetingFormat||'Zoom')}`,
-      ].filter(Boolean).map((item,i,arr)=>
-        `<span class="mtg-meta-item">${item}</span>${i<arr.length-1?'<div class="mtg-meta-dot"></div>':''}`
-      ).join('');
-
-      const rightHtml = (() => {
-        if (isConfirmed) return `${pill(cat,m)} ${!m.meetingLink ? `<span style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text3);"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 7v4M8 5.5v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>No meeting link</span>` : ''}`;
-        if (isPending||cat==='rescheduling') return pill(cat,m);
-        return pill(cat,m);
-      })();
-
-      const actionHtml = (() => {
-        if (isConfirmed) return `<span style="font-size:12px;color:var(--blue);">${confirmedExpanded[m.id]?'▴ Collapse':'▾ Manage'}</span>`;
-        if (isPending||cat==='rescheduling') return `<span style="font-size:12px;color:var(--blue);">${pendingExpanded[m.id]?'▴ Collapse':'▾ Review'}</span>`;
-        return `<span style="font-size:12px;color:var(--blue);">${pastExpanded[m.id]?'▴ Collapse':'▾ Expand'}</span>`;
-      })();
-
-      const expandHtml = (isPending||cat==='rescheduling') ? `
-        <div class="mtg-expand ${pendingExpanded[m.id]?'open':''}">
-          ${pendingExpanded[m.id] ? buildPendingExpand(m, st) : ''}
-        </div>` : isConfirmed ? `
-        <div class="mtg-expand ${confirmedExpanded[m.id]?'open':''}">
-          ${confirmedExpanded[m.id] ? buildConfirmedExpand(m, st) : ''}
-        </div>` : `
-        <div class="mtg-expand ${pastExpanded[m.id]?'open':''}">
-          ${pastExpanded[m.id] ? buildCompletedExpand(m, st) : ''}
-        </div>`;
-
-      const accentClass = isConfirmed ? 'confirmed' : isPending||cat==='rescheduling' ? 'pending' : '';
-      const opacity = isPast ? 'opacity:.75;' : '';
-
-      return `<div style="border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:6px;${accentClass==='pending'?'border-left:3px solid var(--amber-b);':accentClass==='confirmed'?'border-left:3px solid var(--green-b);':''}">
-        <div class="mtg-item-new ${accentClass}" style="${opacity}" onclick="${clickAction}">
-          <div class="mtg-dt">${dtHtml}</div>
-          <div class="mtg-center">
-            <div class="mtg-name">${esc(st?.name||m.studentId)}</div>
-            <div class="mtg-meta">${metaItems}</div>
-          </div>
-          <div class="mtg-right">${rightHtml}</div>
-          ${actionHtml ? `<span>${actionHtml}</span>` : '<span></span>'}
-        </div>
-        ${expandHtml}
-      </div>`;
-    }).join('');
-  }
+  const I = {
+    up:   `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.6" y="4" width="14.8" height="13" rx="2"/><path d="M2.6 8h14.8M6.6 2.4v3.2M13.4 2.4v3.2"/></svg>`,
+    req:  `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.4"/><path d="M10 5.4v4.8l3 1.8"/></svg>`,
+    cal:  `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.6" y="4" width="14.8" height="13" rx="2"/><path d="M2.6 8h14.8"/><rect x="5.4" y="10.4" width="3.2" height="2.8" rx=".7"/></svg>`,
+    past: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 5.4h12.8M3.6 10h12.8M3.6 14.6h8"/></svg>`,
+    av:   `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.4"/><path d="M10 5.4v4.8l3 1.8"/></svg>`,
+  };
 
   el.innerHTML = `
-    <div style="font-size:20px;font-weight:600;letter-spacing:-0.02em;margin-bottom:4px;">Meetings</div>
-    <div style="font-size:14px;color:var(--text2);margin-bottom:14px;">Upcoming, pending, and past advising meetings.</div>
+    <div class="ov-split">
+      <nav class="ov-menu">
+        <div class="ov-mgrp">Schedule</div>
+        ${item('up',  'Upcoming', I.up,  S.upcoming.length, false)}
+        ${item('req', 'Requests', I.req, S.requests.length, true)}
+        ${item('cal', 'Calendar', I.cal, 0, false)}
+        <div class="ov-mgrp">Record</div>
+        ${item('past','Past meetings', I.past, S.past.length, false)}
+        ${item('av',  'Availability', I.av, availSlots.filter(x => x.is_active !== false).length, false)}
+      </nav>
+      <div class="ov-body" id="mtg-body"></div>
+    </div>`;
+  mtgRenderBody(S);
+}
+function mtgGo(k){ MTG.page = k; MTG.open = {}; renderMeetings(); }
+function mtgToggle(id){ MTG.open[id] = !MTG.open[id]; renderMeetings(); }
 
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;">
-      <div class="stat-card"><div class="stat-val ok">${upcoming.length}</div><div class="stat-lbl">Upcoming</div></div>
-      <div class="stat-card"><div class="stat-val ${pending.length>0?'warn':'ok'}">${pending.length}</div><div class="stat-lbl">Pending</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:var(--blue)">${allMtg.length}</div><div class="stat-lbl">This semester</div></div>
-      <div class="stat-card"><div class="stat-val text-muted">${past.filter(m=>m.status==='cancelled').length}</div><div class="stat-lbl">No-show / cancelled</div></div>
-    </div>
+function mtgRenderBody(S){
+  const b = document.getElementById('mtg-body');
+  if(!b) return;
+  S = S || mtgSets();
+  if(MTG.page === 'req')  return mtgRequests(b, S);
+  if(MTG.page === 'up')   return mtgUpcoming(b, S);
+  if(MTG.page === 'cal')  return mtgCalendar(b);
+  if(MTG.page === 'past') return mtgPast(b, S);
+  if(MTG.page === 'av')   return mtgAvailability(b);
+}
 
-<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:12px;">
-      <div style="display:flex;gap:5px;" id="mtg-filter-chips">
-        <button class="fchip active" onclick="filterMeetings('all',this)">All <span style="color:var(--text3);">(${counts.all})</span></button>
-        <button class="fchip" onclick="filterMeetings('upcoming',this)">Upcoming <span style="color:var(--text3);">(${counts.upcoming})</span></button>
-        <button class="fchip" onclick="filterMeetings('pending',this)">Pending <span style="color:var(--text3);">(${counts.pending})</span></button>
-        ${counts.rescheduling > 0 ? `
-          <button class="fchip" onclick="filterMeetings('rescheduling',this)">Reschedule needed <span style="color:var(--text3);">(${counts.rescheduling})</span></button>
-        ` : ''}
-        <button class="fchip" onclick="filterMeetings('past',this)">Past <span style="color:var(--text3);">(${counts.past})</span></button>
+// ── the card ──────────────────────────────────────────────────────────────
+//
+// The panel body is still built by the three expand builders: they carry the
+// slot picker, the propose mode and the session-log read-out, and rewriting
+// those is a separate job from tidying the frame around them.
+function mtgKind(m){
+  if(m.status === 'rescheduling') return 'resched';
+  if(m.status === 'completed' || m.status === 'cancelled') return 'past';
+  return m.advisorConfirmed ? 'confirmed' : 'pending';
+}
+function mtgBadge(m){
+  const k = mtgKind(m);
+  if(k === 'confirmed') return `<span class="bdg bdg-green">Confirmed</span>`;
+  if(k === 'resched')   return `<span class="bdg bdg-amber">Reschedule needed</span>`;
+  if(k === 'pending')   return `<span class="bdg bdg-blue">Waiting on you</span>`;
+  if(m.status === 'cancelled') return `<span class="bdg bdg-gray">Cancelled</span>`;
+  return `<span class="bdg bdg-gray">${m.logId ? 'Logged' : 'No log'}</span>`;
+}
+// When: a date if there is one, TBD if there is not, never a bare blank.
+function mtgWhen(m){
+  const k = mtgKind(m);
+  const d = m.meetingDate ? new Date(m.meetingDate + 'T00:00:00') : null;
+  const date = d ? d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : 'TBD';
+  if(k === 'resched')
+    return `<div class="m2-date">TBD</div><div class="m2-when-sub">Awaiting new slots</div>`;
+  if(k === 'pending'){
+    const n = (Array.isArray(m.proposedSlots) ? m.proposedSlots : []).length;
+    return `<div class="m2-date">${date}</div>
+      <div class="m2-when-sub">${n ? `${n} slot${n > 1 ? 's' : ''} proposed` : 'no slots yet'}</div>`;
+  }
+  const t = m.confirmedStart ? `${m.confirmedStart}${m.confirmedEnd ? '–' + m.confirmedEnd : ''}` : '';
+  return `<div class="m2-date">${date}</div>
+    ${t ? `<div class="m2-time${k === 'confirmed' ? ' g' : ''}">${esc(t)}
+      <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>` : ''}`;
+}
+function mtgCard(m){
+  const st   = students.find(s => s.id === m.studentId);
+  const kind = mtgKind(m);
+  const open = !!MTG.open[m.id];
+  const meta = [shortCohort(st?.cohort || ''), shortMajor(st?.major1 || ''),
+                m.meetingType || 'Regular', `${m.meetingDuration || 30} min`, m.meetingFormat || 'Zoom']
+    .filter(Boolean).map(esc).join('<i>·</i>');
+
+  let panel = '';
+  if(open){
+    panel = kind === 'confirmed' ? buildConfirmedExpand(m, st)
+          : kind === 'past'      ? buildCompletedExpand(m, st)
+          :                        buildPendingExpand(m, st);
+  }
+  return `
+    <div class="m2-row ${kind}${open ? ' open' : ''}">
+      <div class="m2-hd" onclick="mtgToggle('${m.id}')">
+        <div>${mtgWhen(m)}</div>
+        <div>
+          <div class="m2-name">${esc(st?.name || m.studentId)}</div>
+          <div class="m2-meta">${meta}</div>
+        </div>
+        ${mtgBadge(m)}
+        <span class="m2-caret">${open ? '▴ Collapse' : '▾ Review'}</span>
       </div>
-      <div style="display:flex;gap:0;border:1px solid var(--border-em);border-radius:var(--r);overflow:hidden;" id="mtg-view-tabs">
-        <button class="fchip active" style="border-radius:0;border:none;border-right:1px solid var(--border-em);" onclick="switchMeetingView('list',this)">List</button>
-        <button class="fchip" style="border-radius:0;border:none;" onclick="switchMeetingView('cal',this)">Calendar</button>
-      </div>
-    </div>
+      ${open ? `<div class="m2-panel">${panel}</div>` : ''}
+    </div>`;
+}
 
-    <div id="mtg-list-wrap">
-      <div id="mtg-rows-upcoming">${buildRows(upcoming,'upcoming')}</div>
-      <div id="mtg-rows-rescheduling">${buildRows(rescheduling,'rescheduling')}</div>
-      <div id="mtg-rows-pending">${buildRows(pending,'pending')}</div>
-      <div id="mtg-rows-past" style="opacity:.7;">${buildRows(past,'past')}</div>
-    </div>
+// ── page: Requests ────────────────────────────────────────────────────────
+function mtgRequests(box, S){
+  const list    = S.requests;
+  const waiting = list.filter(m => m.status !== 'rescheduling').length;
+  const asked   = list.length - waiting;
+  const lede = !list.length
+    ? 'Nothing is waiting on you. A request appears here the moment a student sends one.'
+    : `${list.length} student${list.length === 1 ? ' is' : 's are'} waiting on you: `
+      + [waiting ? `<b>${waiting}</b> proposed times you can confirm` : '',
+         asked   ? `<b>${asked}</b> ${asked > 1 ? 'were' : 'was'} asked to move and ${asked > 1 ? 'have' : 'has'} not answered` : '']
+        .filter(Boolean).join(', and ')
+      + '. Nothing here is booked until you act.';
 
-    <div id="mtg-cal-wrap" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);">
-        <span style="font-size:17px;font-weight:600;" id="cal-month-label"></span>
-        <div style="display:flex;gap:6px;">
-          <button class="btn-cls" onclick="moveCal(-1)">‹</button>
-          <button class="fchip" onclick="moveCal(0)" style="padding:2px 10px;">Today</button>
-          <button class="btn-cls" onclick="moveCal(1)">›</button>
+  box.innerHTML = `
+    <h1 class="ov-h1">Requests</h1>
+    <p class="m2-lede">${lede}</p>
+    ${list.length
+      ? `<div class="m2-list">${list.map(mtgCard).join('')}</div>`
+      : `<div class="m2-empty">No requests are waiting.<br>
+           <span style="font-size:15px;">Students book against the hours you keep under
+           <a onclick="mtgGo('av')" style="color:var(--blue);cursor:pointer;">Availability</a>.</span></div>`}`;
+}
+
+// ── page: Upcoming ────────────────────────────────────────────────────────
+function mtgUpcoming(box, S){
+  const list = S.upcoming;
+  const next = list[0];
+  const st   = next && students.find(s => s.id === next.studentId);
+  const when = next && next.meetingDate
+    ? new Date(next.meetingDate + 'T00:00:00').toLocaleDateString('en-US',
+        { weekday:'long', month:'long', day:'numeric' })
+    : '';
+  const lede = !list.length
+    ? 'Nothing is confirmed yet.'
+    : `${list.length === 1 ? 'One meeting is' : `${list.length} meetings are`} confirmed`
+      + (next ? `, the next with <b>${esc(st?.name || next.studentId)}</b> on <b>${esc(when)}</b>`
+              + `${next.confirmedStart ? ` at <b>${esc(next.confirmedStart)}</b>` : ''}` : '')
+      + `.${S.requests.length
+          ? ` <a onclick="mtgGo('req')">${S.requests.length} request${S.requests.length > 1 ? 's' : ''}</a> still waiting on you.`
+          : ''}`;
+
+  box.innerHTML = `
+    <h1 class="ov-h1">Upcoming</h1>
+    <p class="m2-lede">${lede}</p>
+    ${list.length
+      ? `<div class="m2-list">${list.map(mtgCard).join('')}</div>`
+      : `<div class="m2-empty">No confirmed meetings.<br>
+           <span style="font-size:15px;">${S.requests.length
+             ? `<a onclick="mtgGo('req')" style="color:var(--blue);cursor:pointer;">${S.requests.length} request${S.requests.length > 1 ? 's' : ''}</a> waiting for your answer.`
+             : 'Students can request one against your posted hours.'}</span></div>`}`;
+}
+
+// ── page: Calendar ────────────────────────────────────────────────────────
+//
+// The grid is the one that was already here - buildCalendar fills #cal-grid -
+// so only the chrome around it is new.
+function mtgCalendar(box){
+  box.innerHTML = `
+    <h1 class="ov-h1">Calendar</h1>
+    <p class="m2-lede">Confirmed meetings and the requests waiting on you, in your own timezone
+      <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span>.</p>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;
+        border-bottom:1px solid var(--border);">
+        <span style="font-size:19px;font-weight:600;" id="cal-month-label"></span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-cancel" onclick="moveCal(-1)">‹</button>
+          <button class="btn-cancel" onclick="moveCal(0)">Today</button>
+          <button class="btn-cancel" onclick="moveCal(1)">›</button>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);">
-        ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`
-          <div style="font-size:11px;font-weight:600;color:var(--text3);text-align:center;padding:7px 0;text-transform:uppercase;letter-spacing:.05em;">${d}</div>
-        `).join('')}
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);
+        background:var(--surface2);">
+        ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => `
+          <div style="font-size:13px;font-weight:600;color:var(--text3);text-align:center;padding:9px 0;
+            text-transform:uppercase;letter-spacing:.05em;">${d}</div>`).join('')}
       </div>
       <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);"></div>
-      <div style="display:flex;align-items:center;gap:14px;padding:8px 16px;border-top:1px solid var(--border);">
-        <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);"><div style="width:10px;height:10px;border-radius:2px;background:var(--green-l);border:1px solid var(--green-b);"></div>Confirmed</div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);"><div style="width:10px;height:10px;border-radius:2px;background:var(--amber-l);border:1px solid var(--amber-b);"></div>Pending</div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);"><div style="width:10px;height:10px;border-radius:2px;background:var(--gray-l);border:1px solid var(--border-em);"></div>Completed</div>
+      <div style="display:flex;align-items:center;gap:18px;padding:11px 18px;border-top:1px solid var(--border);">
+        ${[['var(--green-l)','var(--green-b)','Confirmed'],
+           ['var(--amber-l)','var(--amber-b)','Waiting on you'],
+           ['var(--gray-l)','var(--border-em)','Completed']].map(([bg,bd,l]) => `
+          <div style="display:flex;align-items:center;gap:7px;font-size:15px;color:var(--text2);">
+            <div style="width:12px;height:12px;border-radius:3px;background:${bg};border:1px solid ${bd};"></div>${l}
+          </div>`).join('')}
       </div>
     </div>`;
+  buildCalendar();
+}
+
+// ── page: Past meetings ───────────────────────────────────────────────────
+function mtgPast(box, S){
+  const term = evCycle();                        // the review year, 1 Sep - 31 Aug
+  const from = `${term}-09-01`, to = `${term + 1}-08-31`;
+  const inTerm = m => (m.meetingDate || '') >= from && (m.meetingDate || '') <= to;
+
+  const all       = S.past;
+  const thisTerm  = all.filter(inTerm);
+  const noLog     = thisTerm.filter(m => m.status === 'completed' && !m.logId);
+  const cancelled = thisTerm.filter(m => m.status === 'cancelled');
+
+  let list = MTG.past === 'all' ? all
+           : MTG.past === 'nolog' ? noLog
+           : MTG.past === 'cancelled' ? cancelled
+           : thisTerm;
+  const q = (MTG.q || '').trim().toLowerCase();
+  if(q){
+    list = list.filter(m => {
+      const st = students.find(s => s.id === m.studentId);
+      return (st?.name || '').toLowerCase().includes(q) || String(m.studentId).includes(q);
+    });
+  }
+
+  // Month headings do the work the hairlines used to: they are what makes a
+  // long run of identical cards scannable.
+  let out = '', lastMonth = '';
+  list.forEach(m => {
+    const d = m.meetingDate ? new Date(m.meetingDate + 'T00:00:00') : null;
+    const label = d ? d.toLocaleDateString('en-US', { month:'long', year:'numeric' }) : 'No date';
+    if(label !== lastMonth){ out += `<div class="m2-month">${esc(label)}</div>`; lastMonth = label; }
+    out += mtgCard(m);
+  });
+
+  const chip = (k, label, n) => `<button class="fchip${MTG.past === k ? ' active' : ''}"
+    onclick="MTG.past='${k}';renderMeetings()">${label} <span style="color:var(--text3);">(${n})</span></button>`;
+
+  box.innerHTML = `
+    <h1 class="ov-h1">Past meetings</h1>
+    <p class="m2-lede">${thisTerm.length} meeting${thisTerm.length === 1 ? '' : 's'} held this cycle${
+      noLog.length ? `, <b>${noLog.length}</b> of them without a session log` : ''}.${
+      cancelled.length ? ` ${cancelled.length} ${cancelled.length === 1 ? 'was' : 'were'} cancelled.` : ''}</p>
+    <div class="m2-filters">
+      <input class="fi" id="mtg-q" placeholder="Search a name…" value="${esc(MTG.q || '')}"
+        style="width:230px;height:36px;font-size:16px;" oninput="MTG.q=this.value;mtgRenderBody();">
+      ${chip('term', `${term}–${term + 1}`, thisTerm.length)}
+      ${chip('nolog', 'No session log', noLog.length)}
+      ${chip('cancelled', 'Cancelled', cancelled.length)}
+      ${chip('all', 'All time', all.length)}
+      <span class="ov-meta" style="margin-left:auto;">newest first</span>
+    </div>
+    ${list.length ? `<div class="m2-list tight">${out}</div>`
+                  : `<div class="m2-empty">Nothing matches.</div>`}`;
+
+  // Typing redraws the body, which replaces the input: put the caret back.
+  const inp = document.getElementById('mtg-q');
+  if(inp && q){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+}
+
+// ── page: Availability ────────────────────────────────────────────────────
+//
+// The editor is the one that was in Settings: buildDayGrid, renderSlotList and
+// saveAvailability all address the same ids, so they keep working unchanged.
+// What is added is the column that makes a slot judgeable - what time it is
+// where the students are.
+function mtgAvailability(box){
+  const active = availSlots.filter(s => s.is_active !== false).length;
+  box.innerHTML = `
+    <h1 class="ov-h1">Availability</h1>
+    <p class="m2-lede">${active ? `<b>${active}</b> slot${active === 1 ? '' : 's'} open each week`
+                                : 'No slots posted yet'} — this is what students choose from when they
+      request a meeting. Times are yours <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span>;
+      under each one is the same slot where your students are.</p>
+
+    <div class="pf-card">
+      <div class="pf-hd"><h3>Weekly slots</h3>
+        <span class="hint">changes apply to future requests only</span>
+        <div class="right"><span class="bdg bdg-blue" id="avail-count">— slots</span></div></div>
+      <div class="pf-bd">
+        ${buildDayGrid()}
+        <div id="add-slot-form" style="display:none;"></div>
+        <div style="height:1px;background:var(--border);margin:16px 0;"></div>
+        <div id="slot-list"></div>
+      </div>
+      <div class="pf-ft">
+        <span style="font-size:15px;color:var(--text3);">Students see only active slots.</span>
+        <button class="btn-log" onclick="saveAvailability()">Save changes</button>
+      </div>
+    </div>
+
+    <div class="pf-card">
+      <div class="pf-hd"><h3>Booking rules</h3></div>
+      <div class="pf-row"><div class="lbl">Longest meeting a student may book</div>
+        <div class="val" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+          <input class="fi" id="mtg-maxlen" type="number" min="10" max="180" step="5"
+            value="${FACULTY_MAX_MEETING ?? ''}" placeholder="No limit"
+            style="width:110px;height:34px;font-size:15px;">
+          <span class="m2-note">minutes · leave blank for no limit</span>
+          <button class="btn-cancel" onclick="saveMaxMeeting()">Save</button>
+        </div></div>
+      <div class="pf-row"><div class="lbl">Default meeting link</div>
+        <div class="val" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+          <input class="fi" id="prof-meeting-link" value="${esc(FACULTY_MEETING_LINK)}"
+            placeholder="https://taejae-ac-kr.zoom.us/j/1234567890"
+            style="flex:1;min-width:280px;height:34px;font-size:15px;">
+          <button class="btn-cancel" onclick="saveMeetingLink()">Save</button>
+        </div></div>
+      <div class="pf-row"><div class="lbl">Google Calendar</div>
+        <div class="val">${gcalToken
+          ? `<span class="bdg bdg-green">Connected · Telos Meetings</span>`
+          : `<span class="m2-note">Not connected — connect it under Settings › Integrations.</span>`}</div></div>
+    </div>`;
+  loadAvailability();
+}
+
+// Its own saver, because the profile form that used to carry this field lives
+// on another page now and reads inputs that are not on screen here.
+async function saveMaxMeeting(){
+  const raw = document.getElementById('mtg-maxlen')?.value;
+  const val = raw === '' || raw == null ? null : Number(raw);
+  try {
+    await sbUpdate('faculty_profiles', 'email', FACULTY_EMAIL, { max_meeting_minutes: val });
+    FACULTY_MAX_MEETING = val;
+    showToast('✓ Booking rule saved');
+  } catch(e){ showToast('Could not save: ' + e.message); }
 }
 
 // 현재 캘린더 연월 상태
