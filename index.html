@@ -10988,7 +10988,9 @@ function buildCalendar() {
   const allMtg = meetings.filter(m => m.facultyEmail === FACULTY_EMAIL);
   const upcoming = allMtg.filter(m => m.advisorConfirmed && m.status==='scheduled');
   const pending  = allMtg.filter(m => !m.advisorConfirmed && m.status==='scheduled');
-  const past     = allMtg.filter(m => m.status==='completed'||m.status==='cancelled');
+  // Completed only. A cancelled meeting did not happen, and a calendar is a
+  // record of what did: leaving it in put a grey block on a day that was free.
+  const past     = allMtg.filter(m => m.status==='completed');
 
   function getEventsForDay(day) {
     const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
@@ -11012,8 +11014,9 @@ function buildCalendar() {
   // 이전 달 빈 칸
   const prevDays = new Date(calYear, calMonth, 0).getDate();
   for (let i = firstDay-1; i >= 0; i--) {
-    html += `<div style="min-height:80px;padding:5px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);opacity:.3;">
-      <div style="font-size:12px;color:var(--text3);">${prevDays-i}</div>
+    html += `<div style="min-height:96px;padding:6px;border-right:1px solid var(--border);
+      border-bottom:1px solid var(--border);opacity:.3;">
+      <div style="font-size:13px;color:var(--text3);">${prevDays-i}</div>
     </div>`;
   }
 
@@ -11025,21 +11028,29 @@ function buildCalendar() {
 
     const evHtml = evs.map(({m, cat}) => {
       const st = students.find(s => s.id === m.studentId);
-      const name = st?.name?.split(' ').slice(-1)[0] || m.studentId; // 성만
+      // The full name, not the surname. Half this roster shares a surname -
+      // three Kims teach nobody which Kim is on Wednesday - and the cell has
+      // the room for two lines.
+      const name = st?.name || m.studentId;
       const time = m.confirmedStart || (m.proposedSlots?.[0]?.start) || '';
       const bg   = cat==='upcoming'?'var(--green-l)':cat==='pending'?'var(--amber-l)':'var(--gray-l)';
       const border = cat==='upcoming'?'var(--green-b)':cat==='pending'?'var(--amber-b)':'var(--border-em)';
       const color  = cat==='upcoming'?'var(--green)':cat==='pending'?'var(--amber)':'var(--text3)';
-      const clickFn = cat==='pending' ? `pendingExpanded['${m.id}']=!pendingExpanded['${m.id}'];renderMeetings()` : `goToStudent('${m.studentId}')`;
-      return `<div onclick="event.stopPropagation();${clickFn}"
-        style="font-size:11px;padding:2px 5px;border-radius:3px;margin-bottom:2px;background:${bg};border:1px solid ${border};color:${color};cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-        ${time?time+' ':''}${esc(name)}
+      // Every chip lands on the page that holds that meeting, with it open.
+      return `<div onclick="event.stopPropagation();goToMeeting('${m.id}')"
+        style="font-size:13px;line-height:1.35;padding:3px 6px;border-radius:4px;margin-bottom:3px;
+          background:${bg};border:1px solid ${border};color:${color};cursor:pointer;">
+        ${time ? `<span style="font-family:'DM Mono',monospace;font-size:12px;">${esc(time)}</span> ` : ''}${esc(name)}
       </div>`;
     }).join('');
 
-    html += `<div style="min-height:80px;padding:5px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:${isToday?'var(--blue-l)':'var(--surface)'};cursor:pointer;"
-      onclick="switchMeetingView('list',document.querySelector('#mtg-view-tabs .fchip'))">
-      <div style="font-size:12px;font-weight:${isToday?'600':'400'};color:${isToday?'var(--blue)':'var(--text2)'};margin-bottom:3px;">${day}</div>
+    // The cell itself is no longer clickable: it used to flip a List/Calendar
+    // toggle that the five-page rebuild removed, and clicking it threw. The
+    // chips inside it carry the navigation now.
+    html += `<div style="min-height:96px;padding:6px;border-right:1px solid var(--border);
+      border-bottom:1px solid var(--border);background:${isToday?'var(--blue-l)':'var(--surface)'};">
+      <div style="font-size:13px;font-weight:${isToday?'600':'400'};
+        color:${isToday?'var(--blue)':'var(--text2)'};margin-bottom:4px;">${day}</div>
       ${evHtml}
     </div>`;
   }
@@ -11048,8 +11059,9 @@ function buildCalendar() {
   const total = firstDay + daysInMonth;
   const remaining = (7 - total%7) % 7;
   for (let i = 1; i <= remaining; i++) {
-    html += `<div style="min-height:80px;padding:5px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);opacity:.3;">
-      <div style="font-size:12px;color:var(--text3);">${i}</div>
+    html += `<div style="min-height:96px;padding:6px;border-right:1px solid var(--border);
+      border-bottom:1px solid var(--border);opacity:.3;">
+      <div style="font-size:13px;color:var(--text3);">${i}</div>
     </div>`;
   }
 
