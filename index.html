@@ -651,6 +651,9 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 
 /* NEW SESSION FORM */
 .ns-card{border:1px solid var(--blue-b);border-radius:var(--r);overflow:hidden;}
+.ns-card.ns-course{border-color:var(--teal);}
+.ns-card.ns-course .ns-hd{background:var(--teal-l);border-bottom-color:var(--teal);}
+.ns-card.ns-course .ns-title{color:var(--teal);}
 .ns-hd{background:var(--blue-l);padding:9px 13px;border-bottom:1px solid var(--blue-b);display:flex;align-items:center;justify-content:space-between;}
 .ns-title{font-size:17px;font-weight:600;color:var(--blue);}
 .ns-cancel{font-size:17px;color:var(--blue-m);cursor:pointer;border:none;background:none;}
@@ -1168,6 +1171,40 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .m2-empty{padding:44px 18px;text-align:center;color:var(--text3);font-size:17px;line-height:1.7;
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);}
 .m2-filters{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+.m2-row.logged{border-left:3px solid var(--blue-b);}
+.m2-row.course{border-left:3px solid var(--teal);}
+.m2-row.missing{border-left:3px solid var(--red-l);}
+/* the choose-a-student popup: one question, one screen */
+.pk-back{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:300;display:flex;
+  align-items:flex-start;justify-content:center;padding:72px 16px 16px;}
+.pk{background:var(--surface);border-radius:var(--r-lg);width:100%;max-width:560px;overflow:hidden;
+  box-shadow:0 18px 48px rgba(0,0,0,.22);display:flex;flex-direction:column;max-height:78vh;}
+.pk-hd{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.pk-hd h3{font-size:19px;font-weight:600;}
+.pk-x{margin-left:auto;border:none;background:none;font-size:20px;color:var(--text3);cursor:pointer;}
+.pk-search{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;}
+.pk-list{overflow-y:auto;}
+.pk-ft{padding:12px 18px;background:var(--surface2);border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.pk-box{width:19px;height:19px;border-radius:5px;border:1.5px solid var(--border-em);
+  background:var(--surface);flex-shrink:0;position:relative;}
+.pick-r.on .pk-box{background:var(--teal);border-color:var(--teal);}
+.pick-r.on .pk-box:after{content:'\2713';position:absolute;inset:0;color:#fff;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;}
+.pick-r.on{background:#F3FBF8;}
+.pick-grp{padding:9px 13px 5px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--text3);background:var(--surface2);border-bottom:1px solid var(--border);}
+.pick-r{display:flex;align-items:center;gap:11px;padding:10px 13px;cursor:pointer;
+  border-bottom:1px solid var(--border);}
+.pick-r:last-child{border-bottom:none;}
+.pick-r:hover{background:var(--blue-l);}
+.pick-av{width:30px;height:30px;border-radius:50%;background:var(--surface2);color:var(--text2);
+  font-size:12.5px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pick-n{font-size:16px;font-weight:600;}
+.pick-m{font-size:14px;color:var(--text2);margin-top:1px;}
+.pick-tag{margin-left:auto;font-size:12.5px;padding:2px 9px;border-radius:20px;
+  background:var(--gray-l);color:var(--gray-m);white-space:nowrap;}
+.pick-tag.mine{background:var(--blue-l);color:var(--blue);}
 /* Availability, moved here from Settings.
    Every other page in this tab is a column of cards you read top to bottom, so
    .pf-card's 1080px cap suits them. This one is a week and a list of times: it
@@ -1572,6 +1609,21 @@ let profileOpenFor = null; // null이면 open, id가 일치하면 minimized
 let studTab = 'profile';   // which detail tab is showing; kept across students
 let logFilter = 'all', logSearch = '', openLogId = null, editingLogId = null;
 
+// Set before the session form opens, and read by it. A form reached from a
+// student's own timeline is advising; one reached through Session Log carries
+// whichever kind that page is about, the course it concerns, and - for an hour
+// several students came to - the others it will be copied to.
+let nsKind = 'advising', nsCourse = '', nsGroup = [];
+const NS_WORDS = {
+  advising: { title:'New session', disc:'Discussion summary', conc:'Student concerns &amp; requests',
+              advice:'Advisor advice &amp; action items', sa:'Student action items',
+              topics:['Career','Academics','Research','Wellbeing','Administrative'] },
+  course:   { title:'New course session', disc:'What we went through', conc:'Where they were stuck',
+              advice:'What I explained or suggested', sa:'What to try next',
+              topics:['Assignment','A concept','Project','Exam','Taking the course'] },
+};
+function nsW(){ return NS_WORDS[nsKind] || NS_WORDS.advising; }
+
 
 // ── UTILS ──
 function bdg(t,c){return `<span class="bdg bdg-${c}">${t}</span>`;}
@@ -1853,7 +1905,7 @@ async function sbInsert(table, row) {
 
 // ── SUPABASE UPSERT ──
 //
-// One row per item per cycle is the shape the Evaluation Record needs, and the
+// One row per item per cycle is the shape the Performance Record needs, and the
 // page cannot know whether this is the first save or the fifth. PostgREST does
 // that in one request with resolution=merge-duplicates, provided on_conflict
 // names the unique constraint's columns - without it the insert fails on the
@@ -2355,6 +2407,11 @@ function mapSession(r) {
     mainTopic:       r.main_topic          || '',
     meetingTime:     r.meeting_time        || '',
     visibility: r.visibility || 'chair',
+    // What the conversation was for. Rows written before the column existed
+    // read as advising, which is what almost all of them were.
+    kind:            r.session_kind         || 'advising',
+    courseId:        r.course_id            || '',
+    groupId:         r.group_id             || null,
   };
 }
 
@@ -2435,6 +2492,9 @@ async function insertSession(row) {
     major_change_note:     row.majorChangeNote,
     main_topic:            row.mainTopic,
     visibility: row.visibility || 'chair',
+    session_kind:          row.kind || 'advising',
+    course_id:             row.kind === 'course' ? (row.courseId || null) : null,
+    group_id:              row.groupId || null,
   };
   return sbInsert(TBL_LOG, dbRow);
 }
@@ -8090,14 +8150,16 @@ function buildProfileSection(st) {
 }
   
 function buildSessCard(s){
+  // Read back under the labels it was written under.
+  const W = NS_WORDS[s.kind === 'course' ? 'course' : 'advising'];
   return `<div class="sess-card">
     <div class="two-pane">
-      <div class="pane disc"><div class="pane-lbl disc">Discussion summary</div><div class="pane-val disc">${esc(s.disc)||'—'}</div></div>
-      <div class="pane conc"><div class="pane-lbl conc">Student concerns &amp; requests</div><div class="pane-val ${s.conc?'conc':'none'}">${s.conc?esc(s.conc):'None raised'}</div></div>
+      <div class="pane disc"><div class="pane-lbl disc">${W.disc}</div><div class="pane-val disc">${esc(s.disc)||'—'}</div></div>
+      <div class="pane conc"><div class="pane-lbl conc">${W.conc}</div><div class="pane-val ${s.conc?'conc':'none'}">${s.conc?esc(s.conc):'None raised'}</div></div>
     </div>
     <div class="card-bot">
-      <div><div class="cb-lbl">Advisor advice &amp; action items</div><div class="cb-val">${esc(s.advice)||'—'}</div></div>
-      <div><div class="cb-lbl">Student action items</div><div class="cb-val">${esc(s.studentAction)||'—'}</div></div>
+      <div><div class="cb-lbl">${W.advice}</div><div class="cb-val">${esc(s.advice)||'—'}</div></div>
+      <div><div class="cb-lbl">${W.sa}</div><div class="cb-val">${esc(s.studentAction)||'—'}</div></div>
       <div><div class="cb-lbl">Follow-up required</div><div class="cb-val ${s.followUp==='Y'?'warn':'ok'}">${s.followUp==='Y'?'Yes':'No'}</div></div>
       <div><div class="cb-lbl">Next meeting</div><div class="cb-val ${s.nextDate?'':'warn'}">${esc(s.nextDate)||'Not scheduled'}</div></div>
     </div>
@@ -8121,7 +8183,7 @@ function buildNsForm(st){
   const autoFormat = hasLinked ? linkedMeeting.meetingFormat : 'Zoom';
   const autoAgenda = hasLinked ? linkedMeeting.studentAgenda : '';
 
-  const topics=['Career','Academics','Research','Wellbeing','Administrative'];
+  const topics=nsW().topics;
   const tHtml=topics.map(t=>`<span class="mchip ${selTopics.includes(t)?'on':''}"
     onclick="toggleTopic('${st.id}','${t}')">${t}</span>`).join('');
 
@@ -8143,9 +8205,10 @@ function buildNsForm(st){
   return `<div class="tl-item">
   <div class="tl-spine"><div class="tl-dot entry"></div><div class="tl-line"></div></div>
   <div class="tl-content" style="padding-bottom:16px;">
-  <div class="ns-card" id="ns-card-${esc(st.id)}">
+  <div class="ns-card${nsKind === 'course' ? ' ns-course' : ''}" id="ns-card-${esc(st.id)}">
     <div class="ns-hd">
-      <span class="ns-title">New session — ${esc(st.name)}</span>
+      <span class="ns-title">${nsW().title} — ${esc(st.name)}${
+        nsGroup.length > 1 ? ` and ${nsGroup.length - 1} other${nsGroup.length > 2 ? 's' : ''}` : ''}</span>
       <button class="ns-cancel" onclick="event.stopPropagation();cancelForm()">Cancel ×</button>
     </div>
     <div class="ns-body">
@@ -8200,31 +8263,39 @@ function buildNsForm(st){
       <!-- ── 신규: student agenda 읽기전용 표시 -->
       ${agendaBlock}
 
+      ${nsKind === 'course' ? `
+      <div class="rg2">
+        <div class="fg"><div class="fl">Course <span class="req">*</span></div>
+          <div class="fi af">${esc(nsCourse || '—')}</div></div>
+        ${nsGroup.length > 1 ? `
+        <div class="fg"><div class="fl">Saved for</div>
+          <div class="fi af">${nsGroup.length} students — ${esc(nsGroup
+            .map(id => students.find(x => x.id === id)?.name || id).join(', '))}</div></div>` : ''}
+      </div>` : ''}
+
       <div class="fg"><div class="fl">Main topic <span class="req">*</span></div>
         <div class="mchip-row" id="ns-topics">${tHtml}</div>
       </div>
 
       <div class="prow">
         <div class="pbox disc">
-          <div class="plbl disc">Discussion summary <span class="req">*</span></div>
+          <div class="plbl disc">${nsW().disc} <span class="req">*</span></div>
           <textarea class="fta fta-disc" id="ns-disc"
             placeholder="What was discussed…"></textarea>
         </div>
         <div class="pbox conc">
-          <div class="plbl conc">Student concerns &amp; requests</div>
+          <div class="plbl conc">${nsW().conc}</div>
           <textarea class="fta fta-conc" id="ns-conc"
             placeholder="What the student raised…"></textarea>
         </div>
       </div>
 
       <div class="rg2">
-        <div class="fg"><div class="fl">Advisor advice &amp; action items</div>
-          <textarea class="fta" id="ns-advice" rows="2"
-            placeholder="Your advice and follow-up…"></textarea>
+        <div class="fg"><div class="fl">${nsW().advice}</div>
+          <textarea class="fta" id="ns-advice" rows="2"></textarea>
         </div>
-        <div class="fg"><div class="fl">Student action items</div>
-          <textarea class="fta" id="ns-sa" rows="2"
-            placeholder="What the student will do…"></textarea>
+        <div class="fg"><div class="fl">${nsW().sa}</div>
+          <textarea class="fta" id="ns-sa" rows="2"></textarea>
         </div>
       </div>
 
@@ -8245,9 +8316,10 @@ function buildNsForm(st){
         </div>
       </div>
 
+      ${nsKind === 'course' ? '' : `
       <div class="fg"><div class="fl">Major change note</div>
         <input class="fi" id="ns-mc" placeholder="Leave blank if no change">
-      </div>
+      </div>`}
 
       <div style="height:1px;background:var(--border);margin:4px 0;"></div>
       <div class="fg">
@@ -8281,13 +8353,15 @@ function toggleTopic(sid,t){
   selTopics=selTopics.includes(t)?selTopics.filter(x=>x!==t):[...selTopics,t];
   const el=document.getElementById('ns-topics');
   if(el){
-    const topics=['Career','Academics','Research','Wellbeing','Administrative'];
+    const topics=nsW().topics;
     el.innerHTML=topics.map(tp=>`<span class="mchip ${selTopics.includes(tp)?'on':''}" onclick="toggleTopic('${sid}','${tp}')">${tp}</span>`).join('');
   }
 }
 
 function toggleForm(id){
   showFormFor=showFormFor===id?null:id;
+  // Opened from the student's own timeline: advising, one student.
+  nsKind='advising'; nsCourse=''; nsGroup=[];
   selTopics=[];
   renderStudBody();
   if(showFormFor) setTimeout(()=>scrollToSessionForm(id), 50);
@@ -8308,7 +8382,11 @@ function scrollToSessionForm(id){
   // smooth scroll above.
   document.getElementById('ns-disc')?.focus({ preventScroll: true });
 }
-function cancelForm(){showFormFor=null; selVisibility='private'; renderStudBody();}
+function cancelForm(){
+  showFormFor=null; selVisibility='private';
+  nsKind='advising'; nsCourse=''; nsGroup=[];
+  renderStudBody();
+}
 
 async function saveSession(studId){
   const disc=document.getElementById('ns-disc')?.value.trim();
@@ -8335,6 +8413,15 @@ async function saveSession(studId){
   const logId = null;
 
   // Optimistic local update first
+  // One conversation, one row per student who was in it. The copies share a
+  // group_id so that editing one can offer to edit the rest, and so that
+  // "twelve course sessions" is not four rows of the same hour counted four
+  // times.
+  const groupIds = nsGroup.length > 1 ? nsGroup.slice() : [studId];
+  const groupId  = groupIds.length > 1
+    ? (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + '-' + studId)
+    : null;
+
   const newSess = {
     logId,date,
     meetingTime: meetTime,   // ← 추가
@@ -8342,6 +8429,7 @@ async function saveSession(studId){
     type,format,disc,conc,advice,studentAction,followUp,majorChangeNote,
     mainTopic:selTopics.join(', '),
     visibility: selVisibility,   // ← 추가
+    kind: nsKind, courseId: nsCourse, groupId,
   };
   sessions.push(newSess);
   syncStudents();
@@ -8365,7 +8453,7 @@ async function saveSession(studId){
       // 2. student_meeting 연동 (신규)
       // 이 학생의 confirmed + scheduled 미팅이 있으면
       // status → completed, log_id 연결
-      const linkedMeeting = meetings.find(m =>
+      const linkedMeeting = nsKind === 'course' ? null : meetings.find(m =>
         m.studentId === studId &&
         (m.status === 'scheduled' || m.status === 'completed') &&
         m.advisorConfirmed === true &&
@@ -8381,7 +8469,26 @@ async function saveSession(studId){
         linkedMeeting.logId  = newSess.logId;
       }  
       
-      showToast(`✓ Session saved to database — ${st?.name}`);
+      // The others in the room, if there were any.
+      const others = groupIds.filter(id => id !== studId);
+      for(const oid of others){
+        const ost = students.find(x => x.id === oid);
+        const copy = { ...newSess, logId:null, studentId:oid, studentName:ost?.name || '' };
+        try {
+          const res = await insertSession(copy);
+          copy.logId = Array.isArray(res) ? res[0]?.log_id : res?.log_id;
+          sessions.push(copy);
+        } catch(e2){
+          console.warn('group copy failed for', oid, e2.message);
+          showToast(`Saved, but the copy for ${ost?.name || oid} failed: ${e2.message}`);
+        }
+      }
+      if(others.length) syncStudents();
+
+      showToast(others.length
+        ? `✓ Session saved for ${groupIds.length} students`
+        : `✓ Session saved to database — ${st?.name}`);
+      nsGroup = [];
   
     } catch(e) {
       console.error('Supabase write error:', e);
@@ -8396,31 +8503,444 @@ async function saveSession(studId){
   }
 }
 
-// ── SESSION LOG ──
-function renderLog(){
-  const mine=myStudents();
-  const mySess=sessions.filter(s=>s.faculty===FACULTY_EMAIL);
-  const fu=mySess.filter(s=>s.followUp==='Y').length;
-  const z=mine.filter(s=>s.sessions===0).length;
+// ══════════════════════════════════════════════════════════════════════════
+// SESSION LOG
+//
+// Four pages: the two kinds of conversation, what has not been written up
+// yet, and what was said in writing.
+//
+// Nothing is written here. Both "+ Log a session" buttons open a popup that
+// asks who, and then hand over to that student's Advising tab, where the one
+// session form lives - the same place a meeting has always sent you.
+//
+// The split between the two session pages is session_kind, which the roster
+// cannot derive: an advisee asking about a DA200 assignment is a course
+// session, and counting it as advising inflates the advising figure.
+// ══════════════════════════════════════════════════════════════════════════
 
-  document.getElementById('page-log').innerHTML=`
-    <div class="log-stat-bar">
-      <div class="log-stat"><div class="log-stat-v" style="color:var(--text)">${mySess.length}</div><div class="log-stat-l">Total sessions</div></div>
-      <div class="log-stat-sep"></div>
-      <div class="log-stat"><div class="log-stat-v" style="color:${fu>0?'var(--amber)':'var(--green)'}">${fu}</div><div class="log-stat-l">Follow-up pending</div></div>
-      <div class="log-stat-sep"></div>
-      <div class="log-stat"><div class="log-stat-v" style="color:${z>0?'var(--red)':'var(--green)'}">${z}</div><div class="log-stat-l">Students with 0 sessions</div></div>
-      <div style="margin-left:auto;display:flex;gap:7px;align-items:center;">
-        <button class="fchip ${logFilter==='all'?'active':''}" onclick="setLogFilter('all')">All sessions</button>
-        <button class="fchip warn ${logFilter==='fu'?'active':''}" onclick="setLogFilter('fu')">Follow-up pending</button>
-        <input class="search-box" placeholder="Search by student name or ID…" value="${esc(logSearch)}" oninput="logSearch=this.value;renderLogList()" style="min-width:180px;margin-left:0;">
-      </div>
-    </div>
-    <div class="log-list" id="log-list"></div>`;
-  renderLogList();
+const SLOG = { page:'adv', q:'', scope:'term', pickKind:'advising',
+               pickCourse:'', pickQ:'', picked:[], msgs:null, msgBusy:false };
+
+function slMine(){ return sessions.filter(x => x.faculty === FACULTY_EMAIL); }
+function slCycle(){
+  const c = evCycle();
+  return { from:`${c}-09-01`, to:`${c + 1}-08-31`, label:evCycleLabel(c) };
+}
+function slIsMine(sid){
+  const st = students.find(x => x.id === sid);
+  return !!st && (st.advisor1_email === FACULTY_EMAIL || st.advisor2_email === FACULTY_EMAIL);
+}
+// A meeting that was held and never written up.
+function slMissing(){
+  return meetings.filter(m => m.facultyEmail === FACULTY_EMAIL
+                           && m.status === 'completed' && !m.logId)
+                 .sort((a, b) => String(a.meetingDate).localeCompare(String(b.meetingDate)));
+}
+function slCourses(){
+  return [...new Set(TAUGHT.rows.map(r => r.course_id).filter(Boolean))].sort();
 }
 
-function setLogFilter(v){logFilter=v;renderLogList();}
+const SL_ICON = {
+  adv:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3.6 5.4h12.8M3.6 10h12.8M3.6 14.6h8"/></svg>`,
+  crs:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.4l7 3.2-7 3.2-7-3.2 7-3.2z"/><path d="M5 8.4v3.8c0 1.3 2.2 2.4 5 2.4s5-1.1 5-2.4V8.4"/></svg>`,
+  miss:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2.6h7.2L16 6.4V17a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3.6a1 1 0 0 1 1-1z"/><path d="M11.8 2.8v3.8H15.6M7.4 12.4h5.2"/></svg>`,
+  msg:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 4.6h13.6v9.2H10l-3.6 3v-3H3.2z"/></svg>`,
+};
+
+function renderLog(){
+  const el = document.getElementById('page-log');
+  if(!el) return;
+  taughtLoad();
+
+  const mine  = slMine();
+  const nAdv  = mine.filter(x => x.kind !== 'course').length;
+  const nCrs  = mine.filter(x => x.kind === 'course').length;
+  const nMiss = slMissing().length;
+  const nMsg  = slMsgWaiting();
+
+  const item = (k, label, icon, n, warn) => `
+    <div class="ov-mi${SLOG.page === k ? ' on' : ''}" onclick="slGo('${k}')" tabindex="0"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();slGo('${k}');}">
+      ${icon}<span>${label}</span>
+      ${n ? `<span class="ov-n"${warn ? '' : ' style="background:var(--gray-l);color:var(--gray-m);"'}>${n}</span>` : ''}
+    </div>`;
+
+  el.innerHTML = `
+    <div class="ov-split">
+      <nav class="ov-menu">
+        ${item('adv',  'Major advising',  SL_ICON.adv,  nAdv,  false)}
+        ${item('crs',  'Course advising', SL_ICON.crs,  nCrs,  false)}
+        ${item('miss', 'Missing logs',    SL_ICON.miss, nMiss, true)}
+        ${item('msg',  'Messages',        SL_ICON.msg,  nMsg,  true)}
+      </nav>
+      <div class="ov-body" id="slog-body"></div>
+    </div>
+    <div id="slog-pop"></div>`;
+  slBody();
+}
+function slGo(k){
+  SLOG.page = k; SLOG.q = '';
+  SLOG.scope = k === 'msg' ? 'needs' : 'term';
+  renderLog();
+}
+function slToggle(id){
+  if(openLogId === id){ openLogId = null; editingLogId = null; }
+  else { openLogId = id; editingLogId = null; }
+  renderLog();
+}
+// Everything that used to redraw the list still can.
+function renderLogList(){ if(currentPage === 'log') renderLog(); }
+
+function slBody(){
+  const b = document.getElementById('slog-body');
+  if(!b) return;
+  if(SLOG.page === 'crs')  return slSessionPage(b, 'course');
+  if(SLOG.page === 'miss') return slMissingPage(b);
+  if(SLOG.page === 'msg')  return slMessagesPage(b);
+  return slSessionPage(b, 'advising');
+}
+function slKeepFocus(){
+  const i = document.getElementById('slog-q');
+  if(i && SLOG.q){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+}
+
+// ── the two session pages ─────────────────────────────────────────────────
+function slSessionPage(box, kind){
+  const R = slCycle();
+  const course = kind === 'course';
+  const all = slMine().filter(x => (x.kind === 'course') === course);
+  const inCycle = x => x.date >= R.from && x.date <= R.to;
+  const cyc = all.filter(inCycle);
+  const nMine = cyc.filter(x => slIsMine(x.studentId)).length;
+
+  let list = SLOG.scope === 'all'  ? all
+           : SLOG.scope === 'fu'   ? cyc.filter(x => x.followUp === 'Y')
+           : SLOG.scope === 'mine' ? cyc.filter(x => slIsMine(x.studentId))
+           : SLOG.scope.startsWith('c:') ? cyc.filter(x => x.courseId === SLOG.scope.slice(2))
+           : cyc;
+  const q = SLOG.q.trim().toLowerCase();
+  if(q) list = list.filter(x => String(x.studentName || '').toLowerCase().includes(q)
+                             || String(x.studentId).includes(q));
+  list = [...list].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+
+  const chip = (k, label, n) => `<button class="fchip${SLOG.scope === k ? ' active' : ''}"
+    onclick="SLOG.scope='${k}';renderLog()">${label} <span style="color:var(--text3);">${n}</span></button>`;
+  const cs = course ? [...new Set(cyc.map(x => x.courseId).filter(Boolean))].sort() : [];
+
+  box.innerHTML = `
+    <h1 class="ov-h1">${course ? 'Course advising' : 'Major advising'}</h1>
+    <p class="m2-lede"><b>${cyc.length}</b> ${course ? 'course session' : 'session'}${
+      cyc.length === 1 ? '' : 's'} in ${R.label}${nMine ? `, ${nMine} with your own advisees` : ''}.</p>
+    <div class="m2-filters">
+      <input class="fi" id="slog-q" placeholder="Name or ID…" value="${esc(SLOG.q)}"
+        style="width:200px;" oninput="SLOG.q=this.value;slBody();slKeepFocus();">
+      ${chip('term', R.label, cyc.length)}
+      ${chip('fu', 'Follow-up', cyc.filter(x => x.followUp === 'Y').length)}
+      ${chip('mine', 'My advisees', nMine)}
+      ${cs.map(c => chip('c:' + c, esc(c), cyc.filter(x => x.courseId === c).length)).join('')}
+      ${chip('all', 'All time', all.length)}
+      <button class="btn-log" style="margin-left:auto;" onclick="slPick('${kind}')">＋ Log a session</button>
+    </div>
+    ${list.length ? `<div class="m2-list tight">${slByMonth(list)}</div>`
+                  : `<div class="m2-empty">No sessions here.</div>`}`;
+  slKeepFocus();
+}
+
+// Month headings, as in the Meetings record.
+function slByMonth(list){
+  let out = '', last = '';
+  list.forEach(x => {
+    const d = x.date ? new Date(x.date + 'T12:00:00') : null;
+    const label = d ? d.toLocaleDateString('en-US', { month:'long', year:'numeric' }) : 'No date';
+    if(label !== last){ out += `<div class="m2-month">${esc(label)}</div>`; last = label; }
+    out += slCard(x);
+  });
+  return out;
+}
+
+const VIS_SHORT = { private:'Just me', advisors:'Advisors', chair:'Chair', all_faculty:'All faculty' };
+
+function slCard(x){
+  const st = students.find(y => y.id === x.studentId);
+  const open = openLogId === x.logId;
+  const editing = editingLogId === x.logId;
+  const copies = x.groupId
+    ? sessions.filter(y => y.groupId === x.groupId && y.faculty === FACULTY_EMAIL).length : 1;
+  const d = x.date ? new Date(x.date + 'T12:00:00') : null;
+  const meta = [shortCohort(st?.cohort || ''), shortMajor(st?.major1 || ''),
+                x.kind === 'course' ? (x.courseId || '') : (x.mainTopic || x.type || ''),
+                slIsMine(x.studentId) ? 'your advisee' : getFacultyName(st?.advisor1_email)]
+    .filter(v => v && v !== '—').map(esc).join('<i>·</i>');
+  const badge = x.followUp === 'Y' ? `<span class="bdg bdg-amber">Follow-up</span>`
+    : copies > 1 ? `<span class="bdg bdg-blue">Group of ${copies}</span>`
+    : `<span class="bdg bdg-gray">${esc(VIS_SHORT[x.visibility] || x.visibility || 'Just me')}</span>`;
+
+  return `
+    <div class="m2-row ${x.kind === 'course' ? 'course' : 'logged'}${open ? ' open' : ''}">
+      <div class="m2-hd" onclick="slToggle('${esc(x.logId)}')">
+        <div>
+          <div class="m2-date">${d ? esc(d.toLocaleDateString('en-US',
+            { month:'short', day:'numeric', year:'numeric' })) : '—'}</div>
+          ${x.meetingTime ? `<div class="m2-time">${esc(String(x.meetingTime).slice(0, 5))}
+            <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>` : ''}
+        </div>
+        <div>
+          <div class="m2-name">${esc(x.studentName || x.studentId)}</div>
+          <div class="m2-meta">${meta}</div>
+        </div>
+        ${badge}
+        <span class="m2-caret">${open ? '▴ Collapse' : '▾ Review'}</span>
+      </div>
+      ${open ? `<div class="m2-panel">
+        <div class="m2-sec">${editing ? buildEditForm(x) : buildSessCard(x)}</div>
+        ${editing ? '' : `<div class="m2-bar">
+          <button class="btn-cancel" onclick="event.stopPropagation();editingLogId='${esc(x.logId)}';renderLog()">Edit</button>
+          <button class="btn-cancel" onclick="event.stopPropagation();goToStudent('${esc(x.studentId)}')">Open in Students →</button>
+          ${copies > 1 ? `<span class="m2-note">One of ${copies} copies of the same session.</span>` : ''}
+          <div class="right"><button class="btn-cancel" style="color:var(--red);"
+            onclick="event.stopPropagation();deleteSession('${esc(x.logId)}')">Delete</button></div>
+        </div>`}
+      </div>` : ''}
+    </div>`;
+}
+
+// ── missing logs ──────────────────────────────────────────────────────────
+function slMissingPage(box){
+  const list = slMissing();
+  const age = m => m.meetingDate
+    ? Math.round((Date.now() - new Date(m.meetingDate + 'T12:00:00')) / 86400000) : null;
+
+  box.innerHTML = `
+    <h1 class="ov-h1">Missing logs</h1>
+    <p class="m2-lede">${list.length
+      ? `<b>${list.length}</b> meeting${list.length === 1 ? '' : 's'} held and not written up.`
+      : 'Every meeting you have held is written up.'}</p>
+    ${list.length ? `<div class="m2-list tight">${list.map(m => {
+      const st = students.find(y => y.id === m.studentId);
+      const d  = m.meetingDate ? new Date(m.meetingDate + 'T12:00:00') : null;
+      const a  = age(m);
+      return `<div class="m2-row missing">
+        <div class="m2-hd" style="cursor:default;">
+          <div>
+            <div class="m2-date">${d ? esc(d.toLocaleDateString('en-US',
+              { month:'short', day:'numeric', year:'numeric' })) : '—'}</div>
+            ${m.confirmedStart ? `<div class="m2-time">${esc(String(m.confirmedStart).slice(0, 5))}
+              <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>` : ''}
+          </div>
+          <div>
+            <div class="m2-name">${esc(st?.name || m.studentId)}</div>
+            <div class="m2-meta">${[shortCohort(st?.cohort || ''), shortMajor(st?.major1 || ''),
+              m.meetingType, m.meetingFormat].filter(Boolean).map(esc).join('<i>·</i>')}</div>
+          </div>
+          <span class="bdg ${a != null && a > 14 ? 'bdg-amber' : 'bdg-gray'}">${
+            a != null ? a + ' days ago' : ''}</span>
+          <button class="btn-log" onclick="slStart(['${esc(m.studentId)}'],'advising','')">＋ Log a session</button>
+        </div>
+      </div>`;
+    }).join('')}</div>` : `<div class="m2-empty">Nothing to write up.</div>`}`;
+}
+
+// ── messages ──────────────────────────────────────────────────────────────
+//
+// Check-ins are messages of a particular kind - the same table, kind='checkin'
+// - so they are listed here rather than in a corner of their own. The count on
+// the menu is the half that decays: a student wrote last, or a check-in that
+// nobody answered.
+function slThreads(rows){
+  const by = {};
+  (rows || []).forEach(n => (by[n.student_id] = by[n.student_id] || []).push(n));
+  return Object.keys(by).map(sid => {
+    const list = by[sid].slice().sort((a, b) =>
+      String(a.created_at).localeCompare(String(b.created_at)));
+    const last = list[list.length - 1];
+    const mine = last.author_email === FACULTY_EMAIL;
+    return { sid, last, checkin: last.kind === 'checkin',
+             needsMe: !mine || last.kind === 'checkin',
+             student: students.find(y => y.id === sid) };
+  }).sort((a, b) => String(b.last.created_at).localeCompare(String(a.last.created_at)));
+}
+function slMsgWaiting(){
+  return SLOG.msgs ? slThreads(SLOG.msgs).filter(t => t.needsMe).length : 0;
+}
+async function slLoadMsgs(){
+  if(SLOG.msgs || SLOG.msgBusy) return;
+  SLOG.msgBusy = true;
+  const ids = myStudents().map(x => x.id);
+  if(!ids.length){ SLOG.msgs = []; SLOG.msgBusy = false; return; }
+  const inList = ids.map(encodeURIComponent).join(',');
+  try {
+    const [notes, ci] = await Promise.all([
+      sbGet(TBL_REQ_NOTE, `student_id=in.(${inList})&order=created_at.desc&${OV_LIMIT}`).catch(() => []),
+      sbGet(VW_CHECKIN,   `student_id=in.(${inList})&order=created_at.desc&${OV_LIMIT}`).catch(() => []),
+    ]);
+    SLOG.msgs = [...(notes || []), ...(ci || []).map(c => ({ ...c, kind:'checkin' }))];
+  } catch(e){
+    SLOG.msgs = [];
+    showToast(`Could not load messages: ${e.message}`);
+  } finally {
+    SLOG.msgBusy = false;
+    if(currentPage === 'log') renderLog();
+  }
+}
+function slMessagesPage(box){
+  if(!SLOG.msgs){ slLoadMsgs(); box.innerHTML = `<div class="m2-empty">Loading messages…</div>`; return; }
+  const threads = slThreads(SLOG.msgs);
+  const needs = threads.filter(t => t.needsMe);
+  let list = SLOG.scope === 'allmsg'  ? threads
+           : SLOG.scope === 'checkin' ? threads.filter(t => t.checkin)
+           : needs;
+  const q = SLOG.q.trim().toLowerCase();
+  if(q) list = list.filter(t => String(t.student?.name || t.sid).toLowerCase().includes(q));
+  const chip = (k, label, n) => `<button class="fchip${SLOG.scope === k ? ' active' : ''}"
+    onclick="SLOG.scope='${k}';renderLog()">${label} <span style="color:var(--text3);">${n}</span></button>`;
+
+  box.innerHTML = `
+    <h1 class="ov-h1">Messages</h1>
+    <p class="m2-lede"><b>${needs.length}</b> of ${threads.length} thread${
+      threads.length === 1 ? '' : 's'} waiting on you.</p>
+    <div class="m2-filters">
+      <input class="fi" id="slog-q" placeholder="Name…" value="${esc(SLOG.q)}"
+        style="width:200px;" oninput="SLOG.q=this.value;slBody();slKeepFocus();">
+      ${chip('needs', 'Waiting on you', needs.length)}
+      ${chip('checkin', 'Check-ins', threads.filter(t => t.checkin).length)}
+      ${chip('allmsg', 'All threads', threads.length)}
+    </div>
+    ${list.length ? `<div class="m2-list tight">${list.map(slMsgCard).join('')}</div>`
+                  : `<div class="m2-empty">Nothing here.</div>`}`;
+  slKeepFocus();
+}
+function slMsgCard(t){
+  const day = String(t.last.created_at || '').slice(0, 10);
+  const ago = day ? Math.round((Date.now() - new Date(day + 'T12:00:00')) / 86400000) : null;
+  const who = t.last.author_email === FACULTY_EMAIL ? 'You'
+            : (students.find(y => y.email === t.last.author_email)?.name
+               || getFacultyName(t.last.author_email));
+  const head = String(t.last.body || '').slice(0, 120);
+  return `
+    <div class="m2-row ${t.needsMe ? 'resched' : 'logged'}">
+      <div class="m2-hd" onclick="goToStudentMsg('${esc(t.sid)}')">
+        <div>
+          <div class="m2-date">${esc(day)}</div>
+          <div class="m2-when-sub">${ago != null ? `${ago} days ago` : ''}</div>
+        </div>
+        <div>
+          <div class="m2-name">${esc(t.student?.name || t.sid)}</div>
+          <div class="m2-meta">${esc(who)}<i>·</i>${esc(head)}</div>
+        </div>
+        ${t.checkin
+          ? `<span class="bdg ${t.needsMe ? 'bdg-amber' : 'bdg-green'}">Check-in</span>`
+          : `<span class="bdg ${t.needsMe ? 'bdg-amber' : 'bdg-gray'}">${
+              t.needsMe ? 'Waiting on you' : 'Answered'}</span>`}
+        <span class="m2-caret">Open →</span>
+      </div>
+    </div>`;
+}
+function goToStudentMsg(sid){
+  studTab = 'msg';
+  goToStudent(sid);
+}
+
+// ── the popup ─────────────────────────────────────────────────────────────
+//
+// It asks who, and nothing else. Writing happens on the student's Advising
+// tab, where the form and their previous sessions already are.
+function slPick(kind){
+  SLOG.pickKind = kind;
+  SLOG.pickCourse = kind === 'course' ? (slCourses()[0] || '') : '';
+  SLOG.picked = []; SLOG.pickQ = '';
+  slDrawPick();
+}
+function slClosePick(){
+  const h = document.getElementById('slog-pop');
+  if(h) h.innerHTML = '';
+}
+function slPickToggle(id){
+  const i = SLOG.picked.indexOf(id);
+  if(i >= 0) SLOG.picked.splice(i, 1); else SLOG.picked.push(id);
+  slDrawPick();
+}
+function slPickCourse(v){ SLOG.pickCourse = v; SLOG.picked = []; slDrawPick(); }
+
+function slDrawPick(){
+  const host = document.getElementById('slog-pop');
+  if(!host) return;
+  const course = SLOG.pickKind === 'course';
+  const q = SLOG.pickQ.trim().toLowerCase();
+  const match = st => !q || String(st.name || '').toLowerCase().includes(q) || String(st.id).includes(q);
+
+  // Who to offer first: for a course, its roster; otherwise your own advisees.
+  const first = course
+    ? [...new Set(TAUGHT.rows.filter(r => r.course_id === SLOG.pickCourse).map(r => r.student_id))]
+        .map(id => students.find(y => y.id === id)).filter(Boolean)
+    : myStudents().filter(isRealStudent);
+  const rest = students.filter(st => isRealStudent(st) && !first.some(f => f.id === st.id));
+
+  const row = st => {
+    const on = SLOG.picked.includes(st.id);
+    return `<div class="pick-r${on ? ' on' : ''}" onclick="${course
+      ? `slPickToggle('${esc(st.id)}')`
+      : `slStart(['${esc(st.id)}'],'advising','')`}">
+      ${course ? `<div class="pk-box"></div>` : ''}
+      <div class="pick-av">${esc(initials(st.name))}</div>
+      <div style="min-width:0;">
+        <div class="pick-n">${esc(st.name)}</div>
+        <div class="pick-m">${esc([st.id, shortCohort(st.cohort || ''), shortMajor(st.major1 || '')]
+          .filter(Boolean).join(' · '))}</div>
+      </div>
+      <span class="pick-tag${slIsMine(st.id) ? ' mine' : ''}">${
+        slIsMine(st.id) ? 'Your advisee' : esc(getFacultyName(st.advisor1_email))}</span>
+    </div>`;
+  };
+
+  host.innerHTML = `
+    <div class="pk-back" onclick="if(event.target===this) slClosePick()">
+      <div class="pk">
+        <div class="pk-hd">
+          <h3>Choose ${course ? 'the students' : 'a student'}</h3>
+          <button class="pk-x" onclick="slClosePick()">✕</button>
+        </div>
+        <div class="pk-search">
+          ${course ? `<select class="fi" style="max-width:180px;" onchange="slPickCourse(this.value)">
+            ${slCourses().map(c => `<option${c === SLOG.pickCourse ? ' selected' : ''}>${esc(c)}</option>`)
+              .join('') || '<option value="">No courses</option>'}</select>` : ''}
+          <input class="fi" id="slog-pq" style="flex:1;" placeholder="Name or ID…"
+            value="${esc(SLOG.pickQ)}" oninput="SLOG.pickQ=this.value;slDrawPick()">
+        </div>
+        <div class="pk-list">
+          <div class="pick-grp">${course
+            ? `${esc(SLOG.pickCourse || '—')} · ${first.length}`
+            : `Your advisees · ${first.length}`}</div>
+          ${first.filter(match).map(row).join('')
+            || `<div class="pick-m" style="padding:12px 13px;">Nobody here.</div>`}
+          ${q ? `<div class="pick-grp">Everyone else</div>
+                 ${rest.filter(match).slice(0, 20).map(row).join('')}` : ''}
+        </div>
+        ${course ? `<div class="pk-ft">
+          <span class="m2-note">${SLOG.picked.length
+            ? `${SLOG.picked.length} selected — one form, ${SLOG.picked.length} log${
+                SLOG.picked.length > 1 ? 's' : ''}`
+            : 'None selected'}</span>
+          <div style="margin-left:auto;display:flex;gap:9px;">
+            <button class="btn-cancel" onclick="slClosePick()">Cancel</button>
+            <button class="btn-log"${SLOG.picked.length ? '' : ' disabled style="opacity:.4;cursor:default;"'}
+              onclick="slStart(SLOG.picked.slice(),'course','${esc(SLOG.pickCourse)}')">Continue →</button>
+          </div>
+        </div>` : ''}
+      </div>
+    </div>`;
+  const i = document.getElementById('slog-pq');
+  if(i && SLOG.pickQ){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+}
+
+// The handover: say what the form is for, then do what a meeting's
+// "+ Log session" does.
+function slStart(ids, kind, course){
+  if(!ids || !ids.length) return;
+  slClosePick();
+  nsKind = kind; nsCourse = course || ''; nsGroup = ids.slice();
+  selTopics = []; selVisibility = 'private';
+  logSessionFromMeeting(ids[0]);
+}
 
 function buildEditForm(s) {
   const typeOpts = ['Regular','Ad-hoc','Email'].map(o=>
@@ -8579,110 +9099,6 @@ async function deleteSession(logId) {
   } else {
     showToast(`${logId} removed locally — sign in to sync deletion to database`);
   }
-}
-
-function renderLogList(){
-  const mine=myStudents();
-  let list=sessions.filter(s=>s.faculty===FACULTY_EMAIL);
-  if(logFilter==='fu') list=list.filter(s=>s.followUp==='Y');
-  if(logSearch){const q=logSearch.toLowerCase();list=list.filter(s=>s.studentName.toLowerCase().includes(q)||s.studentId.includes(q));}
-  list=[...list].sort((a,b)=>b.date.localeCompare(a.date));
-
-  const container=document.getElementById('log-list');
-  if(!container)return;
-  container.innerHTML='';
-
-  if(!list.length){container.innerHTML=`<div class="tl-empty">No sessions match the current filter.</div>`;return;}
-
-  list.forEach(s=>{
-    const isOpen=openLogId===s.logId;
-    const tc=s.type==='Regular'?'blue':'gray';
-    const st=students.find(x=>x.id===s.studentId);
-
-    const adv1Name = st?.advisor1 || '';
-    const adv2Name = st?.advisor2 || '';
-    const isAdv1 = adv1Name === FACULTY;
-    const isAdv2 = adv2Name === FACULTY;
-    const advBdg = (isPrimary) => isPrimary
-      ? `<span class="vis-pill vis-chair" style="margin-left:5px;">Primary</span>`
-      : `<span class="vis-pill vis-private" style="margin-left:5px;">Secondary</span>`;
-
-    const eHtml = `
-      <div style="display:flex;align-items:flex-start;flex-wrap:wrap;gap:0;">
-        <div style="display:flex;gap:20px;padding:5px 0;">
-          <div class="ab-item"><div class="ab-lbl">Student ID</div><div class="ab-val">${esc(s.studentId)}</div></div>
-          <div class="ab-item"><div class="ab-lbl">Cohort</div><div class="ab-val">${esc(shortCohort(st?.cohort||''))}</div></div>
-          <div class="ab-item"><div class="ab-lbl">Track</div><div class="ab-val">${esc(st?.track||'—')}</div></div>
-        </div>
-        <div style="width:1px;background:var(--border-em);margin:0 16px;align-self:stretch;"></div>
-        <div style="display:flex;gap:20px;padding:5px 0;">
-          <div class="ab-item"><div class="ab-lbl">Primary major</div><div class="ab-val">${esc(majorLabel(st))}</div></div>
-          ${adv1Name ? `<div class="ab-item"><div class="ab-lbl">Advisor 1</div><div class="ab-val" style="display:flex;align-items:center;">${esc(adv1Name)}${isAdv1?advBdg(true):isAdv2?'':''}</div></div>` : ''}
-        </div>
-        ${st?.major2 ? `
-        <div style="width:1px;background:var(--border-em);margin:0 16px;align-self:stretch;"></div>
-        <div style="display:flex;gap:20px;padding:5px 0;">
-          <div class="ab-item"><div class="ab-lbl">Second major</div><div class="ab-val">${esc(shortMajor(st.major2))}</div></div>
-          ${adv2Name ? `<div class="ab-item"><div class="ab-lbl">Advisor 2</div><div class="ab-val" style="display:flex;align-items:center;">${esc(adv2Name)}${isAdv2?advBdg(false):''}</div></div>` : ''}
-        </div>` : ''}
-      </div>`;
-    
-    const div=document.createElement('div');
-    div.className='log-row'+(isOpen?' active':'');
-    div.innerHTML=`
-      <div class="log-sum">
-        <div class="log-dt">
-          <div class="log-dt-date">${new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
-          ${s.meetingTime ? `<div class="log-dt-time">${s.meetingTime.slice(0,5)} <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>` : ''}
-        </div>
-        <div class="log-center">
-          <div class="log-name" style="display:flex;align-items:center;gap:8px;">
-            ${esc(s.studentName)}
-            ${st ? bdg(roleFor(st), roleFor(st)==='Primary'?'blue':'gray') : ''}
-          </div>
-          ${s.faculty && s.faculty !== FACULTY_EMAIL
-            ? `<div style="font-size:12px;color:var(--text3);margin-top:2px;">Logged by ${esc(s.facultyName)}</div>`
-            : ''}
-        </div>
-        <div class="log-right">
-          ${s.type ? `<span class="vis-pill ${tc==='blue'?'vis-chair':'vis-private'}">${esc(s.type)}</span>` : ''}
-          ${(() => {
-            const vmap = {private:'vis-private',chair:'vis-chair',advisors:'vis-advisors',all_faculty:'vis-all'};
-            const vlbl = {private:'Only me',chair:'+ Chair',advisors:'+ Advisors',all_faculty:'All faculty'};
-            const v = s.visibility || 'chair';
-            return `<span class="vis-pill ${vmap[v]||'vis-chair'}">${vlbl[v]||'+ Chair'}</span>`;
-          })()}
-        </div>
-        <span class="log-hint">${isOpen?'▴ Collapse':'▾ Expand'}</span>
-      </div>
-      <div class="log-xwrap${isOpen?' open':''}">
-        <div class="log-ab" style="display:flex;align-items:flex-start;justify-content:space-between;">
-          <div>${eHtml}</div>
-          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;padding:5px 0;">
-            ${s.faculty && s.faculty !== FACULTY_EMAIL ? '' : `
-            <button onclick="event.stopPropagation();editingLogId=editingLogId==='${s.logId}'?null:'${s.logId}';renderLogList()"
-              style="font-size:17px;padding:3px 10px;border-radius:var(--r);border:0.5px solid var(--border-em);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .12s;"
-              onmouseover="this.style.background='var(--surface2)'"
-              onmouseout="this.style.background='var(--surface)'">
-              ${editingLogId===s.logId ? 'Cancel edit' : 'Edit'}
-            </button>
-            <button onclick="event.stopPropagation();deleteSession('${s.logId}')"
-              style="font-size:17px;padding:3px 10px;border-radius:var(--r);border:1px solid var(--red-l);background:var(--red-l);color:var(--red);cursor:pointer;font-family:inherit;transition:all .12s;"
-              onmouseover="this.style.background='var(--red)';this.style.color='white'"
-              onmouseout="this.style.background='var(--red-l)';this.style.color='var(--red)'">
-              Delete
-            </button>`}
-          </div>
-        </div>
-        <div class="log-sc">${editingLogId===s.logId ? buildEditForm(s) : buildSessCard(s)}</div>
-      </div>`;
-    div.querySelector('.log-sum').onclick=()=>{
-      if (openLogId===s.logId) { openLogId=null; editingLogId=null; }
-      else { openLogId=s.logId; editingLogId=null; }
-      renderLogList();
-    };
-    container.appendChild(div);
-  });
 }
 
 // ── CODEBOOK ──
@@ -9091,7 +9507,7 @@ async function saveProfile() {
 //
 //   Profile Card       the record a student reads: degrees, posts, interests,
 //                      courses, how to reach you. Written here, and only here.
-//   Evaluation Record  the year's own account of Academic Services and, for a
+//   Performance Record  the year's own account of Academic Services and, for a
 //                      chair, Program Leadership - kept against the OAA
 //                      framework of 25 Aug 2026 so that July is a export and
 //                      not a reconstruction.
@@ -9100,7 +9516,7 @@ async function saveProfile() {
 // student app has no profile screen. The page says so rather than claiming a
 // visibility that does not exist yet.
 //
-// Everything on the Evaluation Record is private to the signed-in account. A
+// Everything on the Performance Record is private to the signed-in account. A
 // chair reading a colleague's draft is exactly what the row policies refuse,
 // and no screen here offers it.
 // ══════════════════════════════════════════════════════════════════════════
@@ -9243,7 +9659,7 @@ function renderProfile(){
         <div class="ov-mgrp">My Profile</div>
         ${item('card', 'Profile Card',
           `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.2" y="4" width="15.6" height="12" rx="2"/><circle cx="7.2" cy="9.2" r="2"/><path d="M3.9 14c.3-1.8 1.7-2.7 3.3-2.7s3 .9 3.3 2.7M12.4 8.6h3.6M12.4 11.6h3.6"/></svg>`)}
-        ${item('eval', 'Evaluation Record',
+        ${item('eval', 'Performance Record',
           `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2.6h7.2L16 6.4V17a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3.6a1 1 0 0 1 1-1z"/><path d="M11.8 2.8v3.8H15.6M6.7 10.6l1.4 1.4 3-3.2M6.7 14.6h6.6"/></svg>`,
           `<span class="ov-chair">Private</span>`)}
       </nav>
@@ -9552,7 +9968,7 @@ async function pfSave(){
 // and Deans and Program Chairs share the leader track.
 function pfEval(box){
   if(EVALR.err){
-    box.innerHTML = `<div class="error-banner"><strong>Could not load your evaluation record.</strong>
+    box.innerHTML = `<div class="error-banner"><strong>Could not load your performance record.</strong>
       ${esc(EVALR.err)}<div style="margin-top:6px;font-size:13px;">If this says the table does not exist,
       Telos_My_Profile.sql has not been run yet.</div></div>`;
     return;
@@ -9562,7 +9978,7 @@ function pfEval(box){
   const c = evCycle();
   box.innerHTML = `
     <div class="ov-scope">
-      <h1 class="ov-h1" style="margin:0;">Evaluation Record</h1>
+      <h1 class="ov-h1" style="margin:0;">Performance Record</h1>
       <span class="ov-meta" style="margin-left:auto;">private to you · cycle ${evCycleLabel(c)}</span>
     </div>
     <p class="ov-sub">A small record kept through the year, so that July is an export and not a reconstruction.
@@ -11146,6 +11562,7 @@ function switchMeetingView(v, btn) {
   
 function goToLog(logId){
   openLogId=logId;
+  SLOG.page = sessions.find(x => x.logId === logId)?.kind === 'course' ? 'crs' : 'adv';
   document.querySelectorAll('.nav-tab').forEach(t=>{t.classList.toggle('active',t.dataset.page==='log');});
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-log').classList.add('active');
