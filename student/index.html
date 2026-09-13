@@ -1269,15 +1269,48 @@ function sbHeaders(extra={}){
   };
 }
   
+// An access token lasts about an hour and a student leaves this tab open all
+// day. restoreSession refreshes at load and nothing refreshes after that, so
+// the token dies on screen: reads showed the sign-in wall, writes threw the
+// raw status at whoever clicked. Every request now refreshes first if the
+// token is nearly out, and every request answers a 401 the same way.
+let sbRefreshing = null;
+async function sbFresh(){
+  const u = supabaseUser;
+  if(!u?.access_token) return false;
+  const soon = !u.expires_at || (u.expires_at*1000 - Date.now() < 60000);
+  if(!soon) return true;
+  if(!u.refresh_token) return false;
+  // One refresh shared by whatever fired at once - the refresh token rotates,
+  // so two requests racing to spend it would invalidate each other.
+  if(!sbRefreshing){
+    sbRefreshing = (async () => {
+      try{
+        const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{
+          method:'POST', headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},
+          body:JSON.stringify({refresh_token:u.refresh_token})});
+        if(!r.ok) throw new Error('refresh failed');
+        supabaseUser = await r.json();
+        saveAuthSession();
+        return true;
+      }catch(e){ console.warn('token refresh failed:', e.message); return false; }
+      finally{ sbRefreshing = null; }
+    })();
+  }
+  return sbRefreshing;
+}
+function sbSessionExpired(){
+  showToast('Session expired. Please sign in again.');
+  handleSignOut();
+  return new Error('Session expired');
+}
+
 async function sbGet(table, params='') {
+  await sbFresh();
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
     headers: sbHeaders(),
   });
-  if (r.status === 401) {
-    showToast('Session expired. Please sign in again.');
-    handleSignOut();
-    throw new Error('Session expired');
-  }
+  if (r.status === 401) throw sbSessionExpired();
   if (!r.ok) {
     const body = await r.json().catch(()=>({}));
     throw new Error(body.message || body.hint || `HTTP ${r.status}`);
@@ -1286,7 +1319,9 @@ async function sbGet(table, params='') {
 }
 
 async function sbPatch(table,col,val,row){
+  await sbFresh();
   const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${encodeURIComponent(val)}`,{method:'PATCH',headers:sbHeaders(),body:JSON.stringify(row)});
+  if(r.status===401) throw sbSessionExpired();
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||`PATCH failed: ${r.status}`);}
   // Every request asks for return=representation, so a PATCH that matched no
   // row comes back 200 with []. Row security refusing a write looks exactly
@@ -1296,21 +1331,27 @@ async function sbPatch(table,col,val,row){
   return body;
 }
 async function sbInsert(table,row){
+  await sbFresh();
   const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{method:'POST',headers:sbHeaders(),body:JSON.stringify(row)});
+  if(r.status===401) throw sbSessionExpired();
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||`POST failed: ${r.status}`);}
   return r.json();
 }
 // PostgREST upsert: 중복 키면 UPDATE, 없으면 INSERT
 async function sbUpsert(table,row,onConflict){
+  await sbFresh();
   const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=${onConflict}`,{
     method:'POST',
     headers:sbHeaders({'Prefer':'resolution=merge-duplicates,return=representation'}),
     body:JSON.stringify(row)});
+  if(r.status===401) throw sbSessionExpired();
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||e.hint||`UPSERT failed: ${r.status}`);}
   return r.json();
 }
 async function sbDelete(table,col,val){
+  await sbFresh();
   const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${encodeURIComponent(val)}`,{method:'DELETE',headers:sbHeaders()});
+  if(r.status===401) throw sbSessionExpired();
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||`DELETE failed: ${r.status}`);}
 }
 function isSignedIn(){return !!supabaseUser?.access_token;}
@@ -5015,9 +5056,27 @@ async function submitRequest(){
       created_by:'student',
       student_agenda:agenda,
     };
+    const facEmail=selectedFacultyEmail;
     const result=await sbInsert(TBL_MEETING,row);
     scheduledMeetings.push(result[0]||row);
     justRequestedId=result[0]?.id ?? null;
+
+    // An advisor who asked for a different time is waiting on THIS row being
+    // answered. A student who instead starts a fresh request - which is the
+    // obvious thing to do, and what the button in front of them offers - leaves
+    // the old one standing, and the advisor's list shows the same student twice
+    // for ever. The new request supersedes it.
+    const superseded=scheduledMeetings.filter(x=>
+      x.faculty_email===facEmail && x.status==='rescheduling' && x.id!==justRequestedId);
+    for(const old of superseded){
+      try{
+        await sbPatch(TBL_MEETING,'id',old.id,{status:'cancelled'});
+        old.status='cancelled';
+      }catch(e){ console.warn('could not supersede request', old.id, e.message); }
+    }
+    if(superseded.length){
+      scheduledMeetings=scheduledMeetings.filter(x=>x.status!=='cancelled');
+    }
     justReleasedConfirmed=false;
     requestFormOpen=false;
     selectedFacultyEmail=null;

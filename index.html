@@ -1670,6 +1670,53 @@ function buildStuTzBreakdown(startTime, endTime) {
 }
   
 // ── SUPABASE HELPERS ──
+//
+// An access token lasts about an hour and this page is left open for a day.
+// restoreSession refreshes at load, which covers a reopened tab and nothing
+// else: the token dies while the page is still on screen, and the next click
+// comes back 401. Reads showed the sign-in wall; writes threw a raw error at
+// the user - "PATCH student_meeting failed: 401" over a meeting that had not
+// been saved.
+//
+// So every request refreshes first if the token is nearly out, and every
+// request treats a 401 the same way.
+let sbRefreshing = null;
+async function sbFresh(){
+  const u = supabaseUser;
+  if(!u?.access_token) return false;
+  const soon = !u.expires_at || (u.expires_at * 1000 - Date.now() < 60000);
+  if(!soon) return true;
+  if(!u.refresh_token) return false;
+  // A render can fire several requests at once. They share one refresh rather
+  // than racing to spend the same refresh token, which Supabase rotates.
+  if(!sbRefreshing){
+    sbRefreshing = (async () => {
+      try{
+        const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+          method:'POST', headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},
+          body: JSON.stringify({ refresh_token: u.refresh_token })});
+        if(!r.ok) throw new Error('refresh failed');
+        supabaseUser = await r.json();
+        saveAuthSession();
+        return true;
+      }catch(e){
+        console.warn('token refresh failed:', e.message);
+        return false;
+      }finally{
+        sbRefreshing = null;
+      }
+    })();
+  }
+  return sbRefreshing;
+}
+// One 401 means one thing here - the session is gone - and it is said once,
+// the same way, wherever it happens.
+function sbSessionExpired(){
+  showToast('Session expired. Please sign in again.');
+  handleSignOut();
+  return new Error('Session expired');
+}
+
 function sbHeaders(extra={}) {
   if (!supabaseUser?.access_token) throw new Error('Not authenticated');
   return {
@@ -1682,14 +1729,11 @@ function sbHeaders(extra={}) {
 }
 
 async function sbGet(table, params='') {
+  await sbFresh();
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
     headers: sbHeaders(),
   });
-  if (r.status === 401) {                          // ← 추가
-    showToast('Session expired. Please sign in again.');  // ← 추가
-    handleSignOut();                               // ← 추가
-    throw new Error('Session expired');            // ← 추가
-  }                                                // ← 추가
+  if (r.status === 401) throw sbSessionExpired();
   if (!r.ok) {
     const body = await r.json().catch(()=>({}));
     const msg = body.message || body.hint || body.error || `HTTP ${r.status}`;
@@ -1699,11 +1743,13 @@ async function sbGet(table, params='') {
 }
 
 async function sbInsert(table, row) {
+  await sbFresh();
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',
     headers: sbHeaders(),
     body: JSON.stringify(row),
   });
+  if (r.status === 401) throw sbSessionExpired();
   if (!r.ok) {
     const err = await r.json();
     throw new Error(err.message || err.hint || `POST ${table} failed: ${r.status}`);
@@ -1719,12 +1765,14 @@ async function sbInsert(table, row) {
 // names the unique constraint's columns - without it the insert fails on the
 // constraint instead of updating through it.
 async function sbUpsert(table, row, onConflict) {
+  await sbFresh();
   const r = await fetch(
     `${SUPABASE_URL}/rest/v1/${table}?on_conflict=${encodeURIComponent(onConflict)}`, {
     method: 'POST',
     headers: sbHeaders({ 'Prefer': 'return=representation,resolution=merge-duplicates' }),
     body: JSON.stringify(row),
   });
+  if (r.status === 401) throw sbSessionExpired();
   if (!r.ok) {
     const err = await r.json().catch(()=>({}));
     throw new Error(err.message || err.hint || `UPSERT ${table} failed: ${r.status}`);
@@ -1735,10 +1783,12 @@ async function sbUpsert(table, row, onConflict) {
 
 // ── SUPABASE DELETE ──
 async function sbDelete(table, col, val) {
+  await sbFresh();
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${encodeURIComponent(val)}`, {
     method: 'DELETE',
     headers: sbHeaders(),
   });
+  if (r.status === 401) throw sbSessionExpired();
   if (!r.ok) {
     const err = await r.json().catch(()=>({}));
     throw new Error(err.message || `DELETE ${table} failed: ${r.status}`);
@@ -1747,11 +1797,13 @@ async function sbDelete(table, col, val) {
 
 // ── SUPABASE UPDATE ──
 async function sbUpdate(table, col, val, row) {
+  await sbFresh();
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${encodeURIComponent(val)}`, {
     method: 'PATCH',
     headers: sbHeaders(),
     body: JSON.stringify(row),
   });
+  if (r.status === 401) throw sbSessionExpired();
   if (!r.ok) {
     const err = await r.json().catch(()=>({}));
     throw new Error(err.message || `PATCH ${table} failed: ${r.status}`);
@@ -2833,6 +2885,10 @@ function buildPendingExpand(m, st) {
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <button class="btn-log" onclick="pendingPropMode[${m.id}]=true;renderOverview();renderMeetings();">Propose a time</button>
         <button class="btn-cancel" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border-em);" onclick="rescheduleMeetingRequest(${m.id})">Ask to reschedule</button>
+        ${m.status === 'rescheduling' ? `
+        <button class="btn-cancel" style="background:var(--surface2);color:var(--text3);border:1px solid var(--border-em);margin-left:auto;"
+          onclick="dismissMeetingRequest(${m.id})"
+          title="The student answered with a new request instead of new slots">Dismiss</button>` : ''}
       </div>`;
   }
 
@@ -3002,6 +3058,31 @@ m.advisorConfirmed = true;
 
   } catch(e) {
     showToast(`Confirm failed: ${e.message}`);
+  }
+}
+
+// A reschedule that the student answered with a BRAND-NEW request, rather than
+// with new slots on the same row, leaves the old row standing for ever: it
+// waits on a student who has already moved on, and the advisor sees the same
+// person twice - once as a live request, once as one they asked to move.
+// Nothing in either app could clear it. This is the way out, and it is also
+// the general escape hatch for a request that should not have been made.
+async function dismissMeetingRequest(meetingId) {
+  const m = meetings.find(x => String(x.id) === String(meetingId));
+  const who = students.find(s => s.id === m?.studentId)?.name?.split(' ')[0] || 'the student';
+  if (!confirm(`Dismiss this request?\n\n`
+    + `Use this when ${who} has already sent a new request instead of proposing new times. `
+    + `It is recorded as cancelled and leaves your list; nothing is emailed.`)) return;
+  try {
+    await sbUpdate(TBL_MEETING, 'id', meetingId, { status: 'cancelled' });
+    if (m) m.status = 'cancelled';
+    delete pendingSelSlot[meetingId];
+    delete pendingPropMode[meetingId];
+    delete pendingExpanded[meetingId];
+    showToast('✓ Request dismissed');
+    renderCurrent();
+  } catch(e) {
+    showToast(`Failed: ${e.message}`);
   }
 }
 
@@ -7964,7 +8045,7 @@ function buildNsForm(st){
   return `<div class="tl-item">
   <div class="tl-spine"><div class="tl-dot entry"></div><div class="tl-line"></div></div>
   <div class="tl-content" style="padding-bottom:16px;">
-  <div class="ns-card">
+  <div class="ns-card" id="ns-card-${esc(st.id)}">
     <div class="ns-hd">
       <span class="ns-title">New session — ${esc(st.name)}</span>
       <button class="ns-cancel" onclick="event.stopPropagation();cancelForm()">Cancel ×</button>
@@ -8111,7 +8192,23 @@ function toggleForm(id){
   showFormFor=showFormFor===id?null:id;
   selTopics=[];
   renderStudBody();
-  if(showFormFor){setTimeout(()=>{const el=document.getElementById('sp-'+id);if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});},50);}
+  if(showFormFor) setTimeout(()=>scrollToSessionForm(id), 50);
+}
+// Both callers used to scroll to 'sp-' + studentId, and no element has ever
+// carried that id: the jump silently did nothing, the page landed at the top of
+// the student's profile, and the form it had just opened sat below the fold.
+// Reported as "the log window opens but the screen shows the profile".
+//
+// block:'center' rather than 'nearest' because the top nav is sticky: a form
+// scrolled to the top of the viewport hides its own header behind it.
+function scrollToSessionForm(id){
+  const el = document.getElementById('ns-card-' + id);
+  if(!el) return;
+  el.scrollIntoView({ behavior:'smooth', block:'center' });
+  // Focus proves the form is the live thing on screen and puts the cursor in
+  // the one field that is required. preventScroll keeps it from fighting the
+  // smooth scroll above.
+  document.getElementById('ns-disc')?.focus({ preventScroll: true });
 }
 function cancelForm(){showFormFor=null; selVisibility='private'; renderStudBody();}
 
@@ -10767,10 +10864,7 @@ function logSessionFromMeeting(studentId) {
   document.getElementById('page-students').classList.add('active');
   currentPage = 'students';
   renderStudents();
-  setTimeout(() => {
-    const el = document.getElementById('sp-' + studentId);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, 120);
+  setTimeout(() => scrollToSessionForm(studentId), 120);
 }
 
 function switchMeetingView(v, btn) {
