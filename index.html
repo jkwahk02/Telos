@@ -3021,6 +3021,23 @@ function renderPendingRequestsCard(requests) {
     </div>`;
 }
 
+// Overview's meeting cards are a doorway into that tab, not a second copy of
+// it. Clicking one used to land on whatever page Meetings happened to be on -
+// which, with any request open, was Requests, however confirmed the meeting
+// you had just clicked. This lands on the page that holds THAT meeting, with
+// it already expanded.
+function goToMeeting(id){
+  const m = meetings.find(x => String(x.id) === String(id));
+  const k = m ? mtgKind(m) : 'confirmed';
+  MTG.page = k === 'confirmed' ? 'up' : k === 'past' ? 'past' : 'req';
+  MTG.open = m ? { [m.id]: true } : {};
+  goToMeetings();
+  setTimeout(() => {
+    document.querySelector('#mtg-body .m2-row.open')
+      ?.scrollIntoView({ behavior:'smooth', block:'center' });
+  }, 80);
+}
+
 function goToMeetings() {
   document.querySelectorAll('.nav-tab').forEach(t=>{
     t.classList.toggle('active', t.dataset.page === 'meetings');
@@ -3060,7 +3077,7 @@ function renderConfirmedMeetingsCard(list) {
           })();
 
           return `
-            <div class="ov-item" onclick="goToMeetings()" style="cursor:pointer;">
+            <div class="ov-item" onclick="goToMeeting('${m.id}')" style="cursor:pointer;">
               <div class="ov-dot dot-green"></div>
               <div class="ov-name">${esc(st?.name || m.studentId)}</div>
               <div class="ov-detail">
