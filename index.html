@@ -9763,26 +9763,46 @@ async function pfLogDel(id){
 // number quoted in July stays the number that was true when the claim was
 // written.
 function pfMetrics(){
-  const mine  = myStudents();
-  const mySess = sessions.filter(s => s.faculty === FACULTY_EMAIL);
-  const held   = meetings.filter(m => m.facultyEmail === FACULTY_EMAIL && m.status === 'completed');
+  // The evaluation is annual, so every figure here is bounded by the cycle it
+  // will be cited in. Counting the whole record - which is what the app holds
+  // in memory - put a career total under a heading that reads "this cycle",
+  // and a wrong number under a right label is worse than no number.
+  //
+  // The window is the review year: 1 September to 31 August. Terms are named
+  // rather than dated, so the two belonging to cycle c are Fall c and Spring c+1.
+  const c     = evCycle();
+  const from  = `${c}-09-01`, to = `${c + 1}-08-31`;
+  const today = new Date().toISOString().slice(0, 10);
+  const span  = `${evCycleLabel(c)}, as of ${today}`;
+  const inCycle = d => !!d && d >= from && d <= to;
+
+  const mine   = myStudents();
+  const mySess = sessions.filter(s => s.faculty === FACULTY_EMAIL && inCycle(s.date));
+  const held   = meetings.filter(m => m.facultyEmail === FACULTY_EMAIL
+                                   && m.status === 'completed' && inCycle(m.meetingDate));
   const met    = new Set(mySess.map(s => s.studentId));
-  const courses = {};
-  TAUGHT.rows.forEach(r => { courses[r.course_id] = (courses[r.course_id] || 0) + 1; });
-  const nCourses = Object.keys(courses).length;
-  const nTaught  = new Set(TAUGHT.rows.map(r => r.student_id)).size;
+
+  const terms    = [`Fall ${c}`, `Spring ${c + 1}`];
+  const taught   = TAUGHT.rows.filter(r => terms.includes(r.term_label));
+  const nCourses = new Set(taught.map(r => r.course_id)).size;
+  const nTaught  = new Set(taught.map(r => r.student_id)).size;
 
   return [
-    { n: mySess.length, label: 'advising sessions logged, this cycle to date', area:'services', item:1,
-      detail: `${mySess.length} as of ${new Date().toISOString().slice(0, 10)}` },
-    { n: mine.length, label: 'advisees carried', area:'services', item:1,
-      detail: `${mine.length} as of ${new Date().toISOString().slice(0, 10)}` },
-    { n: held.length, label: 'meetings completed through Telos', area:'services', item:1,
-      detail: `${held.length} as of ${new Date().toISOString().slice(0, 10)}` },
-    { n: `${met.size}/${mine.length}`, label: 'advisees met at least once', area:'services', item:1,
-      detail: `${met.size} of ${mine.length} as of ${new Date().toISOString().slice(0, 10)}` },
-    { n: nCourses, label: `courses taught · ${nTaught} students`, area:'services', item:7,
-      detail: `${nCourses} courses, ${nTaught} students, as of ${new Date().toISOString().slice(0, 10)}` },
+    { n: mySess.length, label: `advising sessions logged in ${evCycleLabel(c)}`, area:'services', item:1,
+      detail: `${mySess.length} sessions · ${span}` },
+    // A headcount is a fact about today, not about the year, and says so: an
+    // advisee list that changed in March would otherwise read as though it had
+    // been this size all along.
+    { n: mine.length, label: 'advisees carried today', area:'services', item:1,
+      detail: `${mine.length} advisees as of ${today}` },
+    { n: held.length, label: `meetings completed in ${evCycleLabel(c)}`, area:'services', item:1,
+      detail: `${held.length} meetings · ${span}` },
+    { n: `${met.size}/${mine.length}`, label: 'current advisees met at least once this cycle',
+      area:'services', item:1,
+      detail: `${met.size} of ${mine.length} advisees · ${span}` },
+    { n: nCourses, label: `courses taught in ${terms.join(' and ')} · ${nTaught} students`,
+      area:'services', item:7,
+      detail: `${nCourses} courses, ${nTaught} students · ${span}` },
   ];
 }
 function pfEvidenceCard(){
@@ -9808,8 +9828,9 @@ function pfEvidenceCard(){
       ${rows}
       <div class="pf-ft" style="justify-content:flex-start;">
         <span style="font-size:12.5px;color:var(--text3);line-height:1.5;">
-          Counted from your own records. A figure is attached with today's date and is not recomputed,
-          so what you cite in July is what you saw when you attached it.</span>
+          Counted from your own records, and bounded by this cycle — 1 Sep ${evCycle()} to 31 Aug ${evCycle() + 1}.
+          A figure is attached with today's date and is not recomputed, so what you cite in July is what you
+          saw when you attached it.</span>
       </div>
     </div>`;
 }
