@@ -1103,6 +1103,98 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .mtg-meta-item{font-size:12px;color:var(--text2);}
 .mtg-meta-dot{width:3px;height:3px;border-radius:50%;background:var(--text3);flex-shrink:0;}
 .mtg-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+
+/* ── MY PROFILE ───────────────────────────────────────────
+   Two pages behind one tab. They borrow the Overview split and the settings
+   card, so almost everything here is either a form row or a list row; what is
+   new is the evaluation item list and the weighting bar. */
+.pf-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  overflow:hidden;margin-bottom:14px;}
+.pf-hd{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.pf-hd h3{font-size:17px;font-weight:600;margin:0;}
+.pf-hd .hint{font-size:13px;color:var(--text3);font-weight:400;}
+.pf-hd .right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.pf-bd{padding:16px;}
+.pf-ft{padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.pf-row{display:grid;grid-template-columns:168px 1fr;gap:14px;padding:11px 16px;
+  border-bottom:1px solid var(--border);align-items:center;}
+.pf-row:last-child{border-bottom:none;}
+.pf-row.top{align-items:flex-start;}
+.pf-row .lbl{font-size:14px;color:var(--text2);}
+.pf-row .val{font-size:15px;color:var(--text);min-width:0;}
+.pf-row.edit{border-left:3px solid var(--blue-b);}
+.pf-lrow{display:grid;grid-template-columns:118px 1fr 32px;gap:10px;align-items:center;margin-bottom:9px;}
+.pf-x{height:30px;width:32px;border-radius:var(--r);border:1px solid var(--border-em);
+  background:var(--surface);color:var(--text3);cursor:pointer;font-size:13px;}
+.pf-x:hover{background:var(--red-l);color:var(--red);border-color:var(--red-l);}
+.pf-chip{display:inline-flex;align-items:center;gap:7px;background:var(--surface);
+  border:1px solid var(--border-em);border-radius:22px;padding:6px 13px;font-size:14px;
+  color:var(--text2);cursor:pointer;}
+.pf-chip.on{background:var(--blue-l);border-color:var(--blue-b);color:var(--blue);font-weight:500;}
+.pf-chip.flat{cursor:default;}
+.pf-chips{display:flex;flex-wrap:wrap;gap:7px;}
+.pf-facet{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--text3);margin:14px 0 7px;}
+.pf-facet:first-child{margin-top:0;}
+.pf-note{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);
+  line-height:1.7;margin:10px 0 0;}
+.pf-q{margin-top:14px;}
+.pf-ql{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:5px;}
+.pf-ql span{font-weight:400;color:var(--text3);}
+
+/* the weighting bar: role decides it, so it is a statement and not a control */
+.pf-wbar{display:flex;height:46px;border-radius:var(--r);overflow:hidden;
+  border:1px solid var(--border);margin-bottom:8px;}
+.pf-wseg{display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;
+  font-weight:500;color:#fff;min-width:0;padding:0 6px;}
+.pf-wseg small{font-family:'DM Mono',monospace;font-size:12px;opacity:.85;}
+.pf-wkey{display:flex;gap:18px;flex-wrap:wrap;font-size:14px;color:var(--text2);margin-bottom:18px;}
+.pf-wkey i{font-style:normal;display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:7px;}
+.pf-cyc{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--border);
+  border-radius:var(--r-lg);overflow:hidden;margin-bottom:16px;}
+.pf-cc{padding:13px 15px;border-right:1px solid var(--border);background:var(--surface);}
+.pf-cc:last-child{border-right:none;}
+.pf-cc.now{background:var(--blue-l);}
+.pf-cw{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text3);text-transform:uppercase;}
+.pf-cc.now .pf-cw{color:var(--blue);}
+.pf-ct{font-size:15px;font-weight:600;margin:4px 0 3px;}
+.pf-cd{font-size:13px;color:var(--text2);line-height:1.45;}
+.pf-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+.pf-stat{background:var(--surface2);border-radius:var(--r);padding:15px;}
+.pf-stat b{display:block;font-size:28px;font-weight:600;letter-spacing:-.03em;line-height:1;margin-bottom:5px;}
+.pf-stat b em{font-style:normal;font-size:17px;color:var(--text3);}
+.pf-stat i{font-style:normal;font-size:13px;color:var(--text3);font-weight:500;
+  text-transform:uppercase;letter-spacing:.05em;}
+.pf-stat.warn b{color:var(--amber);}
+.pf-split{display:grid;grid-template-columns:1fr 348px;gap:20px;align-items:start;}
+.pf-side{position:sticky;top:76px;}
+.pf-it{border-bottom:1px solid var(--border);}
+.pf-it:last-child{border-bottom:none;}
+.pf-ith{display:grid;grid-template-columns:26px 1fr auto;gap:11px;padding:12px 16px;
+  align-items:center;cursor:pointer;}
+.pf-ith:hover{background:var(--surface2);}
+.pf-itn{font-family:'DM Mono',monospace;font-size:13px;color:var(--text3);}
+.pf-itt{font-size:15px;color:var(--text);line-height:1.45;}
+.pf-itb{padding:4px 16px 18px 53px;background:var(--surface2);border-top:1px solid var(--border);}
+.pf-ev{display:flex;gap:11px;padding:11px 14px;border-bottom:1px solid var(--border);align-items:flex-start;}
+.pf-ev:last-child{border-bottom:none;}
+.pf-evn{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:var(--text);min-width:34px;}
+.pf-evl{font-size:13.5px;color:var(--text2);line-height:1.45;}
+.pf-log{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.pf-log:last-child{border-bottom:none;}
+.pf-logd{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);min-width:82px;padding-top:2px;}
+.pf-logt{font-size:14.5px;line-height:1.5;}
+.pf-loge{font-size:12.5px;color:var(--text3);margin-top:4px;display:flex;gap:6px;
+  align-items:center;flex-wrap:wrap;}
+.pf-tl{display:flex;gap:5px;margin-bottom:14px;}
+.pf-tlm{flex:1;text-align:center;padding:9px 0;border-radius:var(--r);background:var(--surface2);
+  font-size:12px;color:var(--text3);font-weight:500;}
+.pf-tlm.has{background:var(--green-l);color:var(--green);font-weight:600;}
+.pf-tlm.now{outline:2px solid var(--blue);outline-offset:-2px;color:var(--blue);}
+@media (max-width:1180px){.pf-split{grid-template-columns:1fr;} .pf-side{position:static;}}
+@media (max-width:900px){.pf-stats,.pf-cyc{grid-template-columns:1fr 1fr;}
+  .pf-row{grid-template-columns:1fr;gap:6px;}}
 </style>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -1114,6 +1206,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
   <div class="nav-logo">Telos <span class="role-badge">Faculty</span></div>
   <div class="nav-tabs">
     <button class="nav-tab active" data-page="overview">Overview</button>
+    <button class="nav-tab" data-page="profile">My Profile</button>
     <button class="nav-tab" data-page="students">Students</button>
     <button class="nav-tab" data-page="meetings">Meetings</button>
     <button class="nav-tab" data-page="log">Session Log</button>
@@ -1227,6 +1320,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 </div>
 <div class="main">
   <div class="page active" id="page-overview"></div>
+  <div class="page" id="page-profile"></div>
   <div class="page" id="page-students"></div>
   <div class="page" id="page-meetings"></div>
   <div class="page" id="page-log"></div>
@@ -1604,6 +1698,28 @@ async function sbInsert(table, row) {
     throw new Error(err.message || err.hint || `POST ${table} failed: ${r.status}`);
   }
   return r.json();
+}
+
+// ── SUPABASE UPSERT ──
+//
+// One row per item per cycle is the shape the Evaluation Record needs, and the
+// page cannot know whether this is the first save or the fifth. PostgREST does
+// that in one request with resolution=merge-duplicates, provided on_conflict
+// names the unique constraint's columns - without it the insert fails on the
+// constraint instead of updating through it.
+async function sbUpsert(table, row, onConflict) {
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/${table}?on_conflict=${encodeURIComponent(onConflict)}`, {
+    method: 'POST',
+    headers: sbHeaders({ 'Prefer': 'return=representation,resolution=merge-duplicates' }),
+    body: JSON.stringify(row),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(()=>({}));
+    throw new Error(err.message || err.hint || `UPSERT ${table} failed: ${r.status}`);
+  }
+  const body = await r.json().catch(()=>null);
+  return Array.isArray(body) ? body[0] : body;
 }
 
 // ── SUPABASE DELETE ──
@@ -2222,6 +2338,7 @@ function renderCurrent() {
   const measured = currentPage === 'codebook' || currentPage === 'settings';
   document.querySelector('.main')?.classList.toggle('narrow', measured);
   if (currentPage==='overview') renderOverview();
+  if (currentPage==='profile')  renderProfile();
   if (currentPage==='students') renderStudents();
   if (currentPage==='meetings') renderMeetings();
   if (currentPage==='log') renderLog();
@@ -3070,6 +3187,10 @@ async function taughtLoad(){
   } finally {
     TAUGHT.loading = false;
     if(currentPage === 'overview' && OV.page === 'advisees') renderOverview();
+    // My Profile reads the same rows twice over - the course list on the card,
+    // the teaching figures in the evidence panel - and both land empty if the
+    // page is not redrawn when this returns.
+    if(currentPage === 'profile') renderProfile();
   }
 }
 
@@ -3337,7 +3458,7 @@ function tsSort(k){
 const TS_COLS = [
   ['name',   'Student',    r => r.name],
   ['cohort', 'Cohort',     r => r.cohort],
-  ['prog',   'Programme',  r => r.decl.join(' · ') || ' '],
+  ['prog',   'Programme',  r => r.decl.join(' · ') || '￿'],
   ['adv',    'Advised by', r => ({ mine:'0', other:'1', interim:'2', none:'3' })[r.adv]],
   ['off',    'Offerings',  r => String(100 - r.courses.length).padStart(3, '0')],
 ];
@@ -8761,6 +8882,1024 @@ async function saveProfile() {
   }
 }
   
+// ══════════════════════════════════════════════════════════════════════════
+// MY PROFILE
+//
+// Two pages behind one tab, next to Overview.
+//
+//   Profile Card       the record a student reads: degrees, posts, interests,
+//                      courses, how to reach you. Written here, and only here.
+//   Evaluation Record  the year's own account of Academic Services and, for a
+//                      chair, Program Leadership - kept against the OAA
+//                      framework of 25 Aug 2026 so that July is a export and
+//                      not a reconstruction.
+//
+// The card is edited here but not yet rendered anywhere a student can see: the
+// student app has no profile screen. The page says so rather than claiming a
+// visibility that does not exist yet.
+//
+// Everything on the Evaluation Record is private to the signed-in account. A
+// chair reading a colleague's draft is exactly what the row policies refuse,
+// and no screen here offers it.
+// ══════════════════════════════════════════════════════════════════════════
+
+const TBL_EVAL_ENTRY = 'faculty_eval_entries';
+const TBL_EVAL_EVID  = 'faculty_eval_evidence';
+const TBL_EVAL_LOG   = 'faculty_eval_log';
+const TBL_TEACH_REP  = 'faculty_teaching_reports';
+
+// The thirteen and the twelve, verbatim from the workshop deck. They are here
+// rather than in a table because they are the framework itself: if a wording
+// changes, the entries written against the old number have to be looked at by
+// a person anyway, so a silent data-driven change would be the wrong kindness.
+const EVAL_SERVICES = [
+  'Offered regular and effective academic guidance and student advising through office hours.',
+  'Attended required meetings regularly and punctually.',
+  'Communicated effectively and in a timely manner regarding University affairs.',
+  'Served on University committees or other assigned administrative bodies.',
+  'Contributed to program-level curriculum planning, assessment, accreditation, or revision.',
+  'Contributed to admissions or student recruitment efforts.',
+  'Developed a new course or updated an existing course using innovative methods, materials, or technologies.',
+  'Participated in conferences, workshops, training programs, or other professional development activities related to pedagogy.',
+  'Supervised capstone projects, student projects, independent study, or extracurricular activities.',
+  'Contributed to the planning or implementation of University workshops, conferences, or other events.',
+  'Contributed to the development or revision of University-wide policies or major institutional initiatives.',
+  'Published a scholarly work (e.g., journal article, book chapter, book, patent, industrial standard, or other academic publication).',
+  "Contributed to the University's public visibility and reputation (e.g., media appearances, conference presentations, invited talks, public writing, or other public engagement).",
+];
+const EVAL_LEADERSHIP = [
+  "Ensured that the program's curriculum aligned with the institutional learning objectives.",
+  'Maintained or enhanced the overall academic quality of the program.',
+  'Fostered a collegial and collaborative environment among program faculty members.',
+  'Communicated regularly and effectively regarding program matters.',
+  'Demonstrated transparency and accountability in decision-making and implementation processes.',
+  'Effectively planned, allocated, and managed resources to support academic programs.',
+  'Developed and implemented innovative program-level initiatives or improvements.',
+  'Effectively conducted program reviews and managed preparations for external reviews, audits, evaluations, and accreditation activities.',
+  'Effectively collaborated with other programs and institutions.',
+  'Successfully recruited an outstanding new faculty member.',
+  'Mentored junior faculty to support their teaching, advising, and professional development.',
+  'Effectively resolved student or faculty-related issues beyond routine administration.',
+];
+
+const PROF = { page:'card', loaded:false, loading:false, err:null,
+               row:null, topics:[], dirty:false, saving:false,
+               edu:[], exp:[] };
+const EVALR = { loaded:false, loading:false, err:null,
+                entries:[], evidence:[], logs:[], reports:[], open:null };
+
+// The review year runs Fall to August, so the cycle is named by the calendar
+// year its Fall term starts in: September 2026 through August 2027 is 2026.
+// That is also how the academic calendar numbers terms - 2026-1 is Fall 2026.
+function evCycle(d){
+  const t = d || new Date();
+  return t.getMonth() >= 8 ? t.getFullYear() : t.getFullYear() - 1;
+}
+function evCycleLabel(c){ return `${c}–${c + 1}`; }
+
+// ── loading ───────────────────────────────────────────────────────────────
+async function pfLoad(){
+  if(PROF.loaded || PROF.loading || !FACULTY_EMAIL) return;
+  PROF.loading = true; PROF.err = null;
+  try {
+    // The vocabulary is loaded separately and allowed to fail: a deployment
+    // where Telos_Advising_Topics.sql has not run yet should still be able to
+    // edit a name and a degree list, with the interest chips simply absent.
+    const [rows, topics] = await Promise.all([
+      sbGet('faculty_profiles', `email=eq.${encodeURIComponent(FACULTY_EMAIL)}&select=*`),
+      sbGet('advising_topics',  'active=eq.true&order=facet.desc,sort.asc&select=key,label,facet')
+        .catch(() => []),
+    ]);
+    PROF.row    = rows[0] || {};
+    PROF.topics = topics || [];
+    PROF.edu    = pfList(PROF.row?.education);
+    PROF.exp    = pfList(PROF.row?.experience);
+    PROF.loaded = true;
+    // Office hours are shown here and edited in Settings. An account that has
+    // not opened Settings this session has no slots loaded, and the card would
+    // report "none set" to someone who has posted hours for months.
+    if(!PROF.availTried){
+      PROF.availTried = true;
+      loadAvailability().then(() => { if(currentPage === 'profile') renderProfile(); });
+    }
+  } catch(e){
+    PROF.err = e.message;
+  } finally {
+    PROF.loading = false;
+    if(currentPage === 'profile') renderProfile();
+  }
+}
+
+// education and experience are jsonb arrays of {year, text}. A profile written
+// before this page existed has an empty array; one written by hand in the SQL
+// editor may have anything, so a row that is not an object is dropped rather
+// than rendered as [object Object].
+function pfList(v){
+  if(!Array.isArray(v)) return [];
+  return v.filter(r => r && typeof r === 'object')
+          .map(r => ({ year: String(r.year || ''), text: String(r.text || '') }));
+}
+
+async function evLoad(){
+  if(EVALR.loaded || EVALR.loading || !FACULTY_EMAIL) return;
+  EVALR.loading = true; EVALR.err = null;
+  const c = evCycle();
+  try {
+    const [entries, evidence, logs, reports] = await Promise.all([
+      sbGet(TBL_EVAL_ENTRY, `cycle=eq.${c}&order=area.asc,item_no.asc`),
+      sbGet(TBL_EVAL_EVID,  `cycle=eq.${c}&order=captured_at.desc`),
+      sbGet(TBL_EVAL_LOG,   `cycle=eq.${c}&order=entry_date.desc`),
+      sbGet(TBL_TEACH_REP,  `cycle=eq.${c}&order=term.asc`),
+    ]);
+    EVALR.entries = entries; EVALR.evidence = evidence;
+    EVALR.logs = logs; EVALR.reports = reports;
+    EVALR.loaded = true;
+  } catch(e){
+    EVALR.err = e.message;
+  } finally {
+    EVALR.loading = false;
+    if(currentPage === 'profile' && PROF.page === 'eval') renderProfile();
+  }
+}
+
+// ── the tab itself ────────────────────────────────────────────────────────
+function renderProfile(){
+  const el = document.getElementById('page-profile');
+  if(!el) return;
+  pfLoad();
+  if(PROF.page === 'eval') evLoad();
+
+  const item = (k, label, icon, badge) => `
+    <div class="ov-mi${PROF.page === k ? ' on' : ''}" onclick="pfGo('${k}')" tabindex="0"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pfGo('${k}');}">
+      ${icon}<span>${label}</span>${badge || ''}
+    </div>`;
+
+  el.innerHTML = `
+    <div class="ov-split">
+      <nav class="ov-menu">
+        <div class="ov-mgrp">My Profile</div>
+        ${item('card', 'Profile Card',
+          `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.2" y="4" width="15.6" height="12" rx="2"/><circle cx="7.2" cy="9.2" r="2"/><path d="M3.9 14c.3-1.8 1.7-2.7 3.3-2.7s3 .9 3.3 2.7M12.4 8.6h3.6M12.4 11.6h3.6"/></svg>`)}
+        ${item('eval', 'Evaluation Record',
+          `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2.6h7.2L16 6.4V17a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3.6a1 1 0 0 1 1-1z"/><path d="M11.8 2.8v3.8H15.6M6.7 10.6l1.4 1.4 3-3.2M6.7 14.6h6.6"/></svg>`,
+          `<span class="ov-chair">Private</span>`)}
+      </nav>
+      <div class="ov-body" id="pf-body"></div>
+    </div>`;
+
+  const b = document.getElementById('pf-body');
+  if(PROF.err){
+    b.innerHTML = `<div class="error-banner"><strong>Could not load your profile.</strong> ${esc(PROF.err)}</div>`;
+    return;
+  }
+  if(!PROF.loaded){ b.innerHTML = `<div class="ov-wait">Loading your profile…</div>`; return; }
+  if(PROF.page === 'card') pfCard(b); else pfEval(b);
+}
+function pfGo(k){ PROF.page = k; renderProfile(); }
+
+// ══ PAGE 1 — PROFILE CARD ═════════════════════════════════════════════════
+function pfCard(box){
+  const r     = PROF.row || {};
+  const links = (r.links && typeof r.links === 'object') ? r.links : {};
+  const roleLabel = [IS_CHAIR ? 'Program Chair' : '', 'Advisor'].filter(Boolean).join(' · ');
+
+  box.innerHTML = `
+    <div class="ov-scope">
+      <h1 class="ov-h1" style="margin:0;">Profile Card</h1>
+      <span class="bdg bdg-gray" style="margin-left:6px;">Not yet shown to students</span>
+      <span class="ov-meta" style="margin-left:auto;">${esc(FACULTY_EMAIL)}</span>
+    </div>
+    <p class="ov-sub">Who you are, in the form a student will read: degrees, posts held, what you work on,
+      what you teach, and how to reach you. The student app does not render it yet — this fills the record
+      so that it can.</p>
+
+    ${pfIdentityCard(r, roleLabel)}
+    ${pfRowsCard('Education', 'edu', 'newest first', 'Add degree', 'e.g. Ph.D. in Industrial Engineering — POSTECH')}
+    ${pfRowsCard('Professional experience', 'exp', 'posts held, at Taejae and before', 'Add post', 'e.g. Professor, Hongik University')}
+    ${pfInterestsCard(r)}
+    ${pfCoursesCard(r)}
+    ${pfAdvisingCard(r)}
+    ${pfLinksCard(links)}
+
+    <div class="pf-card">
+      <div class="pf-ft">
+        <span class="save-status" id="pf-save-status">${PROF.dirty ? 'Unsaved changes' : ''}</span>
+        <button class="btn-log" id="pf-save" ${PROF.dirty ? '' : 'disabled'} onclick="pfSave()">Save profile</button>
+      </div>
+    </div>`;
+}
+
+function pfIdentityCard(r, roleLabel){
+  return `
+    <div class="pf-card">
+      <div class="pf-hd"><h3>Identity</h3><span class="hint">how you are named across the app</span></div>
+      <div class="settings-section-divider">
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="8" width="10" height="6" rx="1.5"/><path d="M5 8V6a3 3 0 0 1 6 0v2"/></svg>
+        Managed by administrator
+      </div>
+      <div class="pf-row"><div class="lbl">Email</div><div class="val">${esc(FACULTY_EMAIL)}</div></div>
+      <div class="pf-row"><div class="lbl">Program</div>
+        <div class="val">${esc((FACULTY_PROGRAMS || []).join(' · ') || '—')}</div></div>
+      <div class="pf-row"><div class="lbl">Role</div><div class="val">${esc(roleLabel)}</div></div>
+      <div class="settings-section-divider">
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-8 8H3v-3l8-8z"/></svg>
+        Editable by you
+      </div>
+      <div class="pf-row edit"><div class="lbl">Display name</div>
+        <div class="val"><input class="fi" id="pf-name" value="${esc(r.name_en || FACULTY)}"
+          style="height:32px;font-size:14px;max-width:320px;" oninput="pfTouch()"></div></div>
+      <div class="pf-row edit"><div class="lbl">Academic title</div>
+        <div class="val"><input class="fi" id="pf-title" value="${esc(r.academic_title || '')}"
+          placeholder="Professor" style="height:32px;font-size:14px;max-width:320px;" oninput="pfTouch()"></div></div>
+    </div>`;
+}
+
+// Education and experience share one shape - a year and a line - so they share
+// one renderer. The list is held in PROF.edu / PROF.exp rather than read off
+// the inputs, because adding a row redraws the card and anything typed into a
+// sibling field would go with it; pfCollect() puts the inputs back into state
+// before every redraw.
+function pfRowsCard(title, key, hint, addLabel, placeholder){
+  const rows = PROF[key];
+  const body = rows.length ? rows.map((row, i) => `
+      <div class="pf-lrow">
+        <input class="fi" style="height:32px;font-size:14px;font-family:'DM Mono',monospace;"
+          value="${esc(row.year)}" placeholder="Year"
+          oninput="PROF.${key}[${i}].year=this.value;pfTouch()">
+        <input class="fi" style="height:32px;font-size:14px;" value="${esc(row.text)}"
+          placeholder="${esc(placeholder)}"
+          oninput="PROF.${key}[${i}].text=this.value;pfTouch()">
+        <button class="pf-x" title="Remove" onclick="pfRowDel('${key}',${i})">✕</button>
+      </div>`).join('')
+    : `<div style="font-size:14px;color:var(--text3);padding:4px 0 10px;">Nothing here yet.</div>`;
+
+  return `
+    <div class="pf-card">
+      <div class="pf-hd"><h3>${esc(title)}</h3><span class="hint">${esc(hint)}</span>
+        <div class="right"><button class="btn-log" style="height:28px;font-size:13px;"
+          onclick="pfRowAdd('${key}')">+ ${esc(addLabel)}</button></div></div>
+      <div class="pf-bd">${body}</div>
+    </div>`;
+}
+function pfRowAdd(key){ pfCollect(); PROF[key].push({ year:'', text:'' }); PROF.dirty = true; renderProfile(); }
+function pfRowDel(key, i){ pfCollect(); PROF[key].splice(i, 1); PROF.dirty = true; renderProfile(); }
+
+// The seventeen topics, as chips. This is the same column advisor matching
+// reads (faculty_profiles.expertise_tags): choosing nothing leaves the derived
+// topics in place - the ones taken from what you teach - and choosing anything
+// overrides them entirely, which is what v_faculty_topics already does.
+function pfInterestsCard(r){
+  const chosen = Array.isArray(r.expertise_tags) ? r.expertise_tags : [];
+  const facet = f => PROF.topics.filter(t => t.facet === f).map(t => `
+    <span class="pf-chip${chosen.includes(t.key) ? ' on' : ''}" onclick="pfTopic('${esc(t.key)}')">
+      ${esc(t.label)}</span>`).join('');
+
+  return `
+    <div class="pf-card">
+      <div class="pf-hd"><h3>Research &amp; teaching interests</h3>
+        <span class="hint">advisor matching reads these, so they are not decoration</span></div>
+      <div class="pf-bd">
+        <div class="pf-facet">Subjects</div>
+        <div class="pf-chips">${facet('subject')}</div>
+        <div class="pf-facet">Approaches</div>
+        <div class="pf-chips">${facet('approach')}</div>
+        <p class="pf-note">${chosen.length
+          ? `${chosen.length} chosen. These replace the topics otherwise taken from the courses you teach.`
+          : 'None chosen — your topics are taken from the courses you teach. Choosing any here replaces that.'}</p>
+        <div class="pf-q" style="margin-top:18px;">
+          <div class="pf-ql">Short statement <span>— two or three sentences, shown in full on the card</span></div>
+          <textarea class="fi" id="pf-bio" rows="3" maxlength="400"
+            style="height:auto;padding:9px 11px;line-height:1.55;font-size:14px;"
+            oninput="pfTouch();document.getElementById('pf-bio-n').textContent=this.value.length;"
+            >${esc(r.bio || '')}</textarea>
+          <p class="pf-note"><span id="pf-bio-n">${(r.bio || '').length}</span> / 400 characters</p>
+        </div>
+      </div>
+    </div>`;
+}
+function pfTopic(key){
+  pfCollect();
+  const cur = Array.isArray(PROF.row.expertise_tags) ? PROF.row.expertise_tags.slice() : [];
+  const i = cur.indexOf(key);
+  if(i >= 0) cur.splice(i, 1); else cur.push(key);
+  PROF.row.expertise_tags = cur;
+  PROF.dirty = true;
+  renderProfile();
+}
+
+// Courses are read, never typed: v_student_taught_courses is the same source
+// the Taught Students page uses, and it updates itself every term. All this
+// card decides is which of them the card shows.
+function pfCoursesCard(r){
+  const hidden = Array.isArray(r.hidden_courses) ? r.hidden_courses : [];
+  if(!TAUGHT.loaded){
+    taughtLoad();
+    return `<div class="pf-card"><div class="pf-hd"><h3>Courses</h3>
+      <span class="hint">read from your teaching record</span></div>
+      <div class="pf-bd"><span style="font-size:14px;color:var(--text3);">Loading your courses…</span></div></div>`;
+  }
+  // One row per course per term, with the head count behind it.
+  const byKey = {};
+  TAUGHT.rows.forEach(row => {
+    const k = `${row.term_label}|${row.course_id}`;
+    (byKey[k] = byKey[k] || { term: row.term_label, course: row.course_id, n: 0 }).n++;
+  });
+  const list = Object.values(byKey).sort((a, b) =>
+    tsKey(b.term) - tsKey(a.term) || a.course.localeCompare(b.course));
+
+  const body = list.length ? list.map(c => {
+    const off = hidden.includes(c.course);
+    return `<div class="pf-row" style="grid-template-columns:112px 96px 1fr 96px;">
+      <div class="val" style="font-family:'DM Mono',monospace;font-size:14px;">${esc(c.term)}</div>
+      <div class="val" style="font-family:'DM Mono',monospace;font-size:14px;">${esc(c.course)}</div>
+      <div class="val" style="font-size:14px;color:var(--text2);">${c.n} student${c.n === 1 ? '' : 's'}</div>
+      <div><button class="pf-chip${off ? '' : ' on'}" style="font-size:12.5px;padding:3px 11px;"
+        onclick="pfCourse('${esc(c.course)}')">${off ? 'hidden' : 'shown'}</button></div>
+    </div>`;
+  }).join('') : `<div class="pf-bd"><span style="font-size:14px;color:var(--text3);">
+      No teaching record yet — nothing to show on the card.</span></div>`;
+
+  return `
+    <div class="pf-card">
+      <div class="pf-hd"><h3>Courses</h3><span class="hint">read from your teaching record — nothing to type</span>
+        <div class="right"><span class="bdg bdg-blue">auto</span></div></div>
+      ${body}
+    </div>`;
+}
+function pfCourse(course){
+  pfCollect();
+  const cur = Array.isArray(PROF.row.hidden_courses) ? PROF.row.hidden_courses.slice() : [];
+  const i = cur.indexOf(course);
+  if(i >= 0) cur.splice(i, 1); else cur.push(course);
+  PROF.row.hidden_courses = cur;
+  PROF.dirty = true;
+  renderProfile();
+}
+
+function pfAdvisingCard(r){
+  const hours = availSlots.length
+    ? availSlots.filter(s => s.is_active).length + ' active slot' + (availSlots.filter(s => s.is_active).length === 1 ? '' : 's')
+    : 'none set';
+  return `
+    <div class="pf-card">
+      <div class="pf-hd"><h3>Advising</h3><span class="hint">how a student reaches you</span></div>
+      <div class="pf-row edit top"><div class="lbl" style="padding-top:8px;">How to work with me</div>
+        <div class="val"><textarea class="fi" id="pf-advnote" rows="2"
+          style="height:auto;padding:9px 11px;line-height:1.55;font-size:14px;"
+          placeholder="What to bring, what to expect, when to write instead of booking."
+          oninput="pfTouch()">${esc(r.advising_note || '')}</textarea></div></div>
+      <div class="pf-row edit"><div class="lbl">Languages</div>
+        <div class="val"><input class="fi" id="pf-lang" value="${esc(r.languages || '')}"
+          placeholder="Korean, English" style="height:32px;font-size:14px;max-width:320px;"
+          oninput="pfTouch()"></div></div>
+      <div class="pf-row"><div class="lbl">Office hours</div>
+        <div class="val" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span style="font-size:14px;">${esc(hours)}</span>
+          <button class="pf-chip flat" style="font-size:12.5px;padding:3px 11px;"
+            onclick="goPage('settings')">Edit in Settings ›</button></div></div>
+      <div class="pf-row"><div class="lbl">Meeting link</div>
+        <div class="val" style="font-size:14px;color:var(--text2);">
+          ${FACULTY_MEETING_LINK ? esc(FACULTY_MEETING_LINK) : 'not set'}</div></div>
+    </div>`;
+}
+
+function pfLinksCard(links){
+  const row = (id, label, ph, v) => `
+    <div class="pf-row edit"><div class="lbl">${esc(label)}</div>
+      <div class="val"><input class="fi" id="${id}" value="${esc(v || '')}" placeholder="${esc(ph)}"
+        style="height:32px;font-size:14px;" oninput="pfTouch()"></div></div>`;
+  return `
+    <div class="pf-card">
+      <div class="pf-hd"><h3>Links</h3></div>
+      ${row('pf-link-site',    'Personal site',  'https://',                        links.site)}
+      ${row('pf-link-scholar', 'Google Scholar', 'https://scholar.google.com/…',    links.scholar)}
+      ${row('pf-link-orcid',   'ORCID',          '0000-0000-0000-0000',             links.orcid)}
+    </div>`;
+}
+
+function pfTouch(){
+  PROF.dirty = true;
+  const b = document.getElementById('pf-save');
+  if(b) b.disabled = false;
+  const s = document.getElementById('pf-save-status');
+  if(s) s.textContent = 'Unsaved changes';
+}
+
+// Reads every input back into state. Called before any redraw and before the
+// save, so that a redraw triggered by adding a row never loses what was typed
+// into a different field.
+function pfCollect(){
+  const v = id => document.getElementById(id)?.value ?? null;
+  if(!PROF.row) PROF.row = {};
+  const set = (k, val) => { if(val !== null) PROF.row[k] = val; };
+  set('name_en',        v('pf-name'));
+  set('academic_title', v('pf-title'));
+  set('bio',            v('pf-bio'));
+  set('advising_note',  v('pf-advnote'));
+  set('languages',      v('pf-lang'));
+  if(document.getElementById('pf-link-site')){
+    PROF.row.links = {
+      site:    v('pf-link-site')    || '',
+      scholar: v('pf-link-scholar') || '',
+      orcid:   v('pf-link-orcid')   || '',
+    };
+  }
+  PROF.edu = PROF.edu.filter(r => r.year || r.text);
+  PROF.exp = PROF.exp.filter(r => r.year || r.text);
+}
+
+async function pfSave(){
+  if(PROF.saving) return;
+  pfCollect();
+  PROF.saving = true;
+  const btn = document.getElementById('pf-save');
+  const st  = document.getElementById('pf-save-status');
+  if(btn){ btn.disabled = true; btn.textContent = 'Saving…'; }
+  const r = PROF.row || {};
+  try {
+    await sbUpdate('faculty_profiles', 'email', FACULTY_EMAIL, {
+      name_en:        (r.name_en || '').trim() || FACULTY,
+      academic_title: (r.academic_title || '').trim() || null,
+      bio:            (r.bio || '').trim() || null,
+      advising_note:  (r.advising_note || '').trim() || null,
+      languages:      (r.languages || '').trim() || null,
+      education:      PROF.edu,
+      experience:     PROF.exp,
+      links:          r.links || {},
+      expertise_tags: Array.isArray(r.expertise_tags) ? r.expertise_tags : [],
+      hidden_courses: Array.isArray(r.hidden_courses) ? r.hidden_courses : [],
+    });
+    // The name is rendered from a global on every other page, so a saved name
+    // that is not written back here goes stale until the next sign-in.
+    FACULTY = (r.name_en || '').trim() || FACULTY;
+    document.querySelector('.nav-name') && (document.querySelector('.nav-name').textContent = FACULTY);
+    PROF.dirty = false;
+    if(st) st.textContent = 'Saved';
+    showToast('✓ Profile saved');
+  } catch(e){
+    if(st) st.textContent = '';
+    showToast('Could not save: ' + e.message);
+  } finally {
+    PROF.saving = false;
+    if(btn){ btn.textContent = 'Save profile'; btn.disabled = !PROF.dirty; }
+  }
+}
+
+// ══ PAGE 2 — EVALUATION RECORD ════════════════════════════════════════════
+//
+// The track is read from the account and never chosen: is_chair decides it,
+// and Deans and Program Chairs share the leader track.
+function pfEval(box){
+  if(EVALR.err){
+    box.innerHTML = `<div class="error-banner"><strong>Could not load your evaluation record.</strong>
+      ${esc(EVALR.err)}<div style="margin-top:6px;font-size:13px;">If this says the table does not exist,
+      Telos_My_Profile.sql has not been run yet.</div></div>`;
+    return;
+  }
+  if(!EVALR.loaded){ box.innerHTML = `<div class="ov-wait">Loading your record…</div>`; return; }
+
+  const c = evCycle();
+  box.innerHTML = `
+    <div class="ov-scope">
+      <h1 class="ov-h1" style="margin:0;">Evaluation Record</h1>
+      <span class="ov-meta" style="margin-left:auto;">private to you · cycle ${evCycleLabel(c)}</span>
+    </div>
+    <p class="ov-sub">A small record kept through the year, so that July is an export and not a reconstruction.
+      The structure follows the OAA framework of 25 August 2026: the questions below are the ones the
+      Self-Evaluation Report asks, in the order it asks them.</p>
+    ${pfTrackBar()}
+    ${pfCycleStrip()}
+    ${pfEvalStats()}
+    <div class="pf-split">
+      <div>
+        ${pfTeachingCard()}
+        ${pfItemsCard('services', 'Academic Services',
+            IS_CHAIR ? '13 items · 2 points each on the leader track' : '13 items · 3 points each',
+            EVAL_SERVICES)}
+        ${IS_CHAIR ? pfItemsCard('leadership', 'Program Leadership',
+            '12 items · reviewed by program faculty peers', EVAL_LEADERSHIP) : ''}
+        ${pfLogCard()}
+        ${pfExportCard()}
+      </div>
+      <div class="pf-side">${pfEvidenceCard()}${pfNextDateCard()}</div>
+    </div>`;
+}
+
+function pfTrackBar(){
+  const seg = (flex, colour, label, pts) =>
+    `<div class="pf-wseg" style="flex:${flex};background:var(--${colour});">${label} <small>${pts}</small></div>`;
+  const bar = IS_CHAIR
+    ? seg(50, 'blue', 'Teaching', 50) + seg(30, 'teal', 'Program Leadership', 30) + seg(20, 'amber-d', 'Academic Services', 20)
+    : seg(60, 'blue', 'Teaching', 60) + seg(30, 'amber-d', 'Academic Services', 30) + seg(10, 'gray-m', 'President', 10);
+  const key = IS_CHAIR
+    ? `<span><i style="background:var(--blue);"></i>AIEIC teaching evaluation — Fall report in January, Spring in July</span>
+       <span><i style="background:var(--teal);"></i>12 items, reviewed by program faculty peers</span>
+       <span><i style="background:var(--amber-d);"></i>13 items, 2 points each</span>`
+    : `<span><i style="background:var(--blue);"></i>AIEIC teaching evaluation, both semesters</span>
+       <span><i style="background:var(--amber-d);"></i>13 items, 3 points each, reviewed by your Dean or Chair</span>
+       <span><i style="background:var(--gray-m);"></i>President's integrated review</span>`;
+  return `
+    <div class="ov-scope" style="margin-bottom:10px;">
+      <span style="font-size:14px;color:var(--text2);">Your track</span>
+      <span class="bdg bdg-blue" style="font-size:13px;padding:5px 12px;">
+        ${IS_CHAIR ? 'Dean or Chair · 50 / 30 / 20' : 'Faculty · 60 / 30 / 10'}</span>
+      <span style="font-size:13.5px;color:var(--text3);">set from your role — the Office of Academic Affairs owns that field</span>
+    </div>
+    <div class="pf-wbar">${bar}</div>
+    <div class="pf-wkey">${key}</div>`;
+}
+
+// Where in the year this account is standing. The stage is read from the month
+// rather than stored, so nothing has to be advanced by hand each January.
+function pfCycleStrip(){
+  const m = new Date().getMonth();            // 0 = January
+  const stage = m >= 8 ? 0 : m === 0 ? 1 : m <= 5 ? 2 : m === 6 ? 3 : 4;
+  const cells = [
+    ['Fall',        'Teach &amp; capture',    'Keep a light record of meaningful work.'],
+    ['Jan wk 3',    'Review &amp; adjust',    'Fall AIEIC report; meet the Dean or Chair and agree on actions.'],
+    ['Spring',      'Apply &amp; update',     'Act on the feedback; update evidence as you go.'],
+    ['Jul wk 3',    'Submit &amp; prepare',   'Spring report; submit the Self-Evaluation Report.'],
+    ['Aug wk 1–4',  'Discuss &amp; finalize', 'Result disclosed; re-evaluation available in weeks 3–4.'],
+  ];
+  return `<div class="pf-cyc">${cells.map(([w, t, d], i) => `
+    <div class="pf-cc${i === stage ? ' now' : ''}">
+      <div class="pf-cw">${i === stage ? 'Now · ' : ''}${w}</div>
+      <div class="pf-ct">${t}</div><div class="pf-cd">${d}</div>
+    </div>`).join('')}</div>`;
+}
+
+function pfEntry(area, no){
+  return EVALR.entries.find(e => e.area === area && e.item_no === no) || null;
+}
+function pfEvidenceOf(area, no){
+  return EVALR.evidence.filter(e => e.area === area && e.item_no === no);
+}
+function pfReady(area, total){
+  let n = 0;
+  for(let i = 1; i <= total; i++){
+    const e = pfEntry(area, i);
+    if(e && (e.what || '').trim()) n++;
+  }
+  return n;
+}
+
+function pfEvalStats(){
+  const months = new Set(EVALR.logs.map(l => (l.entry_date || '').slice(0, 7))).size;
+  const svc = pfReady('services', 13);
+  const led = pfReady('leadership', 12);
+  const stat = (v, of, label, warn) => `
+    <div class="pf-stat${warn ? ' warn' : ''}"><b>${v}${of ? `<em> / ${of}</em>` : ''}</b><i>${label}</i></div>`;
+  return `<div class="pf-stats">
+    ${stat(months, 12, 'months logged', months < 1)}
+    ${stat(EVALR.logs.length, 0, 'entries this cycle', false)}
+    ${stat(svc, 13, 'service items written', svc < 13)}
+    ${IS_CHAIR ? stat(led, 12, 'leadership items written', led < 12)
+               : stat(EVALR.evidence.length, 0, 'pieces of evidence', false)}
+  </div>`;
+}
+
+// Teaching is recorded, not written: the score comes from AIEIC. What is worth
+// keeping is the report and the actions agreed at the January meeting, because
+// those actions are next year's evidence for item 7.
+function pfTeachingCard(){
+  const reps = EVALR.reports;
+  const body = reps.length ? reps.map(r => {
+    const acts = Array.isArray(r.actions) ? r.actions : [];
+    return `
+      <div class="pf-row top"><div class="lbl">${esc(r.term)}</div>
+        <div class="val">
+          <div style="font-size:15px;">${r.score != null ? `${r.score} / ${r.score_max}` : 'score not recorded'}
+            <span class="ov-meta">${r.received_on ? '· received ' + esc(r.received_on) : ''}
+              ${r.meeting_on ? '· meeting ' + esc(r.meeting_on) : ''}</span></div>
+          ${acts.length ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+            ${acts.map((a, i) => `<div style="display:flex;gap:9px;align-items:center;">
+              <span class="bdg ${a.status === 'done' ? 'bdg-green' : 'bdg-amber'}"
+                style="cursor:pointer;" onclick="pfActionFlip(${r.id},${i})">${a.status === 'done' ? 'done' : 'in progress'}</span>
+              <span style="font-size:14.5px;">${esc(a.text)}</span></div>`).join('')}
+          </div>` : ''}
+          <div style="margin-top:9px;display:flex;gap:7px;align-items:center;">
+            <input class="fi" id="pf-act-${r.id}" placeholder="Add an action agreed at the meeting"
+              style="height:30px;font-size:13.5px;max-width:420px;">
+            <button class="btn-log" style="height:30px;font-size:13px;" onclick="pfActionAdd(${r.id})">Add</button>
+          </div>
+        </div></div>`;
+  }).join('') : `<div class="pf-bd"><span style="font-size:14px;color:var(--text3);">
+      No report recorded for this cycle yet.</span></div>`;
+
+  return `
+    <div class="pf-card">
+      <div class="pf-hd"><h3>Teaching</h3><span class="hint">AIEIC — recorded here, not judged here</span>
+        <div class="right"><span class="bdg bdg-blue">${IS_CHAIR ? '50' : '60'} pts</span></div></div>
+      ${body}
+      <div class="pf-bd" style="border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <select class="fsel" id="pf-rep-term" style="height:32px;font-size:13.5px;">
+          <option value="Fall ${evCycle()}">Fall ${evCycle()}</option>
+          <option value="Spring ${evCycle() + 1}">Spring ${evCycle() + 1}</option>
+        </select>
+        <input class="fi" id="pf-rep-score" type="number" step="0.01" min="0" max="5" placeholder="Score"
+          style="height:32px;font-size:13.5px;width:110px;">
+        <input class="fi" id="pf-rep-recv" type="date" style="height:32px;font-size:13.5px;width:170px;">
+        <button class="btn-log" style="height:32px;font-size:13px;" onclick="pfReportSave()">Record report</button>
+        <span style="font-size:12.5px;color:var(--text3);">Recording the same term again updates it.</span>
+      </div>
+    </div>`;
+}
+
+async function pfReportSave(){
+  const term  = document.getElementById('pf-rep-term')?.value;
+  const score = document.getElementById('pf-rep-score')?.value;
+  const recv  = document.getElementById('pf-rep-recv')?.value;
+  if(!term) return;
+  try {
+    const row = await sbUpsert(TBL_TEACH_REP, {
+      faculty_email: FACULTY_EMAIL, cycle: evCycle(), term,
+      score: score === '' ? null : Number(score),
+      received_on: recv || null,
+    }, 'faculty_email,cycle,term');
+    const i = EVALR.reports.findIndex(r => r.term === term);
+    if(i >= 0) EVALR.reports[i] = row; else EVALR.reports.push(row);
+    EVALR.reports.sort((a, b) => a.term.localeCompare(b.term));
+    showToast('✓ Report recorded');
+    renderProfile();
+  } catch(e){ showToast('Could not record: ' + e.message); }
+}
+async function pfActionAdd(id){
+  const inp = document.getElementById('pf-act-' + id);
+  const text = (inp?.value || '').trim();
+  if(!text) return;
+  const rep = EVALR.reports.find(r => r.id === id);
+  if(!rep) return;
+  const acts = (Array.isArray(rep.actions) ? rep.actions : []).concat([{ text, status:'open' }]);
+  try {
+    await sbUpdate(TBL_TEACH_REP, 'id', id, { actions: acts });
+    rep.actions = acts;
+    renderProfile();
+  } catch(e){ showToast('Could not save: ' + e.message); }
+}
+async function pfActionFlip(id, i){
+  const rep = EVALR.reports.find(r => r.id === id);
+  if(!rep || !Array.isArray(rep.actions) || !rep.actions[i]) return;
+  const acts = rep.actions.slice();
+  acts[i] = { ...acts[i], status: acts[i].status === 'done' ? 'open' : 'done' };
+  try {
+    await sbUpdate(TBL_TEACH_REP, 'id', id, { actions: acts });
+    rep.actions = acts;
+    renderProfile();
+  } catch(e){ showToast('Could not save: ' + e.message); }
+}
+
+// One card per area. Closed, an item shows how much is behind it; open, it is
+// the four OAA questions and nothing else.
+function pfItemsCard(area, title, hint, items){
+  const ready = pfReady(area, items.length);
+  const rows = items.map((text, idx) => {
+    const no  = idx + 1;
+    const e   = pfEntry(area, no);
+    const ev  = pfEvidenceOf(area, no);
+    const has = e && (e.what || '').trim();
+    const badge = has
+      ? `<span class="bdg bdg-green">${ev.length ? ev.length + ' evidence' : 'written'}</span>`
+      : (e ? `<span class="bdg bdg-amber">draft</span>` : `<span class="bdg bdg-gray">empty</span>`);
+    const open = EVALR.open === `${area}:${no}`;
+    return `
+      <div class="pf-it">
+        <div class="pf-ith" onclick="pfItemOpen('${area}',${no})">
+          <div class="pf-itn">${String(no).padStart(2, '0')}</div>
+          <div class="pf-itt">${esc(text)}</div>
+          <div>${badge}</div>
+        </div>
+        ${open ? pfItemBody(area, no, e, ev) : ''}
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="pf-card">
+      <div class="pf-hd"><h3>${esc(title)}</h3><span class="hint">${esc(hint)}</span>
+        <div class="right"><span class="bdg ${ready === items.length ? 'bdg-green' : 'bdg-amber'}">
+          ${ready} of ${items.length} written</span></div></div>
+      ${rows}
+    </div>`;
+}
+function pfItemOpen(area, no){
+  const k = `${area}:${no}`;
+  EVALR.open = EVALR.open === k ? null : k;
+  renderProfile();
+}
+
+function pfItemBody(area, no, e, ev){
+  const q = (id, label, hint, val) => `
+    <div class="pf-q"><div class="pf-ql">${label}${hint ? ` <span>— ${hint}</span>` : ''}</div>
+      <textarea class="fi" id="${id}" rows="2"
+        style="height:auto;padding:9px 11px;line-height:1.55;font-size:14px;">${esc(val || '')}</textarea></div>`;
+  return `
+    <div class="pf-itb">
+      ${q(`pf-e-what-${area}-${no}`, 'What did you do?',   '', e?.what)}
+      ${q(`pf-e-why-${area}-${no}`,  'Why did it matter?', '', e?.why)}
+      ${q(`pf-e-out-${area}-${no}`,  'What resulted?',     '', e?.outcome)}
+      <div class="pf-q">
+        <div class="pf-ql">What evidence supports the statement?
+          <span>— a Telos figure from the panel on the right, a link, or a note</span></div>
+        <div class="pf-chips" style="margin-top:7px;">
+          ${ev.map(x => `<span class="pf-chip flat">
+            ${esc(x.label)}${x.detail ? ` <span style="font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);">${esc(x.detail)}</span>` : ''}
+            <span style="color:var(--text3);cursor:pointer;" onclick="pfEvidenceDel(${x.id})">✕</span></span>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;">
+          <input class="fi" id="pf-ev-${area}-${no}" placeholder="A link, or a line naming the evidence"
+            style="height:30px;font-size:13.5px;max-width:420px;">
+          <button class="btn-log" style="height:30px;font-size:13px;"
+            onclick="pfEvidenceAdd('${area}',${no})">Attach</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:9px;align-items:center;margin-top:16px;">
+        <button class="btn-log" onclick="pfItemSave('${area}',${no})">Save item</button>
+        <span style="font-size:12.5px;color:var(--text3);">
+          ${e?.updated_at ? 'last saved ' + esc(String(e.updated_at).slice(0, 10)) : 'not saved yet'}</span>
+      </div>
+    </div>`;
+}
+
+async function pfItemSave(area, no){
+  const v = id => document.getElementById(id)?.value ?? '';
+  const row = {
+    faculty_email: FACULTY_EMAIL, cycle: evCycle(), area, item_no: no,
+    what:    v(`pf-e-what-${area}-${no}`).trim() || null,
+    why:     v(`pf-e-why-${area}-${no}`).trim()  || null,
+    outcome: v(`pf-e-out-${area}-${no}`).trim()  || null,
+    updated_at: new Date().toISOString(),
+  };
+  try {
+    const saved = await sbUpsert(TBL_EVAL_ENTRY, row, 'faculty_email,cycle,area,item_no');
+    const i = EVALR.entries.findIndex(x => x.area === area && x.item_no === no);
+    if(i >= 0) EVALR.entries[i] = saved; else EVALR.entries.push(saved);
+    showToast('✓ Item saved');
+    renderProfile();
+  } catch(e){ showToast('Could not save: ' + e.message); }
+}
+
+async function pfEvidenceAdd(area, no, preset){
+  const inp = document.getElementById(`pf-ev-${area}-${no}`);
+  const text = preset ? preset.label : (inp?.value || '').trim();
+  if(!text) return;
+  const row = {
+    faculty_email: FACULTY_EMAIL, cycle: evCycle(), area, item_no: no,
+    kind:   preset ? 'metric' : (/^https?:\/\//i.test(text) ? 'link' : 'note'),
+    label:  text,
+    detail: preset ? preset.detail : null,
+  };
+  try {
+    const saved = await sbInsert(TBL_EVAL_EVID, row);
+    EVALR.evidence.unshift(Array.isArray(saved) ? saved[0] : saved);
+    if(inp) inp.value = '';
+    EVALR.open = `${area}:${no}`;
+    renderProfile();
+  } catch(e){ showToast('Could not attach: ' + e.message); }
+}
+async function pfEvidenceDel(id){
+  try {
+    await sbDelete(TBL_EVAL_EVID, 'id', id);
+    EVALR.evidence = EVALR.evidence.filter(x => x.id !== id);
+    renderProfile();
+  } catch(e){ showToast('Could not remove: ' + e.message); }
+}
+
+// ── the monthly habit ─────────────────────────────────────────────────────
+function pfLogCard(){
+  const c = evCycle();
+  // The cycle's own months, in its own order: September through August.
+  const names = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+  const ym = i => i < 4 ? `${c}-${String(9 + i).padStart(2, '0')}`
+                        : `${c + 1}-${String(i - 3).padStart(2, '0')}`;
+  const nowYM = new Date().toISOString().slice(0, 7);
+  const have = new Set(EVALR.logs.map(l => (l.entry_date || '').slice(0, 7)));
+
+  const strip = names.map((n, i) => {
+    const k = ym(i);
+    return `<div class="pf-tlm${have.has(k) ? ' has' : ''}${k === nowYM ? ' now' : ''}">${n}</div>`;
+  }).join('');
+
+  const items = EVALR.logs.slice(0, 8).map(l => `
+    <div class="pf-log">
+      <div class="pf-logd">${esc((l.entry_date || '').slice(0, 10))}</div>
+      <div style="min-width:0;">
+        <div class="pf-logt">${esc(l.summary)}</div>
+        <div class="pf-loge">
+          ${(l.tags || []).map(t => `<span class="bdg bdg-gray">${esc(pfTagLabel(t))}</span>`).join('')}
+          <span style="cursor:pointer;" onclick="pfLogDel(${l.id})">remove</span>
+        </div>
+      </div>
+    </div>`).join('') || `<div style="font-size:14px;color:var(--text3);padding:10px 0;">
+      Nothing logged yet this cycle. One line a month is what the workshop asks for.</div>`;
+
+  const opts = [''].concat(
+    EVAL_SERVICES.map((t, i) => `services:${i + 1}`),
+    IS_CHAIR ? EVAL_LEADERSHIP.map((t, i) => `leadership:${i + 1}`) : []
+  ).map(v => `<option value="${v}">${v ? esc(pfTagLabel(v)) : 'No item'}</option>`).join('');
+
+  return `
+    <div class="pf-card">
+      <div class="pf-hd"><h3>Monthly log</h3>
+        <span class="hint">one small entry a month — the habit the workshop asks for</span></div>
+      <div class="pf-bd">
+        <div class="pf-tl">${strip}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+          <input class="fi" id="pf-log-date" type="date" value="${new Date().toISOString().slice(0, 10)}"
+            style="height:32px;font-size:13.5px;width:170px;">
+          <input class="fi" id="pf-log-text" placeholder="What you did, in one line"
+            style="height:32px;font-size:13.5px;flex:1;min-width:240px;">
+          <select class="fsel" id="pf-log-tag" style="height:32px;font-size:13.5px;max-width:280px;">${opts}</select>
+          <button class="btn-log" style="height:32px;font-size:13px;" onclick="pfLogAdd()">Log it</button>
+        </div>
+        ${items}
+      </div>
+    </div>`;
+}
+function pfTagLabel(tag){
+  const [area, no] = String(tag).split(':');
+  const n = Number(no);
+  const label = area === 'leadership' ? 'Leadership' : 'Services';
+  return `${label} ${String(n).padStart(2, '0')}`;
+}
+async function pfLogAdd(){
+  const date = document.getElementById('pf-log-date')?.value;
+  const text = (document.getElementById('pf-log-text')?.value || '').trim();
+  const tag  = document.getElementById('pf-log-tag')?.value || '';
+  if(!text) return;
+  try {
+    const saved = await sbInsert(TBL_EVAL_LOG, {
+      faculty_email: FACULTY_EMAIL, cycle: evCycle(),
+      entry_date: date || new Date().toISOString().slice(0, 10),
+      summary: text, tags: tag ? [tag] : [],
+    });
+    EVALR.logs.unshift(Array.isArray(saved) ? saved[0] : saved);
+    EVALR.logs.sort((a, b) => String(b.entry_date).localeCompare(String(a.entry_date)));
+    renderProfile();
+  } catch(e){ showToast('Could not log: ' + e.message); }
+}
+async function pfLogDel(id){
+  try {
+    await sbDelete(TBL_EVAL_LOG, 'id', id);
+    EVALR.logs = EVALR.logs.filter(l => l.id !== id);
+    renderProfile();
+  } catch(e){ showToast('Could not remove: ' + e.message); }
+}
+
+// ── what Telos can already prove ──────────────────────────────────────────
+//
+// Counted from this account's own records. A figure is attached as a DATED
+// SNAPSHOT - "38 as of 2026-09-12" - and never recomputed afterwards, so the
+// number quoted in July stays the number that was true when the claim was
+// written.
+function pfMetrics(){
+  const mine  = myStudents();
+  const mySess = sessions.filter(s => s.faculty === FACULTY_EMAIL);
+  const held   = meetings.filter(m => m.facultyEmail === FACULTY_EMAIL && m.status === 'completed');
+  const met    = new Set(mySess.map(s => s.studentId));
+  const courses = {};
+  TAUGHT.rows.forEach(r => { courses[r.course_id] = (courses[r.course_id] || 0) + 1; });
+  const nCourses = Object.keys(courses).length;
+  const nTaught  = new Set(TAUGHT.rows.map(r => r.student_id)).size;
+
+  return [
+    { n: mySess.length, label: 'advising sessions logged, this cycle to date', area:'services', item:1,
+      detail: `${mySess.length} as of ${new Date().toISOString().slice(0, 10)}` },
+    { n: mine.length, label: 'advisees carried', area:'services', item:1,
+      detail: `${mine.length} as of ${new Date().toISOString().slice(0, 10)}` },
+    { n: held.length, label: 'meetings completed through Telos', area:'services', item:1,
+      detail: `${held.length} as of ${new Date().toISOString().slice(0, 10)}` },
+    { n: `${met.size}/${mine.length}`, label: 'advisees met at least once', area:'services', item:1,
+      detail: `${met.size} of ${mine.length} as of ${new Date().toISOString().slice(0, 10)}` },
+    { n: nCourses, label: `courses taught · ${nTaught} students`, area:'services', item:7,
+      detail: `${nCourses} courses, ${nTaught} students, as of ${new Date().toISOString().slice(0, 10)}` },
+  ];
+}
+function pfEvidenceCard(){
+  if(!TAUGHT.loaded) taughtLoad();
+  // The button carries an index, not the label: a metric's text goes through
+  // an HTML attribute and then a JavaScript string, and one apostrophe in a
+  // label would end the argument early.
+  EVALR.metrics = pfMetrics();
+  const rows = EVALR.metrics.map((m, i) => `
+    <div class="pf-ev">
+      <div class="pf-evn">${esc(String(m.n))}</div>
+      <div style="min-width:0;">
+        <div class="pf-evl">${esc(m.label)}</div>
+        <div style="margin-top:6px;">
+          <button class="btn-log" style="height:26px;font-size:12.5px;" onclick="pfAttachMetric(${i})">
+            Attach to ${pfTagLabel(m.area + ':' + m.item)}</button>
+        </div>
+      </div>
+    </div>`).join('');
+  return `
+    <div class="pf-card">
+      <div class="pf-hd"><h3>What Telos can already prove</h3></div>
+      ${rows}
+      <div class="pf-ft" style="justify-content:flex-start;">
+        <span style="font-size:12.5px;color:var(--text3);line-height:1.5;">
+          Counted from your own records. A figure is attached with today's date and is not recomputed,
+          so what you cite in July is what you saw when you attached it.</span>
+      </div>
+    </div>`;
+}
+function pfAttachMetric(i){
+  const m = (EVALR.metrics || [])[i];
+  if(!m) return;
+  pfEvidenceAdd(m.area, m.item, { label: m.label, detail: m.detail });
+}
+
+function pfNextDateCard(){
+  const m = new Date().getMonth();
+  const next = m >= 8 || m === 0
+    ? ['January, week 3', 'the Fall AIEIC report arrives and you meet the Dean or Program Chair.']
+    : m <= 5
+      ? ['July, week 3', 'the Spring report arrives and the Self-Evaluation Report is due.']
+      : ['August, weeks 1–4', 'the result is disclosed; a re-evaluation can be requested in weeks 3–4.'];
+  return `
+    <div class="pf-card">
+      <div class="pf-hd"><h3>Next date</h3></div>
+      <div class="pf-bd">
+        <div style="font-size:15px;line-height:1.6;"><b>${next[0]}</b> — ${next[1]}</div>
+      </div>
+    </div>`;
+}
+
+// ── the July export ───────────────────────────────────────────────────────
+//
+// A print window rather than a .docx. The app is one HTML file with no build
+// step and no server, so writing Word would mean pulling a library off a CDN
+// to produce a file the faculty member then edits anyway; the browser's own
+// Save as PDF, or a copy-paste into the OAA form, is the shorter path.
+function pfExportCard(){
+  return `
+    <div class="pf-card">
+      <div class="pf-hd"><h3>July submission</h3></div>
+      <div class="pf-bd" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:280px;font-size:15px;line-height:1.6;">
+          Lays out every item you have written — with its evidence and the cycle's log — in the order the
+          Self-Evaluation Report asks for, ready to print, save as PDF, or paste into the OAA form.
+        </div>
+        <button class="btn-log" onclick="pfBuildReport()">Build report</button>
+      </div>
+    </div>`;
+}
+function pfBuildReport(){
+  const c = evCycle();
+  const block = (area, title, items) => {
+    const written = items.map((text, i) => ({ no: i + 1, text, e: pfEntry(area, i + 1) }))
+                         .filter(x => x.e && (x.e.what || '').trim());
+    if(!written.length) return '';
+    return `<h2>${title}</h2>` + written.map(x => {
+      const ev = pfEvidenceOf(area, x.no);
+      return `<section>
+        <h3>${String(x.no).padStart(2, '0')}. ${esc(x.text)}</h3>
+        <p><b>What did you do?</b><br>${esc(x.e.what || '')}</p>
+        ${x.e.why     ? `<p><b>Why did it matter?</b><br>${esc(x.e.why)}</p>` : ''}
+        ${x.e.outcome ? `<p><b>What resulted?</b><br>${esc(x.e.outcome)}</p>` : ''}
+        ${ev.length ? `<p><b>Evidence</b><br>${ev.map(v =>
+            esc(v.label) + (v.detail ? ` — ${esc(v.detail)}` : '')).join('<br>')}</p>` : ''}
+      </section>`;
+    }).join('');
+  };
+
+  const reports = EVALR.reports.map(r => {
+    const acts = Array.isArray(r.actions) ? r.actions : [];
+    return `<p><b>${esc(r.term)}</b> — ${r.score != null ? `${r.score} / ${r.score_max}` : 'not recorded'}
+      ${r.received_on ? `(received ${esc(r.received_on)})` : ''}
+      ${acts.length ? `<br>Agreed actions: ${acts.map(a =>
+        `${esc(a.text)} [${a.status === 'done' ? 'done' : 'in progress'}]`).join('; ')}` : ''}</p>`;
+  }).join('') || '<p>No AIEIC report recorded for this cycle.</p>';
+
+  const logs = EVALR.logs.map(l =>
+    `<li>${esc((l.entry_date || '').slice(0, 10))} — ${esc(l.summary)}
+      ${(l.tags || []).length ? `<i>(${(l.tags || []).map(t => esc(pfTagLabel(t))).join(', ')})</i>` : ''}</li>`).join('');
+
+  const html = `<!doctype html><html><head><meta charset="utf-8">
+    <title>Self-Evaluation Report — ${esc(FACULTY)} — ${evCycleLabel(c)}</title>
+    <style>
+      body{font-family:Georgia,'Times New Roman',serif;max-width:760px;margin:40px auto;padding:0 24px;
+        color:#1a1916;line-height:1.6;}
+      h1{font-size:22px;margin:0 0 4px;} h2{font-size:17px;margin:30px 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px;}
+      h3{font-size:14px;margin:18px 0 6px;} p{margin:6px 0;font-size:13.5px;}
+      .meta{font-size:12.5px;color:#666;margin-bottom:20px;} ul{font-size:13px;}
+      @media print{body{margin:0;}}
+    </style></head><body>
+    <h1>Faculty Self-Evaluation Report</h1>
+    <div class="meta">${esc(FACULTY)}${PROF.row?.academic_title ? ', ' + esc(PROF.row.academic_title) : ''}
+      · ${esc((FACULTY_PROGRAMS || []).join(' · '))} · ${IS_CHAIR ? 'Dean or Program Chair track (50 / 30 / 20)' : 'Faculty track (60 / 30 / 10)'}
+      <br>Evaluation period ${evCycleLabel(c)} · prepared ${new Date().toISOString().slice(0, 10)}</div>
+    <h2>Teaching (AIEIC)</h2>${reports}
+    ${block('services', 'Academic Services', EVAL_SERVICES)}
+    ${IS_CHAIR ? block('leadership', 'Program Leadership', EVAL_LEADERSHIP) : ''}
+    ${logs ? `<h2>Activity log</h2><ul>${logs}</ul>` : ''}
+    </body></html>`;
+
+  const w = window.open('', '_blank');
+  if(!w){ showToast('The browser blocked the report window — allow pop-ups for this site.'); return; }
+  w.document.write(html);
+  w.document.close();
+}
+
 async function renderSettings() {
   const el = document.getElementById('page-settings');
 
