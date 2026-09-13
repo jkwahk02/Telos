@@ -1168,9 +1168,25 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .m2-empty{padding:44px 18px;text-align:center;color:var(--text3);font-size:17px;line-height:1.7;
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);}
 .m2-filters{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+/* Availability, moved here from Settings.
+   Every other page in this tab is a column of cards you read top to bottom, so
+   .pf-card's 1080px cap suits them. This one is a week and a list of times: it
+   was leaving a third of a wide screen empty while the day columns squeezed
+   seven days into 700px. Here the cap comes off and the booking rules move
+   beside the slots instead of under them. */
+.mtg-av .pf-card{max-width:none;}
+.mtg-av-split{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:18px;align-items:start;}
+.mtg-av-side{position:sticky;top:76px;}
+@media (max-width:1180px){
+  .mtg-av-split{grid-template-columns:1fr;}
+  .mtg-av-side{position:static;}
+}
 /* availability, moved here from Settings */
 .av-row{display:grid;grid-template-columns:74px 160px 1fr auto;gap:14px;align-items:center;
   padding:13px 16px;border-bottom:1px solid var(--border);}
+.mtg-av-side .pf-row{grid-template-columns:1fr;gap:7px;}
+.mtg-av-side .pf-row .lbl{font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--text3);}
 .av-row:last-child{border-bottom:none;}
 .av-when{font-family:'DM Mono',monospace;font-size:16px;}
 .av-stu{display:flex;gap:7px;flex-wrap:wrap;}
@@ -10665,6 +10681,7 @@ function renderMeetings(){
         ${item('cal', 'Calendar', I.cal, 0, false)}
         <div class="ov-mgrp">Record</div>
         ${item('past','Past meetings', I.past, S.past.length, false)}
+        <div class="ov-mgrp">Setup</div>
         ${item('av',  'Availability', I.av, availSlots.filter(x => x.is_active !== false).length, false)}
       </nav>
       <div class="ov-body" id="mtg-body"></div>
@@ -10906,12 +10923,14 @@ function mtgPast(box, S){
 function mtgAvailability(box){
   const active = availSlots.filter(s => s.is_active !== false).length;
   box.innerHTML = `
+    <div class="mtg-av">
     <h1 class="ov-h1">Availability</h1>
     <p class="m2-lede">${active ? `<b>${active}</b> slot${active === 1 ? '' : 's'} open each week`
                                 : 'No slots posted yet'} — this is what students choose from when they
       request a meeting. Times are yours <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span>;
       under each one is the same slot where your students are.</p>
 
+    <div class="mtg-av-split">
     <div class="pf-card">
       <div class="pf-hd"><h3>Weekly slots</h3>
         <span class="hint">changes apply to future requests only</span>
@@ -10928,7 +10947,7 @@ function mtgAvailability(box){
       </div>
     </div>
 
-    <div class="pf-card">
+    <div class="pf-card mtg-av-side">
       <div class="pf-hd"><h3>Booking rules</h3></div>
       <div class="pf-row"><div class="lbl">Longest meeting a student may book</div>
         <div class="val" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
@@ -10949,6 +10968,8 @@ function mtgAvailability(box){
         <div class="val">${gcalToken
           ? `<span class="bdg bdg-green">Connected · Telos Meetings</span>`
           : `<span class="m2-note">Not connected — connect it under Settings › Integrations.</span>`}</div></div>
+    </div>
+    </div>
     </div>`;
   loadAvailability();
 }
