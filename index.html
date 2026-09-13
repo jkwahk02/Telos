@@ -2881,14 +2881,18 @@ function buildPendingExpand(m, st) {
         </div>
       </div>`;
   } else {
+    // The same footer bar the other two branches use. This one was a bare flex
+    // row with no padding, so its buttons sat flush against the card's edges -
+    // which only became obvious once a third button pushed to the right one.
     actionHtml = `
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div style="border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2);
+        display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <button class="btn-log" onclick="pendingPropMode[${m.id}]=true;renderOverview();renderMeetings();">Propose a time</button>
-        <button class="btn-cancel" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border-em);" onclick="rescheduleMeetingRequest(${m.id})">Ask to reschedule</button>
+        <button class="btn-cancel" style="background:var(--surface);color:var(--text2);border:1px solid var(--border-em);" onclick="rescheduleMeetingRequest(${m.id})">Ask to reschedule</button>
         ${m.status === 'rescheduling' ? `
-        <button class="btn-cancel" style="background:var(--surface2);color:var(--text3);border:1px solid var(--border-em);margin-left:auto;"
+        <button class="btn-cancel" style="background:var(--surface);color:var(--text3);border:1px solid var(--border-em);margin-left:auto;"
           onclick="dismissMeetingRequest(${m.id})"
-          title="The student answered with a new request instead of new slots">Dismiss</button>` : ''}
+          title="Use this when the student answered with a new request instead of new slots">Dismiss</button>` : ''}
       </div>`;
   }
 
@@ -10854,6 +10858,11 @@ function goToStudent(id){
 function logSessionFromMeeting(studentId) {
   openStudId = studentId;
   showFormFor = studentId;
+  // The form is built by the Advising tab and by nothing else, and studTab is
+  // remembered across students - so arriving here from a meeting used to open
+  // the form into a pane that was not on screen. The page looked as though the
+  // button had merely jumped to the student's profile.
+  studTab = 'adv';
   selTopics = [];
   const isMyStudent = myStudents().some(s => s.id === studentId);
   if (!isMyStudent) studFilter = 'all';
