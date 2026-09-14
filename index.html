@@ -335,6 +335,8 @@ button,input,select,textarea{font-family:inherit;}
 
 .sp-detail{display:flex;flex-direction:column;min-width:0;min-height:0;
   overflow-y:auto;background:var(--bg);}
+.sp-gone{margin:0 0 14px;padding:10px 14px;border-radius:var(--r);background:var(--amber-l);
+  border:1px solid var(--amber-b);color:#7A4A00;font-size:16px;}
 .sp-empty{flex:1;display:flex;align-items:center;justify-content:center;
   color:var(--text3);font-size:16px;padding:40px;text-align:center;}
 .sp-head{padding:13px 20px;border-bottom:1px solid var(--border);background:var(--blue-l);
@@ -1281,6 +1283,42 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .pf-card textarea.fi{resize:none;height:auto;min-height:92px;line-height:1.65;
   padding:11px 13px;font-size:14.5px;}
 .pf-itb textarea.fi{min-height:80px;}
+
+/* Profile Card only. The 1080px cap above suits the Performance Record, which
+   is one column of reading; this page is a form, and capped at 1080 it left a
+   third of a wide screen empty while the fields inside it stayed small. So the
+   cap comes off here and the width is spent on a second column instead of on
+   longer lines - the writing surfaces stay in the main column at a readable
+   measure, and the two cards that are lists of short things move beside them.
+   Scoped to .pf-page so the evaluation pages keep the sizing they have. */
+.pf-page{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,404px);
+  gap:18px;align-items:start;}
+.pf-page > div{min-width:0;}
+.pf-page .pf-card{max-width:none;}
+.pf-side2{position:sticky;top:76px;}
+@media (max-width:1180px){
+  .pf-page{grid-template-columns:minmax(0,1fr);}
+  .pf-side2{position:static;}
+}
+
+/* Type. Everything here was a notch below the app's 17px base, which is what
+   made the page read as a settings dialog rather than a page. */
+.pf-page .pf-hd h3{font-size:18px;}
+.pf-page .pf-hd .hint{font-size:14.5px;}
+.pf-page .pf-row{grid-template-columns:190px 1fr;padding:13px 18px;}
+.pf-page .pf-row .lbl{font-size:15.5px;}
+.pf-page .pf-row .val{font-size:17px;line-height:1.55;}
+.pf-page .pf-bd{padding:18px;}
+.pf-page .pf-hd{padding:13px 18px;}
+.pf-page .pf-ft{padding:12px 18px;}
+.pf-page .pf-chip{font-size:15px;padding:7px 14px;}
+.pf-page .pf-lrow{grid-template-columns:132px 1fr 36px;gap:12px;margin-bottom:10px;}
+.pf-page .pf-card .fi{height:38px;font-size:16.5px;}
+.pf-page .pf-card textarea.fi{height:auto;min-height:104px;font-size:16.5px;}
+.pf-page .pf-facet{font-size:12px;}
+.pf-page .pf-note{font-size:13.5px;}
+/* The save bar spans both columns and stays in reach of a long form. */
+.pf-save{position:sticky;bottom:0;z-index:5;margin-top:4px;}
 .pf-q{margin-top:14px;}
 .pf-ql{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:5px;}
 .pf-ql span{font-weight:400;color:var(--text3);}
@@ -4038,7 +4076,7 @@ function ovSource(rows, coverage){
 
 function ovSourceNote(){
   const inView = ovStudents().length;
-  const roster = students.filter(isRealStudent).length;
+  const roster = mjPool().length;
   const missing = roster - inView;
   return ovSource([{ what:'coursework and grades', detail:`the transcript extract the registrar
     shared at 10:36 on 20 August 2026. Not Telos's own roster, and not the same file as the major
@@ -4367,7 +4405,27 @@ function isRealStudent(s){
   return !isTestName(s && s.name) && String((s && s.id) || '').slice(0,4) >= '2023';
 }
 function isRealFaculty(f){ return !!(f && f.name) && !isTestName(f.name); }
-function mjPool(){ return students.filter(isRealStudent); }
+
+// 재학 / 휴학 / 자퇴 - and only the last of the three leaves the figures.
+//
+// A student on leave is still enrolled: they return, they keep their advisor,
+// and Overview reports them as a group of their own. A student who has
+// withdrawn has gone, and counting them makes an advisor look fuller than they
+// are and leaves a name in the assignment queue that nobody should be given.
+//
+// Nothing is deleted. Their sessions happened and stay in Session Log, and a
+// link to them still opens their record - with a line at the top saying they
+// have left. What changes is where they are counted and whether the roster,
+// which answers "who is here", offers them at all.
+const LEFT_STATUS = ['withdrawn', 'dismissed'];
+function hasLeft(status){
+  return LEFT_STATUS.includes(String(status || '').trim().toLowerCase());
+}
+function isEnrolled(s){ return !hasLeft(s && s.status); }
+
+// The pool every count is taken from: real students, still enrolled. Major
+// Declarations and Major Advising Load both read it.
+function mjPool(){ return students.filter(s => isRealStudent(s) && isEnrolled(s)); }
 function mjYear(s){ return String(s.id || '').slice(0,4); }
 function mjLabel(y){ return 'Cohort ' + (Number(y) - 2022) + ' · ' + y; }
 function mjTrim(v){ return String(v == null ? '' : v).trim(); }
@@ -5727,7 +5785,7 @@ function buildWatchList(data) {
 function renderProgramSummary() {
   // ── 프로그램 학생 범위: chair의 school에 1st/2nd major 또는 minor로 등록된 학생 ──
   // IS_CHAIR인 경우 FACULTY_SCHOOL을 기준으로 필터 (로그인 시 설정)
-  const prog = students.filter(s => isRealStudent(s) && (
+  const prog = students.filter(s => isRealStudent(s) && isEnrolled(s) && (
     s.major1 === FACULTY_SCHOOL ||
     s.major2 === FACULTY_SCHOOL ||
     s.minor  === FACULTY_SCHOOL
@@ -6010,7 +6068,9 @@ function aaBandOf(r){
   if(aaHolds(r.minor))      return 'minor';
   return 'none';
 }
-function aaIn(k){ return AA.queue.filter(r => aaBandOf(r) === k); }
+function aaIn(k){
+  return AA.queue.filter(r => aaBandOf(r) === k && !hasLeft(r.status));
+}
 function aaOpen(k){ return aaIn(k).filter(r => !AA.done.has(r.student_id)); }
 
 async function aaLoad(){
@@ -6104,8 +6164,10 @@ function aaBench(){
     .filter(f => ADVISING_ROLES.includes(f.role))
     .filter(f => (f.programs || []).some(p => aaHolds(p)))
     .map(f => {
-      const pri = students.filter(st => st.advisor1_email === f.email).length;
-      const sec = students.filter(st => st.advisor2_email === f.email).length;
+      // A withdrawn advisee is not a place taken: counting them would show a
+      // full advisor who has room, and Suggest would route around it.
+      const pri = students.filter(st => st.advisor1_email === f.email && isEnrolled(st)).length;
+      const sec = students.filter(st => st.advisor2_email === f.email && isEnrolled(st)).length;
       return { ...f, pri, sec };
     })
     // Ordered by what they will be carrying, not by what they carry now. A
@@ -6946,6 +7008,8 @@ function renderStudDetail(){
   ).join('');
 
   el.innerHTML = `
+    ${hasLeft(st.status) ? `<div class="sp-gone">${esc(st.name)} is no longer enrolled
+      — ${esc(st.status)}. Kept for the record; not counted anywhere.</div>` : ''}
     <div class="sp-head${spJustChanged?' sp-enter':''}">
       ${facts}
       <button class="sp-btn" onclick="openCheckin('${esc(st.id)}')"><i class="sp-ico">\u{1F44B}</i>Check in</button>
@@ -8075,7 +8139,7 @@ function sortStud(col){
 }
 
 function filteredStudents(){
-  let list=studFilter==='my'?myStudents():students;
+  let list=(studFilter==='my'?myStudents():students).filter(isEnrolled);
   if(studCohort!=='all') list=list.filter(s=>studCohortOf(s)===studCohort);
   if(studProg  !=='all') list=list.filter(s=>studProgsOf(s).includes(studProg));
   if(studYear  !=='all') list=list.filter(s=>String(studYearOf(s))===studYear);
@@ -9753,15 +9817,21 @@ function pfCard(box){
       what you teach, and how to reach you. The student app does not render it yet — this fills the record
       so that it can.</p>
 
-    ${pfIdentityCard(r, roleLabel)}
-    ${pfRowsCard('Education', 'edu', 'newest first', 'Add degree', 'e.g. Ph.D. in Industrial Engineering — POSTECH')}
-    ${pfRowsCard('Professional experience', 'exp', 'posts held, at Taejae and before', 'Add post', 'e.g. Professor, Hongik University')}
-    ${pfInterestsCard(r)}
-    ${pfCoursesCard(r)}
-    ${pfAdvisingCard(r)}
-    ${pfLinksCard(links)}
+    <div class="pf-page">
+      <div>
+        ${pfIdentityCard(r, roleLabel)}
+        ${pfRowsCard('Education', 'edu', 'newest first', 'Add degree', 'e.g. Ph.D. in Industrial Engineering — POSTECH')}
+        ${pfRowsCard('Professional experience', 'exp', 'posts held, at Taejae and before', 'Add post', 'e.g. Professor, Hongik University')}
+        ${pfAdvisingCard(r)}
+        ${pfCoursesCard(r)}
+      </div>
+      <div class="pf-side2">
+        ${pfInterestsCard(r)}
+        ${pfLinksCard(links)}
+      </div>
+    </div>
 
-    <div class="pf-card">
+    <div class="pf-card pf-save">
       <div class="pf-ft">
         <span class="save-status" id="pf-save-status">${PROF.dirty ? 'Unsaved changes' : ''}</span>
         <button class="btn-log" id="pf-save" ${PROF.dirty ? '' : 'disabled'} onclick="pfSave()">Save profile</button>
@@ -9803,10 +9873,10 @@ function pfRowsCard(title, key, hint, addLabel, placeholder){
   const rows = PROF[key];
   const body = rows.length ? rows.map((row, i) => `
       <div class="pf-lrow">
-        <input class="fi" style="height:32px;font-size:14px;font-family:'DM Mono',monospace;"
+        <input class="fi" style="font-family:'DM Mono',monospace;"
           value="${esc(row.year)}" placeholder="Year"
           oninput="PROF.${key}[${i}].year=this.value;pfTouch()">
-        <input class="fi" style="height:32px;font-size:14px;" value="${esc(row.text)}"
+        <input class="fi" style="" value="${esc(row.text)}"
           placeholder="${esc(placeholder)}"
           oninput="PROF.${key}[${i}].text=this.value;pfTouch()">
         <button class="pf-x" title="Remove" onclick="pfRowDel('${key}',${i})">✕</button>
@@ -9875,7 +9945,7 @@ function pfCoursesCard(r){
     taughtLoad();
     return `<div class="pf-card"><div class="pf-hd"><h3>Courses</h3>
       <span class="hint">read from your teaching record</span></div>
-      <div class="pf-bd"><span style="font-size:14px;color:var(--text3);">Loading your courses…</span></div></div>`;
+      <div class="pf-bd"><span style="color:var(--text3);">Loading your courses…</span></div></div>`;
   }
   // One row per course per term, with the head count behind it.
   const byKey = {};
@@ -9888,14 +9958,14 @@ function pfCoursesCard(r){
 
   const body = list.length ? list.map(c => {
     const off = hidden.includes(c.course);
-    return `<div class="pf-row" style="grid-template-columns:112px 96px 1fr 96px;">
-      <div class="val" style="font-family:'DM Mono',monospace;font-size:14px;">${esc(c.term)}</div>
-      <div class="val" style="font-family:'DM Mono',monospace;font-size:14px;">${esc(c.course)}</div>
-      <div class="val" style="font-size:14px;color:var(--text2);">${c.n} student${c.n === 1 ? '' : 's'}</div>
-      <div><button class="pf-chip${off ? '' : ' on'}" style="font-size:12.5px;padding:3px 11px;"
+    return `<div class="pf-row" style="grid-template-columns:128px 112px 1fr 104px;">
+      <div class="val" style="font-family:'DM Mono',monospace;">${esc(c.term)}</div>
+      <div class="val" style="font-family:'DM Mono',monospace;">${esc(c.course)}</div>
+      <div class="val" style="color:var(--text2);">${c.n} student${c.n === 1 ? '' : 's'}</div>
+      <div><button class="pf-chip${off ? '' : ' on'}" style="font-size:14px;padding:4px 12px;"
         onclick="pfCourse('${esc(c.course)}')">${off ? 'hidden' : 'shown'}</button></div>
     </div>`;
-  }).join('') : `<div class="pf-bd"><span style="font-size:14px;color:var(--text3);">
+  }).join('') : `<div class="pf-bd"><span style="color:var(--text3);">
       No teaching record yet — nothing to show on the card.</span></div>`;
 
   return `
@@ -9945,7 +10015,7 @@ function pfLinksCard(links){
   const row = (id, label, ph, v) => `
     <div class="pf-row edit"><div class="lbl">${esc(label)}</div>
       <div class="val"><input class="fi" id="${id}" value="${esc(v || '')}" placeholder="${esc(ph)}"
-        style="height:32px;font-size:14px;" oninput="pfTouch()"></div></div>`;
+        style="" oninput="pfTouch()"></div></div>`;
   return `
     <div class="pf-card">
       <div class="pf-hd"><h3>Links</h3></div>
