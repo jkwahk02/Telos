@@ -6108,13 +6108,35 @@ function aaBench(){
       const sec = students.filter(st => st.advisor2_email === f.email).length;
       return { ...f, pri, sec };
     })
-    .sort((a, b) => (a.pri + a.sec) - (b.pri + b.sec) || a.name.localeCompare(b.name));
+    // Ordered by what they will be carrying, not by what they carry now. A
+    // chair who has aimed twelve students at somebody has spent that capacity
+    // whether or not Apply has been pressed, and a bench that still calls that
+    // person the lightest invites the chair to give them more.
+    .sort((a, b) => aaTotalOf(a) - aaTotalOf(b) || a.name.localeCompare(b.name));
 }
+
+// The one place capacity is counted. Every rule, bar, sort and warning reads
+// it, so moving the definition moves all of them together.
+//
+//   now  what the roster says, plus anything applied that the roster has not
+//        caught up with yet
+//   add  what is staged and not yet written
+//
+// f.pri/f.sec are counted from `students`, which aaApply refetches the moment a
+// write succeeds. So an applied row is normally already inside them, and the
+// old version - which added AA.done on top unconditionally - counted every
+// assignment twice from the first Apply onward. It is still counted when the
+// refetch failed, which is the only case the roster is behind.
 function aaLoadOf(f){
-  const applied = [...AA.done.values()].filter(v => v.email === f.email).length;
-  const staged  = [...AA.pending.values()].filter(v => v.email === f.email).length;
-  return { now: f.pri + f.sec + applied, add: staged };
+  const lagging = [...AA.done].filter(([id, v]) => {
+    if(v.email !== f.email) return false;
+    const st = students.find(x => String(x.id) === String(id));
+    return !st || (st.advisor1_email !== v.email && st.advisor2_email !== v.email);
+  }).length;
+  const staged = [...AA.pending.values()].filter(v => v.email === f.email).length;
+  return { now: f.pri + f.sec + lagging, add: staged };
 }
+function aaTotalOf(f){ const l = aaLoadOf(f); return l.now + l.add; }
 
 // ── the worklist ─────────────────────────────────────────────────────────
 function aaSetBand(k){
@@ -6186,31 +6208,53 @@ function aaInterestMatch(r, bench, rare){
 }
 
 // Four rules, in order of how much they know about the student: somebody they
-// have already sat with, somebody who taught them, somebody who works on what
-// they said they care about, and - when none of that exists - whoever is
-// carrying least. The first three are printed on the row that they decided,
-// because a chair has to be able to see why a name came up before letting it
-// stand. Load is recounted after every single placement, under every rule, so
-// no rule can hand one advisor a whole cohort.
-function aaSuggest(){
+// have already met, somebody who taught them, somebody working on what they
+// said they care about, and - when none of that is true - whoever is carrying
+// the least.
+//
+// Suggest runs the three bands in one pass, First major first, because the
+// bands compete for the same bench. A second major staged before the first
+// majors are placed spends capacity that Advisor 1 needed, and Advisor 1 is the
+// field that decides whether a student is visible in Telos at all. Running them
+// in order means the chair sees the whole distribution - all three bands,
+// cumulative - before a single row is written, and one Apply writes the lot.
+const AA_SUGG_ORDER = ['own', 'shared', 'minor'];
+
+function aaSuggest(scope){
+  const bands = scope === 'band' ? [AA.band] : AA_SUGG_ORDER;
   const bench = aaBench();
   if(!bench.length) return;
-  const role = AA_BANDS.find(b => b.k === AA.band)?.role || 1;
-  const load = new Map(bench.map(f => {
-    const l = aaLoadOf(f); return [f.email, l.now + l.add];
-  }));
+
+  // Re-running replaces what Suggest itself staged and leaves alone anything
+  // the chair aimed by hand. Without this a second press piles a second
+  // distribution on top of the first.
+  [...AA.pending].forEach(([id, v]) => { if(v.why) AA.pending.delete(id); });
+
+  // One running tally for the whole pass, so band three sees what bands one
+  // and two spent.
+  const load = new Map(bench.map(f => [f.email, aaTotalOf(f)]));
+  const under = e => load.get(e) < AA_TARGET;
+
+  bands.forEach(k => {
+    const role = AA_BANDS.find(b => b.k === k)?.role;
+    if(!role) return;                       // 'none' is another chair's queue
+    aaSuggestBand(k, role, bench, load, under);
+  });
+
+  AA.sel.clear();
+  renderOverview();
+}
+
+function aaSuggestBand(k, role, bench, load, under){
   const stage = (r, email, why, note) => {
-    AA.pending.set(r.student_id, { email, role, why, note });
+    AA.pending.set(r.student_id, { email, role, why, note, band:k });
     load.set(email, load.get(email) + 1);
   };
-  // A relationship does not entitle anyone to a caseload. Past the target the
-  // relationship rules stand down and the student falls to the load rule.
-  const under = e => load.get(e) < AA_TARGET;
 
   // 1) Continuity, and it runs to completion first so that it never competes
   //    with a weaker rule for the same remaining capacity.
   const rest = [];
-  aaOpen(AA.band).filter(r => !AA.pending.has(r.student_id)).forEach(r => {
+  aaOpen(k).filter(r => !AA.pending.has(r.student_id)).forEach(r => {
     const st  = students.find(x => String(x.id) === String(r.student_id));
     const met = st && st.sessions > 0 && st.advisor1_email
       ? bench.find(f => f.email === st.advisor1_email) : null;
@@ -6239,14 +6283,11 @@ function aaSuggest(){
       : still.push(r);
   });
 
-  // 4) Lightest load.
+  // 4) Lightest load, recounted after each one.
   still.forEach(r => {
     const f = bench.slice().sort((a, b) => load.get(a.email) - load.get(b.email))[0];
     stage(r, f.email, 'load');
   });
-
-  AA.sel.clear();
-  renderOverview();
 }
 
 // Apply writes, with no confirm in front of it. Every row already names the
@@ -6557,6 +6598,11 @@ function aaPage(b){
   const own    = aaOpen('own').length;
   const cur    = AA_BANDS.find(x => x.k === AA.band) || AA_BANDS[0];
   const qOpen  = aaOpen(AA.band).length;
+  // Suggest reaches every band the chair may write in, so the button counts
+  // them all - the band the page is standing in only filters what is on screen.
+  const openBy = AA_SUGG_ORDER.map(k => aaOpen(k).length);
+  const allOpen   = openBy.reduce((a, b) => a + b, 0);
+  const bandsOpen = openBy.filter(n => n).length;
   const q      = aaOpen(AA.band).filter(r => !AA.pending.has(r.student_id));
   const allTick = q.length && q.every(r => AA.sel.has(r.student_id));
 
@@ -6606,7 +6652,7 @@ function aaPage(b){
       </div>
 
       <div class="db-card">
-        <div class="db-card-hd">Advisors <span>load after staging · target ${AA_TARGET}</span></div>
+        <div class="db-card-hd">Advisors <span>load after staging, lightest first · target ${AA_TARGET}</span></div>
         <div class="aa-bench-list">${aaBenchHtml()}</div>
       </div>
     </div>
@@ -6625,11 +6671,14 @@ function aaPage(b){
         <div class="aa-rule"><b>4</b><span><u>Then the lightest load.</u> The rest go to the advisor with the fewest advisees, recounted after each one.</span></div>
       </div>
       <div class="aa-sugg-r">
-        <button class="aa-btn pri lg" ${!cur.role || !qOpen || AA.busy ? 'disabled' : ''}
+        <button class="aa-btn pri lg" ${!allOpen || AA.busy ? 'disabled' : ''}
           onclick="aaSuggest()">Suggest a distribution</button>
-        <span class="aa-sugg-n">${!cur.role ? 'Nothing to distribute in this band.'
-          : !qOpen ? 'Nothing to distribute here.'
-          : `${qOpen} student${qOpen === 1 ? '' : 's'} → staged, not written`}</span>
+        <span class="aa-sugg-n">${allOpen
+          ? `${allOpen} student${allOpen === 1 ? '' : 's'} across ${bandsOpen} band${
+              bandsOpen === 1 ? '' : 's'} → staged, not written`
+          : 'Nothing left to distribute.'}</span>
+        ${cur.role && qOpen && allOpen > qOpen ? `<button class="aa-btn"
+          onclick="aaSuggest('band')">This band only (${qOpen})</button>` : ''}
       </div>
     </div>
 
