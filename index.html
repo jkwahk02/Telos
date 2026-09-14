@@ -8523,8 +8523,7 @@ const SLOG = { page:'adv', q:'', scope:'term', pickKind:'advising',
 
 function slMine(){ return sessions.filter(x => x.faculty === FACULTY_EMAIL); }
 function slCycle(){
-  const c = evCycle();
-  return { from:`${c}-09-01`, to:`${c + 1}-08-31`, label:evCycleLabel(c) };
+  return evCycleRange();
 }
 function slIsMine(sid){
   const st = students.find(x => x.id === sid);
@@ -9566,14 +9565,27 @@ const PROF = { page:'card', loaded:false, loading:false, err:null,
 const EVALR = { loaded:false, loading:false, err:null,
                 entries:[], evidence:[], logs:[], reports:[], open:null };
 
-// The review year runs Fall to August, so the cycle is named by the calendar
-// year its Fall term starts in: September 2026 through August 2027 is 2026.
-// That is also how the academic calendar numbers terms - 2026-1 is Fall 2026.
+// The review year runs 1 July to 30 June, and is named by the calendar year it
+// opens in: July 2026 through June 2027 is 2026. That is the year its Fall term
+// starts in, which is also how the academic calendar numbers terms - 2026-1 is
+// Fall 2026 - so a cycle holds exactly one Fall and the Spring after it.
+//
+// The boundary is set by when the report is due. Performance reviews are
+// submitted in July, so the year being reported has to be closed before that:
+// 30 June closes it and July writes it up. A cycle running to 31 August would
+// have faculty reporting a year with two months still to run.
 function evCycle(d){
   const t = d || new Date();
-  return t.getMonth() >= 8 ? t.getFullYear() : t.getFullYear() - 1;
+  return t.getMonth() >= 6 ? t.getFullYear() : t.getFullYear() - 1;
 }
 function evCycleLabel(c){ return `${c}–${c + 1}`; }
+// Every date window in the app comes from here. It was written out at four
+// call sites before, which is three chances to move one boundary and not the
+// others.
+function evCycleRange(c){
+  const y = c === undefined ? evCycle() : c;
+  return { from:`${y}-07-01`, to:`${y + 1}-06-30`, label:evCycleLabel(y) };
+}
 
 // ── loading ───────────────────────────────────────────────────────────────
 async function pfLoad(){
@@ -10375,10 +10387,10 @@ function pfMetrics(){
   // in memory - put a career total under a heading that reads "this cycle",
   // and a wrong number under a right label is worse than no number.
   //
-  // The window is the review year: 1 September to 31 August. Terms are named
-  // rather than dated, so the two belonging to cycle c are Fall c and Spring c+1.
+  // The window is the review year: 1 July to 30 June. Terms are named rather
+  // than dated, so the two belonging to cycle c are Fall c and Spring c+1.
   const c     = evCycle();
-  const from  = `${c}-09-01`, to = `${c + 1}-08-31`;
+  const { from, to } = evCycleRange(c);
   const today = new Date().toISOString().slice(0, 10);
   const span  = `${evCycleLabel(c)}, as of ${today}`;
   const inCycle = d => !!d && d >= from && d <= to;
@@ -10435,7 +10447,7 @@ function pfEvidenceCard(){
       ${rows}
       <div class="pf-ft" style="justify-content:flex-start;">
         <span style="font-size:12.5px;color:var(--text3);line-height:1.5;">
-          Counted from your own records, and bounded by this cycle — 1 Sep ${evCycle()} to 31 Aug ${evCycle() + 1}.
+          Counted from your own records, and bounded by this cycle — 1 Jul ${evCycle()} to 30 Jun ${evCycle() + 1}.
           A figure is attached with today's date and is not recomputed, so what you cite in July is what you
           saw when you attached it.</span>
       </div>
@@ -11257,8 +11269,8 @@ function mtgCalendar(box){
 
 // ── page: Past meetings ───────────────────────────────────────────────────
 function mtgPast(box, S){
-  const term = evCycle();                        // the review year, 1 Sep - 31 Aug
-  const from = `${term}-09-01`, to = `${term + 1}-08-31`;
+  const term = evCycle();                        // the review year, 1 Jul - 30 Jun
+  const { from, to } = evCycleRange(term);
   const inTerm = m => (m.meetingDate || '') >= from && (m.meetingDate || '') <= to;
 
   const all       = S.past;
