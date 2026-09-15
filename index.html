@@ -907,6 +907,8 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .aa-btn:disabled,.aa-btn.pri:disabled{opacity:.4;cursor:default;}
 .aa-btn.pri:disabled:hover{background:var(--blue);}
 .aa-btn.lg{font-size:17.5px;padding:14px 26px;border-radius:26px;}
+.aa-btn.sm{font-size:13px;padding:4px 11px;border-radius:14px;color:var(--text3);}
+.db-card-hd .aa-btn.sm{margin-left:10px;}
 
 /* The whole row is the checkbox: a chair works through these in runs. */
 .aa-row{display:flex;align-items:center;gap:12px;padding:10px 16px;
@@ -962,7 +964,22 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
    is provenance, not state, and the pill next to it is the state. */
 .aa-why{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);
   flex:0 0 auto;white-space:nowrap;}
+/* Amber because it is the one reason on this page that the chair can undo:
+   raise the cap on the named advisor and the row moves. */
+.aa-why.miss{color:var(--amber);}
 @media (max-width:900px){.aa-why{display:none;}}
+
+/* Set aside keeps the card on the page. A bench with a gap in it would leave
+   the chair wondering who is missing and why; a greyed card answers both, and
+   the load underneath stays legible because it is the thing being held out of
+   use rather than hidden. */
+.aa-fac.off{background:var(--surface2);}
+.aa-fac.off .aa-fn u,.aa-fac.off .aa-lnum,.aa-fac.off .aa-lnum b{color:var(--text3);}
+.aa-fac.off .aa-tp,.aa-fac.off .aa-cap,.aa-fac.off .aa-lcap{display:none;}
+.aa-fac.off .aa-lnow{background:var(--text3);opacity:.4;}
+.aa-aside{font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--text3);background:var(--surface3);border-radius:20px;padding:2px 8px;
+  margin-left:6px;vertical-align:1px;}
 
 /* Naming a person is not the same gesture as sending eleven students to them,
    so the name is not the click - the button is, and it says how many. */
@@ -997,6 +1014,17 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .aa-lnum b{color:var(--text2);font-weight:500;}
 .aa-lnum b.up{color:var(--amber);}
 .aa-lnum b.over{color:var(--red);}
+/* The cap is a number the chair can change, so it looks like one - and it sits
+   on the line that already carries the load it limits, rather than in a
+   settings panel where it would be a policy instead of a decision about a
+   person. */
+.aa-lr{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+.aa-cap{display:inline-flex;align-items:center;gap:5px;color:var(--text3);}
+.aa-capi{width:44px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;
+  padding:2px 4px;border:1px solid var(--border);border-radius:5px;
+  background:var(--surface);color:var(--text2);}
+.aa-capi:focus{outline:none;border-color:var(--blue);color:var(--text);}
+.aa-capi.set{border-color:var(--blue-b);background:var(--blue-l);color:var(--blue);font-weight:600;}
 
 /* Suggest sits under both columns because it acts on both: it reads the queue
    on the left and lands in the bench on the right. */
@@ -1701,14 +1729,30 @@ function roleFor(st) {
 }
 function initials(n){return (n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 
+// The advisee list and every figure taken from it. The test row is an advisee
+// of whoever created it, and it was being counted as one - "My advisees 5"
+// included it, and so did the 0-session and needs-attention figures built on
+// the same list. isRealStudent is defined further down; this function only
+// ever runs from a render, long after the file has finished loading.
 function myStudents() {
   return students.filter(s =>
-    s.advisor1_email === FACULTY_EMAIL ||
-    s.advisor2_email === FACULTY_EMAIL ||
-    s.advisor1 === FACULTY ||
-    s.advisor2 === FACULTY
+    isRealStudent(s) && (
+      s.advisor1_email === FACULTY_EMAIL ||
+      s.advisor2_email === FACULTY_EMAIL ||
+      s.advisor1 === FACULTY ||
+      s.advisor2 === FACULTY
+    )
   );
 }
+
+// A session belongs to a test row when its student does. Written so that a
+// session whose student is not loaded is kept rather than silently dropped:
+// the figures should lose test rows, not rows we cannot identify.
+function isTestStudentId(id){
+  const s = students.find(x => String(x.id) === String(id));
+  return !!s && !isRealStudent(s);
+}
+function realSessions(){ return sessions.filter(s => !isTestStudentId(s.studentId)); }
   
 function syncStudents(){
   students.forEach(st=>{
@@ -1899,6 +1943,22 @@ function sbSessionExpired(){
   showToast('Session expired. Please sign in again.');
   handleSignOut();
   return new Error('Session expired');
+}
+
+// Asked before a form is touched: can this page write at all?
+//
+// The token dies while the page is still on screen, and the write paths used
+// to find out only after they had closed the form and dropped what was typed.
+// Worse, the not-signed-in branch said "Saved locally", which reads as success
+// for a session that was never sent - one was lost that way on 14 September
+// 2026, an email advising session with a student, and the text was gone.
+//
+// So: refresh a nearly-dead token here, and when there is no session left to
+// refresh say so and let the caller return with the form still on screen.
+async function sbWritable(){
+  if(isSignedIn() && await sbFresh()) return true;
+  showToast('Session expired — nothing was saved. Sign in again; your text is still here.');
+  return false;
 }
 
 function sbHeaders(extra={}) {
@@ -2351,7 +2411,8 @@ async function loadData() {
     syncStudents();
     dataLoaded = true;
     dot.className = 'src-dot authed';
-    lbl.textContent = `Telos · Live · ${students.length} students, ${sessions.length} sessions`;
+    lbl.textContent = `Telos · Live · ${students.filter(isRealStudent).length} students, `
+                    + `${realSessions().length} sessions`;
     document.getElementById('setup-banner').style.display = 'none';
     console.log('[Supabase] Loaded:', students.length, 'students,', sessions.length, 'sessions');
     renderCurrent();
@@ -3802,7 +3863,7 @@ function tsTable(){
 // ── OVERVIEW ──
 function ovAdviseeHome() {
   const mine = myStudents();
-  const mySess = sessions.filter(s=>s.faculty===FACULTY_EMAIL);
+  const mySess = realSessions().filter(s=>s.faculty===FACULTY_EMAIL);
   const confirmedMeetingIds = new Set(
     meetings.filter(m => m.facultyEmail===FACULTY_EMAIL && m.advisorConfirmed && m.status==='scheduled')
             .map(m => m.studentId)
@@ -6015,6 +6076,13 @@ const AA = {
   labels: new Map(),          // topic key -> label, for the words on the row
   facets: new Map(),          // topic key -> subject | approach, to group them
   open:   new Set(),          // rows expanded to show what the student said
+  // Two adjustments the chair makes to the bench before Apply, neither of them
+  // written anywhere. A cap is what a full load means for one person this
+  // round; set aside is somebody this round should not use at all. They exist
+  // because the four rules can only run while somebody is under their cap, and
+  // on a bench that is already near its limit that is a decision, not a fact.
+  caps:   new Map(),          // advisor email -> the cap the chair typed
+  off:    new Set(),          // advisor emails held out of this distribution
 };
 
 const AA_TARGET = 16;   // advisees a programme is willing to let one person carry
@@ -6099,7 +6167,7 @@ async function aaLoad(){
 // who is told "this rule is skipped" can still work; one who is silently given
 // a worse distribution cannot tell.
 async function aaLoadRules(){
-  const bench = aaBench().map(f => f.email);
+  const bench = aaBenchAll().map(f => f.email);
   const ids   = AA.queue.map(r => r.student_id);
   const list  = a => a.map(encodeURIComponent).join(',');
   if(!bench.length) return;
@@ -6159,7 +6227,7 @@ async function aaLoadRules(){
 // with no advisees, so leaving them in would put a row of zeroes at the top of
 // a bench sorted by load - and Suggest, which reaches for the lightest, would
 // hand them the whole queue.
-function aaBench(){
+function aaBenchAll(){
   return FACULTY_ROWS
     .filter(f => ADVISING_ROLES.includes(f.role))
     .filter(f => (f.programs || []).some(p => aaHolds(p)))
@@ -6175,6 +6243,34 @@ function aaBench(){
     // whether or not Apply has been pressed, and a bench that still calls that
     // person the lightest invites the chair to give them more.
     .sort((a, b) => aaTotalOf(a) - aaTotalOf(b) || a.name.localeCompare(b.name));
+}
+
+// The bench every rule, count and warning works from: eligible, minus whoever
+// the chair has set aside for this round. Somebody on sabbatical next term is
+// eligible on paper and unavailable in fact, and only the chair knows which.
+//
+// Set aside is not the same gesture as a cap of zero. A cap of zero says this
+// person is full; setting aside says this round is not about them - they keep
+// their advisees, they keep their bar, and Suggest does not see them at all.
+// The card stays on the page either way, because a chair needs to see the load
+// they are not using and needs one click to change their mind.
+function aaBench(){ return aaBenchAll().filter(f => !AA.off.has(f.email)); }
+
+function aaSetAside(email){
+  AA.off.has(email) ? AA.off.delete(email) : AA.off.add(email);
+  // Anything Suggest staged on somebody now set aside would be a distribution
+  // the bench on screen no longer explains. Its own rows go; rows the chair
+  // aimed by hand stay, because those were a decision and this is not.
+  [...AA.pending].forEach(([id, v]) => {
+    if(v.why && AA.off.has(v.email)) AA.pending.delete(id);
+  });
+  renderOverview();
+}
+// One control for both adjustments, and it appears only when there is
+// something to undo.
+function aaResetBench(){
+  AA.caps.clear(); AA.off.clear();
+  renderOverview();
 }
 
 // The one place capacity is counted. Every rule, bar, sort and warning reads
@@ -6199,6 +6295,31 @@ function aaLoadOf(f){
   return { now: f.pri + f.sec + lagging, add: staged };
 }
 function aaTotalOf(f){ const l = aaLoadOf(f); return l.now + l.add; }
+
+// What a full load means for this advisor, this round. AA_TARGET is the
+// programme's ordinary answer; a chair who knows that one colleague is back
+// from leave in February, or that a new hire should start with two, types the
+// exception here. Every rule, bar and warning asks this function rather than
+// the constant, so one number moves all of them together - and rules 2 and 3,
+// which only ever consider somebody under their cap, start running again.
+//
+// Nothing here is written. It changes what Suggest is allowed to do before
+// Apply and nothing after it.
+function aaCapOf(f){
+  const e = typeof f === 'string' ? f : f.email;
+  const v = AA.caps.get(e);
+  return Number.isFinite(v) ? v : AA_TARGET;
+}
+// Blank, nonsense, or the programme's own number all mean the same thing - no
+// exception for this person - so they all clear the entry rather than storing
+// a value that happens to equal the default. A reset is then indistinguishable
+// from never having typed.
+function aaSetCap(email, raw){
+  const n = parseInt(raw, 10);
+  if(!Number.isFinite(n) || n < 0 || n === AA_TARGET) AA.caps.delete(email);
+  else AA.caps.set(email, Math.min(n, 99));
+  renderOverview();
+}
 
 // ── the worklist ─────────────────────────────────────────────────────────
 function aaSetBand(k){
@@ -6295,7 +6416,7 @@ function aaSuggest(scope){
   // One running tally for the whole pass, so band three sees what bands one
   // and two spent.
   const load = new Map(bench.map(f => [f.email, aaTotalOf(f)]));
-  const under = e => load.get(e) < AA_TARGET;
+  const under = e => load.get(e) < aaCapOf(e);
 
   bands.forEach(k => {
     const role = AA_BANDS.find(b => b.k === k)?.role;
@@ -6308,8 +6429,20 @@ function aaSuggest(scope){
 }
 
 function aaSuggestBand(k, role, bench, load, under){
+  // A student who falls to rule 4 because everyone who taught them is full is
+  // not the same as one who had nobody, and only one of those two is something
+  // the chair can do anything about. So the relationship a cap turned down is
+  // kept. The first one recorded wins: rule 2 knows more about the student
+  // than rule 3, and its near miss is the more useful one to name.
+  const missed = new Map();
+  const miss = (r, why, note, email) => {
+    if(!missed.has(r.student_id)) missed.set(r.student_id, { why, note, email });
+  };
   const stage = (r, email, why, note) => {
-    AA.pending.set(r.student_id, { email, role, why, note, band:k });
+    // Carried on rule 4 rows only. On a row that names a rule, a second reason
+    // beside the first reads as a contradiction rather than as context.
+    AA.pending.set(r.student_id, { email, role, why, note, band:k,
+      miss: why === 'load' ? missed.get(r.student_id) : undefined });
     load.set(email, load.get(email) + 1);
   };
 
@@ -6332,7 +6465,10 @@ function aaSuggestBand(k, role, bench, load, under){
       .sort((a, b) => cand.get(a.student_id).length - cand.get(b.student_id).length)
       .forEach(r => {
         const pick = cand.get(r.student_id).find(c => under(c.email));
-        pick ? stage(r, pick.email, 'taught', pick.courses[0]) : left.push(r);
+        if(pick){ stage(r, pick.email, 'taught', pick.courses[0]); return; }
+        const top = cand.get(r.student_id)[0];   // strongest link, and full
+        miss(r, 'taught', top.courses[0], top.email);
+        left.push(r);
       });
 
   // 3) Interest. This is the rule for a first-year: nobody has advised them and
@@ -6340,9 +6476,12 @@ function aaSuggestBand(k, role, bench, load, under){
   const rare  = aaRareTopics(bench);
   const still = [];
   left.forEach(r => {
-    const m = aaInterestMatch(r, bench, rare).find(x => under(x.f.email));
-    m ? stage(r, m.f.email, 'interest', AA.labels.get(m.shared[0]) || m.shared[0])
-      : still.push(r);
+    const all = aaInterestMatch(r, bench, rare);
+    const m = all.find(x => under(x.f.email));
+    if(m){ stage(r, m.f.email, 'interest', AA.labels.get(m.shared[0]) || m.shared[0]); return; }
+    if(all.length) miss(r, 'interest',
+      AA.labels.get(all[0].shared[0]) || all[0].shared[0], all[0].f.email);
+    still.push(r);
   });
 
   // 4) Lightest load, recounted after each one.
@@ -6417,7 +6556,18 @@ async function aaUndo(){
 // is the absence of it. The note carries the checkable part - a course code, a
 // topic - because "taught" alone is a claim a chair cannot test.
 function aaWhy(p){
-  if(!p || !p.why || p.why === 'load') return '';
+  if(!p || !p.why) return '';
+  // Rule 4 stays silent, because the absence of a reason is the reason. A near
+  // miss is not an absence: somebody taught this student and was passed over
+  // for one number, and naming who makes that person's cap the next thing the
+  // chair looks at.
+  if(p.why === 'load'){
+    const m = p.miss;
+    if(!m) return '';
+    const t = m.why === 'taught' ? `taught ${m.note || ''}`.trim()
+                                 : `interest: ${m.note || ''}`.trim();
+    return `<span class="aa-why miss">${esc(t)} · ${esc(aaLastName(m.email))} at cap</span>`;
+  }
   const txt = p.why === 'met'    ? 'met before'
             : p.why === 'taught' ? `taught ${p.note || ''}`.trim()
             :                      `interest: ${p.note || ''}`.trim();
@@ -6555,35 +6705,47 @@ function aaTopicPills(f, wanted){
 }
 
 function aaBenchHtml(){
-  const bench = aaBench();
+  const bench = aaBenchAll();
   const wanted = aaWanted();
   if(!bench.length) return `<div class="aa-empty"><div class="aa-empty-i mute">–</div>
     <h4>No advisors on file for this programme.</h4>
     <p>faculty_profiles lists nobody whose programme matches yours.</p></div>`;
   return bench.map(f => {
     const {now, add} = aaLoadOf(f);
-    const total = now + add, over = total > AA_TARGET;
+    const off = AA.off.has(f.email);
+    const cap = aaCapOf(f), total = now + add, over = !off && total > cap;
     const wNow = Math.min(100, now / AA_SCALE * 100);
     const wAdd = Math.min(100 - wNow, add / AA_SCALE * 100);
-    return `<div class="aa-fac ${add ? 'has' : ''}">
+    return `<div class="aa-fac ${off ? 'off' : add ? 'has' : ''}">
       <div class="aa-fhd">
         <div class="aa-fn">
           <u>${esc(f.name)}${f.email === FACULTY_EMAIL
-            ? ' <span class="db-chair-badge" style="margin-left:5px;">you</span>' : ''}</u>
+            ? ' <span class="db-chair-badge" style="margin-left:5px;">you</span>' : ''}${
+            off ? ' <span class="aa-aside">set aside</span>' : ''}</u>
           <small>${esc((f.programs || []).map(aaShort).join(' / '))}</small>
         </div>
-        <button class="aa-btn ${AA.sel.size ? 'pri' : ''}" ${AA.sel.size && !AA.busy ? '' : 'disabled'}
-          onclick="aaAssignTo('${f.email}')">${AA.sel.size ? `Assign ${AA.sel.size}` : 'Assign'}</button>
+        ${off ? '' : `<button class="aa-btn ${AA.sel.size ? 'pri' : ''}" ${AA.sel.size && !AA.busy ? '' : 'disabled'}
+          onclick="aaAssignTo('${f.email}')">${AA.sel.size ? `Assign ${AA.sel.size}` : 'Assign'}</button>`}
+        <button class="aa-btn sm" ${AA.busy ? 'disabled' : ''}
+          title="${off ? 'Put them back in this distribution'
+                       : 'Hold them out of this distribution. Their advisees stay as they are.'}"
+          onclick="aaSetAside('${f.email}')">${off ? 'Bring back' : 'Set aside'}</button>
       </div>
       ${aaTopicPills(f, wanted)}
       <div class="aa-lbar">
         <div class="aa-lnow" style="width:${wNow}%"></div>
         <div class="aa-ladd" style="width:${wAdd}%"></div>
-        <div class="aa-lcap" style="left:${AA_TARGET / AA_SCALE * 100}%"></div>
+        <div class="aa-lcap" style="left:${Math.min(100, cap / AA_SCALE * 100)}%"></div>
       </div>
       <div class="aa-lnum">
         <span>${f.pri} as Advisor 1 · ${f.sec} as Advisor 2</span>
-        <b class="${over ? 'over' : add ? 'up' : ''}">${now}${add ? ` → ${total}` : ''}${over ? ' · over' : ''}</b>
+        <span class="aa-lr">
+          <b class="${over ? 'over' : add ? 'up' : ''}">${now}${add ? ` → ${total}` : ''}${over ? ' · over' : ''}</b>
+          <span class="aa-cap">of <input class="aa-capi ${AA.caps.has(f.email) ? 'set' : ''}"
+            type="number" min="0" max="99" value="${cap}"
+            title="What a full load means for ${esc(f.name)} in this distribution."
+            onchange="aaSetCap('${f.email}', this.value)"></span>
+        </span>
       </div>
     </div>`;
   }).join('');
@@ -6625,8 +6787,11 @@ function aaTray(){
                      interest:'matched on a stated interest', load:'placed by load' };
   const mix = ['met','taught','interest','load']
     .filter(k => byWhy[k]).map(k => `${byWhy[k]} ${WHY_WORD[k]}`).join('  ·  ');
+  // Of those placed by load, how many had somebody closer who was full. This
+  // is the number a chair acts on - it is the size of what raising a cap buys.
+  const held = [...AA.pending.values()].filter(v => v.miss).length;
   const worst = aaBench().map(f => { const l = aaLoadOf(f); return {f, t: l.now + l.add}; })
-                         .filter(x => x.t > AA_TARGET);
+                         .filter(x => x.t > aaCapOf(x.f));
   // Read from the staged rows, so a chair standing in another band still sees
   // what they actually staged.
   const roles = [...new Set([...AA.pending.values()].map(v => v.role))].sort();
@@ -6634,7 +6799,8 @@ function aaTray(){
     <div class="aa-tray-t">
       <b>${AA.pending.size}</b> staged as <b>Advisor ${roles.join(' and ')}</b>${
         AA.sel.size ? `<span> · ${AA.sel.size} still unaimed</span>` : ''}
-      ${mix ? `<span class="aa-tray-s">${esc(mix)}</span>` : ''}
+      ${mix ? `<span class="aa-tray-s">${esc(mix)}${held
+        ? `  ·  ${held} of them held back by a full cap` : ''}</span>` : ''}
       <span class="aa-tray-s">${Object.entries(per).map(([k, v]) =>
         `${esc(aaLastName(k))} +${v}`).join('  ·  ')}${worst.length
         ? `  ·  <span style="color:var(--red);">over target: ${worst.map(x =>
@@ -6666,6 +6832,9 @@ function aaPage(b){
   const allOpen   = openBy.reduce((a, b) => a + b, 0);
   const bandsOpen = openBy.filter(n => n).length;
   const q      = aaOpen(AA.band).filter(r => !AA.pending.has(r.student_id));
+  // Caps and set-asides are the chair's, not the programme's, so the bench
+  // header says plainly when the numbers on screen are no longer the default.
+  const adjusted = AA.caps.size || AA.off.size;
   const allTick = q.length && q.every(r => AA.sel.has(r.student_id));
 
   b.innerHTML = `
@@ -6714,7 +6883,11 @@ function aaPage(b){
       </div>
 
       <div class="db-card">
-        <div class="db-card-hd">Advisors <span>load after staging, lightest first · target ${AA_TARGET}</span></div>
+        <div class="db-card-hd">Advisors <span>${adjusted
+          ? `${aaBench().length} of ${aaBenchAll().length} in this round${
+              AA.caps.size ? ` · ${AA.caps.size} cap${AA.caps.size === 1 ? '' : 's'} changed` : ''}
+             <button class="aa-btn sm" onclick="aaResetBench()">Reset</button>`
+          : `load after staging, lightest first · target ${AA_TARGET}`}</span></div>
         <div class="aa-bench-list">${aaBenchHtml()}</div>
       </div>
     </div>
@@ -6733,13 +6906,15 @@ function aaPage(b){
         <div class="aa-rule"><b>4</b><span><u>Then the lightest load.</u> The rest go to the advisor with the fewest advisees, recounted after each one.</span></div>
       </div>
       <div class="aa-sugg-r">
-        <button class="aa-btn pri lg" ${!allOpen || AA.busy ? 'disabled' : ''}
+        <button class="aa-btn pri lg" ${!allOpen || !aaBench().length || AA.busy ? 'disabled' : ''}
           onclick="aaSuggest()">Suggest a distribution</button>
-        <span class="aa-sugg-n">${allOpen
+        <span class="aa-sugg-n">${!aaBench().length
+          ? 'Every advisor is set aside — bring one back to distribute.'
+          : allOpen
           ? `${allOpen} student${allOpen === 1 ? '' : 's'} across ${bandsOpen} band${
               bandsOpen === 1 ? '' : 's'} → staged, not written`
           : 'Nothing left to distribute.'}</span>
-        ${cur.role && qOpen && allOpen > qOpen ? `<button class="aa-btn"
+        ${cur.role && qOpen && allOpen > qOpen && aaBench().length ? `<button class="aa-btn"
           onclick="aaSuggest('band')">This band only (${qOpen})</button>` : ''}
       </div>
     </div>
@@ -8544,25 +8719,26 @@ async function saveSession(studId){
     visibility: selVisibility,   // ← 추가
     kind: nsKind, courseId: nsCourse, groupId,
   };
-  sessions.push(newSess);
-  syncStudents();
-  showFormFor=null; selTopics=[]; selVisibility='private';
-  renderStudBody();
+  // The form is the only copy of what was typed, so it is not consumed until
+  // the row is in the database. This used to run the other way round - push the
+  // row, close the form, then write - and a write that could not happen took
+  // the session with it.
+  if (!(await sbWritable())) return;
   showToast(`Saving session for ${st?.name}…`);
 
-  // Write to Supabase if signed in
-  if (isSignedIn()) {
+  {
     try {
       // 1. advising_log INSERT - the response carries the assigned log id
       const inserted = await insertSession(newSess);
       const assignedId = Array.isArray(inserted) ? inserted[0]?.log_id : inserted?.log_id;
       if (assignedId) {
         newSess.logId = assignedId;
+        sessions.push(newSess);
         syncStudents();
       } else {
         throw new Error('The server did not return a log id for this session.');
       }
-  
+
       // 2. student_meeting 연동 (신규)
       // 이 학생의 confirmed + scheduled 미팅이 있으면
       // status → completed, log_id 연결
@@ -8598,21 +8774,21 @@ async function saveSession(studId){
       }
       if(others.length) syncStudents();
 
+      // Saved. Only now is the form finished with.
+      showFormFor=null; selTopics=[]; selVisibility='private';
+      nsKind='advising'; nsCourse=''; nsGroup=[];
+      renderStudBody();
+
       showToast(others.length
         ? `✓ Session saved for ${groupIds.length} students`
         : `✓ Session saved to database — ${st?.name}`);
-      nsGroup = [];
-  
+
     } catch(e) {
       console.error('Supabase write error:', e);
-      // Roll back optimistic update on failure
-      sessions.pop();
-      syncStudents();
-      renderStudBody();
-      showToast(`Save failed: ${e.message}`);
+      // The form is left exactly as it was, so the text can be saved again
+      // once whatever went wrong is dealt with.
+      showToast(`Save failed — nothing was saved, your text is still here: ${e.message}`);
     }
-  } else {
-    showToast(`Saved locally — sign in to persist to database`);
   }
 }
 
@@ -8634,7 +8810,9 @@ async function saveSession(studId){
 const SLOG = { page:'adv', q:'', scope:'term', pickKind:'advising',
                pickCourse:'', pickQ:'', picked:[], msgs:null, msgBusy:false };
 
-function slMine(){ return sessions.filter(x => x.faculty === FACULTY_EMAIL); }
+// Test rows stay out of the Session Log too: its counts are the ones quoted
+// as this faculty member's advising figure.
+function slMine(){ return realSessions().filter(x => x.faculty === FACULTY_EMAIL); }
 function slCycle(){
   return evCycleRange();
 }
@@ -8645,7 +8823,8 @@ function slIsMine(sid){
 // A meeting that was held and never written up.
 function slMissing(){
   return meetings.filter(m => m.facultyEmail === FACULTY_EMAIL
-                           && m.status === 'completed' && !m.logId)
+                           && m.status === 'completed' && !m.logId
+                           && !isTestStudentId(m.studentId))
                  .sort((a, b) => String(a.meetingDate).localeCompare(String(b.meetingDate)));
 }
 function slCourses(){
@@ -9143,18 +9322,15 @@ async function saveEdit(logId) {
 
   };
 
-  // Apply locally
   const idx = sessions.findIndex(s => s.logId === logId);
   if (idx === -1) return;
-  const prev = {...sessions[idx]};
-  Object.assign(sessions[idx], updated);
-  syncStudents();
-  editingLogId = null;
-  renderLogList();
-  if (openStudId === prev.studentId) renderStudBody();
+
+  // As in saveSession: the edit form is not closed for a write that cannot
+  // happen, because closing it throws away what was typed.
+  if (!(await sbWritable())) return;
   showToast('Saving changes…');
 
-  if (isSignedIn()) {
+  {
     try {
       await sbUpdate(TBL_LOG, 'log_id', logId, {
         meeting_date:         updated.date,
@@ -9171,45 +9347,44 @@ async function saveEdit(logId) {
         major_change_note:    updated.majorChangeNote,
         visibility: updated.visibility,
       });
+      Object.assign(sessions[idx], updated);
+      syncStudents();
+      editingLogId = null;
+      renderLogList();
+      if (openStudId === sessions[idx].studentId) renderStudBody();
       showToast(`✓ Session ${logId} updated`);
     } catch(e) {
-      // Roll back
-      Object.assign(sessions[idx], prev);
-      syncStudents();
-      renderLogList();
-      showToast(`Update failed: ${e.message}`);
+      console.error('Supabase write error:', e);
+      showToast(`Update failed — nothing was changed, your edits are still here: ${e.message}`);
     }
-  } else {
-    showToast(`Updated locally — sign in to persist to database`);
   }
 }
 
 async function deleteSession(logId) {
   if (!confirm(`Delete session ${logId}?\n\nThis cannot be undone.`)) return;
 
-  // Optimistic: remove from local state immediately
   const idx = sessions.findIndex(s => s.logId === logId);
   if (idx === -1) return;
-  const removed = sessions.splice(idx, 1)[0];
-  syncStudents();
-  openLogId = null;
-  renderLogList();
-  // Also refresh My Students if open
-  if (openStudId === removed.studentId) renderStudBody();
 
-  if (isSignedIn()) {
+  // The row used to disappear from the screen before the delete was sent, so
+  // an expired session reported "removed locally" over a row the database
+  // still had - it came back at the next reload.
+  if (!(await sbWritable())) return;
+
+  {
     try {
       await sbDelete(TBL_LOG, 'log_id', logId);
+      const removed = sessions.splice(idx, 1)[0];
+      syncStudents();
+      openLogId = null;
+      renderLogList();
+      // Also refresh My Students if open
+      if (openStudId === removed.studentId) renderStudBody();
       showToast(`Session ${logId} deleted`);
     } catch(e) {
-      // Roll back on failure
-      sessions.splice(idx, 0, removed);
-      syncStudents();
-      renderLogList();
-      showToast(`Delete failed: ${e.message}`);
+      console.error('Supabase write error:', e);
+      showToast(`Delete failed — ${logId} was not deleted: ${e.message}`);
     }
-  } else {
-    showToast(`${logId} removed locally — sign in to sync deletion to database`);
   }
 }
 
@@ -10515,9 +10690,12 @@ function pfMetrics(){
   const inCycle = d => !!d && d >= from && d <= to;
 
   const mine   = myStudents();
-  const mySess = sessions.filter(s => s.faculty === FACULTY_EMAIL && inCycle(s.date));
+  // This is the figure quoted in the July review, so the test row is kept out
+  // of it the same way it is kept out of Overview and Session Log.
+  const mySess = realSessions().filter(s => s.faculty === FACULTY_EMAIL && inCycle(s.date));
   const held   = meetings.filter(m => m.facultyEmail === FACULTY_EMAIL
-                                   && m.status === 'completed' && inCycle(m.meetingDate));
+                                   && m.status === 'completed' && inCycle(m.meetingDate)
+                                   && !isTestStudentId(m.studentId));
   const met    = new Set(mySess.map(s => s.studentId));
 
   const terms    = [`Fall ${c}`, `Spring ${c + 1}`];
