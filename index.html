@@ -742,6 +742,35 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .help-ref-row:last-child{border-bottom:none;}
 .help-ref-key{font-weight:500;min-width:110px;flex-shrink:0;color:var(--text);}
 .help-ref-val{color:var(--text2);line-height:1.5;}
+/* Help runs at the full width of .main. Prose keeps a measure of its own so
+   the lines do not run to 200 characters; the card and reference grids take
+   the room that is left. */
+.help-hero-sub,.help-hero-p{max-width:96ch;}
+.help-cards{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));}
+.help-ref-grid{grid-template-columns:repeat(auto-fit,minmax(360px,1fr));}
+.help-step-body{max-width:84ch;}
+.help-section-title{font-size:18px;}
+
+/* A step with a field list beside it, once there is width for two columns. */
+.help-step-content.split{display:grid;gap:14px 28px;align-items:start;
+  grid-template-columns:minmax(0,1fr);}
+@media (min-width:1180px){
+  .help-step-content.split{grid-template-columns:minmax(0,1fr) minmax(300px,0.8fr);}
+}
+.help-step-aside{background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--r);padding:12px 14px;}
+.help-aside-hd{font-size:11px;font-weight:600;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.help-step-aside .help-step-body{max-width:none;}
+.help-fieldrow{display:flex;gap:10px;align-items:baseline;padding:4px 0;
+  font-size:12.5px;line-height:1.55;}
+.help-fieldkey{font-weight:600;color:var(--text);min-width:132px;flex-shrink:0;}
+.help-fieldval{color:var(--text2);}
+@media (max-width:640px){
+  .help-fieldrow{flex-direction:column;gap:1px;}
+  .help-fieldkey{min-width:0;}
+}
+
 .help-hero-top{
   display:flex;
   align-items:flex-start;
@@ -1732,11 +1761,14 @@ function initials(n){return (n||'').split(' ').map(w=>w[0]).join('').slice(0,2).
 // The advisee list and every figure taken from it. The test row is an advisee
 // of whoever created it, and it was being counted as one - "My advisees 5"
 // included it, and so did the 0-session and needs-attention figures built on
-// the same list. isRealStudent is defined further down; this function only
-// ever runs from a render, long after the file has finished loading.
+// the same list. A student who has withdrawn is the same problem wearing a
+// real name: they are never coming to a session, so every figure that counts
+// one against this advisor asks for work that cannot be done.
+// isCounted is defined further down; this function only ever runs from a
+// render, long after the file has finished loading.
 function myStudents() {
   return students.filter(s =>
-    isRealStudent(s) && (
+    isCounted(s) && (
       s.advisor1_email === FACULTY_EMAIL ||
       s.advisor2_email === FACULTY_EMAIL ||
       s.advisor1 === FACULTY ||
@@ -2411,7 +2443,7 @@ async function loadData() {
     syncStudents();
     dataLoaded = true;
     dot.className = 'src-dot authed';
-    lbl.textContent = `Telos · Live · ${students.filter(isRealStudent).length} students, `
+    lbl.textContent = `Telos · Live · ${students.filter(isCounted).length} students, `
                     + `${realSessions().length} sessions`;
     document.getElementById('setup-banner').style.display = 'none';
     console.log('[Supabase] Loaded:', students.length, 'students,', sessions.length, 'sessions');
@@ -2651,7 +2683,9 @@ function renderCurrent() {
   applyRoleAccess();
   if (!pageEnabled(currentPage)) { goPage('overview'); return; }
   sweepStaleEvents();   // a slot released elsewhere is still in this calendar
-  const measured = currentPage === 'codebook' || currentPage === 'settings';
+  // Help is prose and reference tables, and reads better across the full
+  // width; Settings is a column of form fields, which only stretch.
+  const measured = currentPage === 'settings';
   document.querySelector('.main')?.classList.toggle('narrow', measured);
   if (currentPage==='overview') renderOverview();
   if (currentPage==='profile')  renderProfile();
@@ -3600,8 +3634,14 @@ function tsStudents(){
   const by = new Map();
   TAUGHT.rows.forEach(r => {
     const id = String(r.student_id);
+    const st = students.find(x => x.id === id);
+    // Teaching is a fact about the past and the view keeps every row of it, but
+    // this matrix is a headcount of who is in the room now, so it counts the
+    // same people every other figure counts. A row whose student is not on the
+    // roster at all is kept: the figures should lose test and withdrawn rows,
+    // not rows we cannot identify.
+    if(st && !isCounted(st)) return;
     if(!by.has(id)){
-      const st = students.find(x => x.id === id);
       by.set(id, { id, st,
         name:   st ? st.name : id,
         cohort: st && /(\d{4})/.test(st.cohort || '') ? 'C' + (Number(RegExp.$1) - 2022) : 'C?',
@@ -4070,13 +4110,15 @@ function ovStudents(){
     req[String(ovPick(r, ['student_id','student_no'], ''))] = ovNum(r, ['credits_required'], null);
   });
 
-  // Test rows are out of every analytics figure, here and on the two pages
-  // that read this. Taejae's first intake is 2023, so a student number below
-  // that is not a real student; the (test) marker in the name confirms it.
+  // Test rows and students who have left are out of every analytics figure,
+  // here and on the two pages that read this. The roster is what decides, so
+  // the test is the one the rest of the app applies; a student the roster has
+  // not got is judged on the number alone, since Taejae's first intake is 2023
+  // and anything below it is not a real student.
   const real = r => {
     const no = String(ovPick(r, ['student_no','student_id'], ''));
     const st = sIdx[no];
-    if(st && isTestName(st.name)) return false;
+    if(st) return isCounted(st);
     return no.slice(0,4) >= '2023';
   };
 
@@ -4484,9 +4526,20 @@ function hasLeft(status){
 }
 function isEnrolled(s){ return !hasLeft(s && s.status); }
 
+// The one test every headcount applies, on every page. It was written out page
+// by page and no two pages wrote it the same: the roster counted the test row,
+// Credit Progress dropped the test row but kept the withdrawn, and the two
+// chair pages disagreed by exactly the students who had left. A figure that
+// changes when the reader walks from one page to the next is not a figure, so
+// the test lives here once and every count is taken through it.
+//
+// Nothing is hidden by it. A record still opens, with the line at the top
+// saying the student has gone, and their sessions stay in Session Log.
+function isCounted(s){ return isRealStudent(s) && isEnrolled(s); }
+
 // The pool every count is taken from: real students, still enrolled. Major
 // Declarations and Major Advising Load both read it.
-function mjPool(){ return students.filter(s => isRealStudent(s) && isEnrolled(s)); }
+function mjPool(){ return students.filter(isCounted); }
 function mjYear(s){ return String(s.id || '').slice(0,4); }
 function mjLabel(y){ return 'Cohort ' + (Number(y) - 2022) + ' · ' + y; }
 function mjTrim(v){ return String(v == null ? '' : v).trim(); }
@@ -5846,7 +5899,7 @@ function buildWatchList(data) {
 function renderProgramSummary() {
   // ── 프로그램 학생 범위: chair의 school에 1st/2nd major 또는 minor로 등록된 학생 ──
   // IS_CHAIR인 경우 FACULTY_SCHOOL을 기준으로 필터 (로그인 시 설정)
-  const prog = students.filter(s => isRealStudent(s) && isEnrolled(s) && (
+  const prog = students.filter(s => isCounted(s) && (
     s.major1 === FACULTY_SCHOOL ||
     s.major2 === FACULTY_SCHOOL ||
     s.minor  === FACULTY_SCHOOL
@@ -6136,8 +6189,21 @@ function aaBandOf(r){
   if(aaHolds(r.minor))      return 'minor';
   return 'none';
 }
+// The queue asks the roster's question of one field, so it asks it about the
+// same people. The test is applied where the rows arrive rather than at each of
+// the places that count them - the header tile and the band buttons were
+// reading the same array through different tests and disagreeing about it by
+// the students who had left.
+//
+// A row whose student is not on the roster is judged on the status the view
+// carries: the figures should lose test and withdrawn rows, not rows we cannot
+// identify.
+function aaCounted(r){
+  const st = students.find(x => String(x.id) === String(r.student_id));
+  return st ? isCounted(st) : !hasLeft(r.status);
+}
 function aaIn(k){
-  return AA.queue.filter(r => aaBandOf(r) === k && !hasLeft(r.status));
+  return AA.queue.filter(r => aaBandOf(r) === k);
 }
 function aaOpen(k){ return aaIn(k).filter(r => !AA.done.has(r.student_id)); }
 
@@ -6146,7 +6212,7 @@ async function aaLoad(){
   AA.loading = true; AA.err = null;
   try {
     const rows = await sbGet('v_advisor_queue', `select=*&${OV_LIMIT}`);
-    AA.queue = Array.isArray(rows) ? rows : [];
+    AA.queue = (Array.isArray(rows) ? rows : []).filter(aaCounted);
     AA.checked = new Date().toLocaleString('en-GB',
       { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
     AA.loaded = true;
@@ -6232,10 +6298,11 @@ function aaBenchAll(){
     .filter(f => ADVISING_ROLES.includes(f.role))
     .filter(f => (f.programs || []).some(p => aaHolds(p)))
     .map(f => {
-      // A withdrawn advisee is not a place taken: counting them would show a
-      // full advisor who has room, and Suggest would route around it.
-      const pri = students.filter(st => st.advisor1_email === f.email && isEnrolled(st)).length;
-      const sec = students.filter(st => st.advisor2_email === f.email && isEnrolled(st)).length;
+      // A withdrawn advisee is not a place taken, and neither is the test row:
+      // counting either would show a full advisor who has room, and Suggest
+      // would route around it.
+      const pri = students.filter(st => st.advisor1_email === f.email && isCounted(st)).length;
+      const sec = students.filter(st => st.advisor2_email === f.email && isCounted(st)).length;
       return { ...f, pri, sec };
     })
     // Ordered by what they will be carrying, not by what they carry now. A
@@ -6820,8 +6887,8 @@ function aaPage(b){
   if(!AA.loaded){ b.innerHTML = `<div class="ov-wait">Loading the assignment queue…</div>`; return; }
 
   const mine   = aaMine().join(' / ') || 'your programme';
-  const scope  = students.filter(st =>
-    aaHolds(st.major1) || aaHolds(st.major2) || aaHolds(st.minor)).length;
+  const scope  = students.filter(st => isCounted(st) &&
+    (aaHolds(st.major1) || aaHolds(st.major2) || aaHolds(st.minor))).length;
   const left   = AA.queue.filter(r => !AA.done.has(r.student_id) && aaBandOf(r) !== 'none').length;
   const own    = aaOpen('own').length;
   const cur    = AA_BANDS.find(x => x.k === AA.band) || AA_BANDS[0];
@@ -6974,7 +7041,7 @@ function renderStudRail(){
   const listEl = document.getElementById('sp-rail-list');
   if(!listEl) return;
 
-  const base = studFilter === 'all' ? students : myStudents();
+  const base = studFilter === 'all' ? students.filter(isCounted) : myStudents();
   // The scope chips are redrawn here too. setStudFilter only calls this
   // function, so a chip left behind by the page-level render would keep the
   // old selection highlighted while the list below it changed.
@@ -8314,7 +8381,7 @@ function sortStud(col){
 }
 
 function filteredStudents(){
-  let list=(studFilter==='my'?myStudents():students).filter(isEnrolled);
+  let list=(studFilter==='my'?myStudents():students.filter(isCounted));
   if(studCohort!=='all') list=list.filter(s=>studCohortOf(s)===studCohort);
   if(studProg  !=='all') list=list.filter(s=>studProgsOf(s).includes(studProg));
   if(studYear  !=='all') list=list.filter(s=>String(studYearOf(s))===studYear);
@@ -9162,9 +9229,9 @@ function slDrawPick(){
   // Who to offer first: for a course, its roster; otherwise your own advisees.
   const first = course
     ? [...new Set(TAUGHT.rows.filter(r => r.course_id === SLOG.pickCourse).map(r => r.student_id))]
-        .map(id => students.find(y => y.id === id)).filter(Boolean)
-    : myStudents().filter(isRealStudent);
-  const rest = students.filter(st => isRealStudent(st) && !first.some(f => f.id === st.id));
+        .map(id => students.find(y => y.id === id)).filter(st => st && isCounted(st))
+    : myStudents();
+  const rest = students.filter(st => isCounted(st) && !first.some(f => f.id === st.id));
 
   const row = st => {
     const on = SLOG.picked.includes(st.id);
@@ -9438,7 +9505,7 @@ function renderCodebook(){
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="#3B6D11" stroke-width="1.5"/><path d="M4 17c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="#3B6D11" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
           <div class="help-card-title">Students</div>
-          <div class="help-card-body">A list of all students assigned to you as Advisor 1 or Advisor 2. Click any row to expand the student's full session timeline. Use the "+ Log session" button to record a new advising session for that student.</div>
+          <div class="help-card-body">A list of all students assigned to you as Advisor 1 or Advisor 2. Click any row to expand it &mdash; Profile, Requirements, Advising and Messages. The Advising tab holds the session timeline and the "+ Log session" button.</div>
         </div>
         <div class="help-card">
           <div class="help-card-icon purple">
@@ -9525,54 +9592,144 @@ function renderCodebook(){
       <div class="help-section-title">How to log an advising session</div>
       <div class="tbl-wrap" style="border-radius:var(--r-lg);overflow:hidden;">
         <div class="help-steps">
+
           <div class="help-step">
             <div class="help-step-num">1</div>
-            <div class="help-step-content">
-              <div class="help-step-title">Go to Students</div>
-              <div class="help-step-body">Click the <strong>Students</strong> tab in the top navigation. You will see a list of all students assigned to you.</div>
+            <div class="help-step-content split">
+              <div>
+                <div class="help-step-title">Open the student and go to Advising</div>
+                <div class="help-step-body">
+                  Students &rsaquo; click the student's row to expand it, then choose the
+                  <strong>Advising</strong> tab inside the panel. Their session timeline is
+                  there, and <strong>+ Log session</strong> sits at the top right of that card.
+                  The student's ID, name and your advisor role are filled in for you.
+                </div>
+              </div>
+              <div class="help-step-aside">
+                <div class="help-aside-hd">The other way in</div>
+                <div class="help-step-body">
+                  Session Log &rsaquo; <strong>+ Log a session</strong> opens the same form and
+                  asks you to pick the student first. Either route writes the same record.
+                </div>
+              </div>
             </div>
           </div>
+
           <div class="help-step">
             <div class="help-step-num">2</div>
-            <div class="help-step-content">
-              <div class="help-step-title">Click the student's row</div>
-              <div class="help-step-body">Click anywhere on the student's row to expand it. You will see their advising history as a timeline, including past sessions and the next scheduled meeting (if any).</div>
+            <div class="help-step-content split">
+              <div>
+                <div class="help-step-title">When it happened, and what kind</div>
+                <div class="help-step-body">
+                  <strong>Date</strong> is required; <strong>Time</strong> is optional.
+                  <strong>Type</strong> and <strong>Format</strong> are both required.
+                  A session does not need a booked meeting behind it &mdash; set the date to the
+                  day you actually met, and the foot of the form will read
+                  <em>No linked meeting &mdash; log only</em>. When you log from a confirmed
+                  meeting instead, these fields arrive filled in and locked, and saving marks
+                  that meeting completed.
+                </div>
+              </div>
+              <div class="help-step-aside">
+                <div class="help-aside-hd">Type</div>
+                <div class="help-fieldrow"><div class="help-fieldkey">Regular</div><div class="help-fieldval">A scheduled advising meeting</div></div>
+                <div class="help-fieldrow"><div class="help-fieldkey">Ad-hoc</div><div class="help-fieldval">An unscheduled or spontaneous one</div></div>
+                <div class="help-fieldrow"><div class="help-fieldkey">Email</div><div class="help-fieldval">An exchange conducted by email</div></div>
+                <div class="help-aside-hd" style="margin-top:10px;">Format</div>
+                <div class="help-fieldrow"><div class="help-fieldval">Zoom &middot; In-person &middot; Phone &middot; Email</div></div>
+              </div>
             </div>
           </div>
+
           <div class="help-step">
             <div class="help-step-num">3</div>
             <div class="help-step-content">
-              <div class="help-step-title">Click "+ Log session"</div>
-              <div class="help-step-body">The button appears in the top-right of the expanded panel. Click it to open the session entry form. The student's name, ID, and your advisor role will be filled in automatically.</div>
+              <div class="help-step-title">Pick the main topic</div>
+              <div class="help-step-body">
+                Click one or more of <strong>Career</strong>, <strong>Academics</strong>,
+                <strong>Research</strong>, <strong>Wellbeing</strong>,
+                <strong>Administrative</strong>. At least one is required. These are what the
+                Overview charts and the topic filters in Session Log count.
+              </div>
             </div>
           </div>
+
           <div class="help-step">
             <div class="help-step-num">4</div>
-            <div class="help-step-content">
-              <div class="help-step-title">Fill in the session details</div>
-              <div class="help-step-body">
-                Enter the date, session type, and format. Then fill in the two main content fields:<br><br>
-                <strong style="color:#185FA5;">Discussion summary</strong> — What you discussed from your perspective as the advisor. This is required.<br><br>
-                <strong style="color:#854F0B;">Student concerns &amp; requests</strong> — What the student raised, asked, or expressed concern about. This is optional but highly recommended.
+            <div class="help-step-content split">
+              <div>
+                <div class="help-step-title">Write the record</div>
+                <div class="help-step-body">
+                  Four narrative fields. Only <strong>Discussion summary</strong> is required
+                  &mdash; the rest are optional, and worth the minute they take. Line breaks are
+                  kept as you type them, so a short list reads as a list.
+                </div>
+                <div class="help-tip">
+                  <div class="help-tip-icon">&#128161;</div>
+                  <div class="help-tip-text">Recording what the student said separately from what was discussed helps build a clearer picture of the student's needs over time and ensures continuity across sessions.</div>
+                </div>
               </div>
-              <div class="help-tip">
-                <div class="help-tip-icon">💡</div>
-                <div class="help-tip-text">Recording what the student said separately from what was discussed helps build a clearer picture of the student's needs over time and ensures continuity across sessions.</div>
+              <div class="help-step-aside">
+                <div class="help-fieldrow"><div class="help-fieldkey" style="color:#185FA5;">Discussion summary</div><div class="help-fieldval">What you covered, as the advisor. Required.</div></div>
+                <div class="help-fieldrow"><div class="help-fieldkey" style="color:#854F0B;">Student concerns &amp; requests</div><div class="help-fieldval">What the student raised or asked for</div></div>
+                <div class="help-fieldrow"><div class="help-fieldkey">Advisor advice &amp; action items</div><div class="help-fieldval">What you advised, and what you will do</div></div>
+                <div class="help-fieldrow"><div class="help-fieldkey">Student action items</div><div class="help-fieldval">What the student agreed to do</div></div>
               </div>
             </div>
           </div>
+
           <div class="help-step">
             <div class="help-step-num">5</div>
-            <div class="help-step-content">
-              <div class="help-step-title">Add follow-up and next meeting</div>
-              <div class="help-step-body">Note any action items for yourself or the student. If follow-up is required before the next session, set it to <code>Yes</code>. If you have already arranged the next meeting, enter the date and agenda.</div>
+            <div class="help-step-content split">
+              <div>
+                <div class="help-step-title">Follow-up, referral, major change</div>
+                <div class="help-step-body">
+                  <strong>Follow-up required?</strong> is required and starts at
+                  <code>No</code>. Set it to <code>Yes</code> when something is still owed
+                  before the next session &mdash; Overview counts those as follow-up debt until
+                  a later session clears them. <strong>Referral</strong> and
+                  <strong>Major change note</strong> are optional; leave the note blank if
+                  nothing changed.
+                </div>
+              </div>
+              <div class="help-step-aside">
+                <div class="help-aside-hd">Referral</div>
+                <div class="help-fieldrow"><div class="help-fieldval">None &middot; Academic support &middot; Counseling &middot; Career services &middot; Financial aid</div></div>
+              </div>
             </div>
           </div>
+
           <div class="help-step">
             <div class="help-step-num">6</div>
+            <div class="help-step-content split">
+              <div>
+                <div class="help-step-title">Choose who can see it</div>
+                <div class="help-step-body">
+                  <strong>Visibility</strong> starts at <strong>Private</strong>, which means
+                  the record is visible to you alone. <strong>+ Chair</strong> is the usual
+                  setting for ordinary advising: it is what keeps a student's history readable
+                  when they move between advisors. Leave it Private only for a draft or a
+                  genuinely sensitive note.
+                </div>
+              </div>
+              <div class="help-step-aside">
+                <div class="help-fieldrow"><div class="help-fieldkey">Private</div><div class="help-fieldval">You only</div></div>
+                <div class="help-fieldrow"><div class="help-fieldkey">+ Advisors</div><div class="help-fieldval">The student's assigned advisors</div></div>
+                <div class="help-fieldrow"><div class="help-fieldkey">+ Chair</div><div class="help-fieldval">Advisors and the program chair</div></div>
+                <div class="help-fieldrow"><div class="help-fieldkey">All faculty</div><div class="help-fieldval">Every Telos advisor</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="help-step">
+            <div class="help-step-num">7</div>
             <div class="help-step-content">
               <div class="help-step-title">Save the session</div>
-              <div class="help-step-body">Click <strong>Save session</strong>. The record will appear immediately in the student's timeline and in Session Log. If you are signed in, it is saved to the database automatically.</div>
+              <div class="help-step-body">
+                Click <strong>Save session</strong>. The record appears in the student's
+                timeline and in Session Log straight away, and if you are signed in it is
+                written to the database. You can edit or delete it afterwards from Session Log.
+              </div>
             </div>
           </div>
         </div>
@@ -9582,7 +9739,7 @@ function renderCodebook(){
 
     <div class="help-section">
       <div class="help-section-title">Editing and deleting sessions</div>
-      <div class="help-cards" style="grid-template-columns:1fr 1fr;">
+      <div class="help-cards">
         <div class="help-card">
           <div class="help-card-title">Editing a session</div>
           <div class="help-card-body">Go to <strong>Session Log</strong>, click the session row to expand it, then click <strong>Edit</strong> in the action bar. All content fields become editable. Click <strong>Save changes</strong> when done. The Log ID, Student ID, and faculty name cannot be changed.</div>
@@ -9611,12 +9768,19 @@ function renderCodebook(){
           <div class="help-ref-row"><div class="help-ref-key">Email</div><div class="help-ref-val">Written email exchange</div></div>
         </div>
         <div class="help-ref-card">
-          <div class="help-ref-hd">Main topic <span class="help-ref-sub">select all that apply</span></div>
+          <div class="help-ref-hd">Main topic <span class="help-ref-sub">at least one, more if they fit</span></div>
           <div class="help-ref-row"><div class="help-ref-key">Career</div><div class="help-ref-val">Career exploration, job search, graduate school plans</div></div>
           <div class="help-ref-row"><div class="help-ref-key">Academics</div><div class="help-ref-val">Course selection, grades, academic progress</div></div>
           <div class="help-ref-row"><div class="help-ref-key">Research</div><div class="help-ref-val">Research projects, AIR, thesis work</div></div>
           <div class="help-ref-row"><div class="help-ref-key">Wellbeing</div><div class="help-ref-val">Personal wellbeing, stress, mental health</div></div>
           <div class="help-ref-row"><div class="help-ref-key">Administrative</div><div class="help-ref-val">Leave of absence, major change, enrollment</div></div>
+        </div>
+        <div class="help-ref-card">
+          <div class="help-ref-hd">Visibility <span class="help-ref-sub">choose one, starts at Private</span></div>
+          <div class="help-ref-row"><div class="help-ref-key">Private</div><div class="help-ref-val">You only &mdash; a draft, or a sensitive note</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">+ Advisors</div><div class="help-ref-val">The student&#39;s assigned advisors</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">+ Chair</div><div class="help-ref-val">Advisors and the program chair &mdash; the usual setting</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">All faculty</div><div class="help-ref-val">Every Telos advisor</div></div>
         </div>
         <div class="help-ref-card">
           <div class="help-ref-hd">Status & follow-up</div>
@@ -9644,6 +9808,8 @@ function renderCodebook(){
           <div class="help-ref-hd">Cohort abbreviations</div>
           <div class="help-ref-row"><div class="help-ref-key">C1('23)</div><div class="help-ref-val">Cohort 1 — enrolled 2023</div></div>
           <div class="help-ref-row"><div class="help-ref-key">C2('24)</div><div class="help-ref-val">Cohort 2 — enrolled 2024</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">C3('25)</div><div class="help-ref-val">Cohort 3 — enrolled 2025</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">C4('26)</div><div class="help-ref-val">Cohort 4 — enrolled 2026</div></div>
         </div>
         <div class="help-ref-card">
           <div class="help-ref-hd">Advising system terms</div>
