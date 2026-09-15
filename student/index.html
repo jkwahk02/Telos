@@ -1078,6 +1078,7 @@ const VW_COURSE_PROG  = 'course_programs';
 const VW_REQ_STATUS   = 'student_requirement_status';
 const VW_REQ_CATEGORY = 'student_requirement_category';
 const VW_REQ_SUMMARY  = 'student_requirement_summary';
+const VW_TAUGHT_COURSE = 'v_student_taught_courses';
 
 // The Civic Project rose from 1 credit to 2 effective Fall 2026, so what a
 // CV course is worth depends on the term it was taken.
@@ -1189,6 +1190,13 @@ let facCourses    = {};
 // two must not drift; see Telos_Advising_Topics.sql.
 let advisingTopics = [];
 let showAllTopics  = false;  // the escape hatch out of the programme filter
+// Who is teaching this student right now, from v_student_taught_courses. One
+// row per course, so a professor teaching two of them appears twice and the
+// cards group by address. Note what the view leaves out by design: Innovation
+// Foundations and any IF course, because sixty students in one core course is
+// not an advising relationship (Telos_Taught_Students.sql). A student whose
+// only courses are IF ones therefore sees no card here, which is correct.
+let myCourseTeachers = [];
 let availMap      = {};      // { faculty_email: [slots] }
 let selfDesigned  = [];      // 자기설계전공의 승인 교과목록 (course_id 배열)
 let reqItems      = [];      // student_requirement_status (본인)
@@ -1610,6 +1618,23 @@ async function loadData(){
     sessionCount      = histRows.filter(m => m.status === 'completed').length;
     allFaculty        = facultyRows;
     advisingTopics    = topicRows || [];
+
+    // Courses in progress, and who teaches them. Fetched on its own rather than
+    // joining the Promise.all above: this view is newer than the rest of the
+    // page and runs with the caller's rights, so if a student's policies refuse
+    // it the result should be one card missing, not a blank app.
+    //
+    // is_completed=false is what makes it "now" - the registrar writes
+    // source='graded' the moment a term closes, so anything still 'registered'
+    // is a course being taught.
+    try{
+      myCourseTeachers = await sbGet(VW_TAUGHT_COURSE,
+        `student_id=eq.${encodeURIComponent(sid)}&is_completed=eq.false` +
+        `&select=faculty_email,course_id,offering,term_label`);
+    }catch(e){
+      myCourseTeachers = [];
+      console.warn('course instructors unavailable', e);
+    }
     
     // 3. Availability 로드 (어드바이저 + chair 대상)
     const targetEmails=[studentData.advisor1_email,studentData.advisor2_email,
@@ -1898,10 +1923,7 @@ function renderOverview(){
   // const canRequest = pct > 0;
   const canRequest = true;
 
-  const advHtml = myAdvisors.length ? `
-    <div style="margin-bottom:10px;">
-      <div class="ov-adv-section-lbl">Your advisors</div>
-      ${myAdvisors.map(f=>{
+  const advCardsHtml = myAdvisors.map(f=>{
         const isChair = f.is_chair;
         const initials = (f.name_en||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
         // The strip is offered only when there is something behind it. An
@@ -1934,7 +1956,87 @@ function renderOverview(){
           ${strip}
           ${advProfileBody(f)}
         </div>`;
-      }).join('')}
+      }).join('');
+
+  // ── Other professor ──
+  //
+  // Meetings has offered this from the start - a student may request a meeting
+  // with anyone on the faculty, not only an advisor or a chair. Overview did
+  // not say so, and the advisor section disappeared entirely when a student had
+  // no advisor assigned, which is most of a cohort before the assignments are
+  // made. Such a student opened the app and found nothing here at all.
+  //
+  // The booking itself stays on Meetings: that page owns the availability load
+  // and the slot picker, and duplicating either here would be two of them to
+  // keep in step. This is the door, not the room.
+  // ── Course advising ──
+  //
+  // The professor teaching you this term is someone a student has an actual
+  // reason to see, and until now the only route to one was the Other professor
+  // dropdown on Meetings - a list of the whole faculty, in which the person
+  // who set today's assignment is no easier to find than anyone else. These
+  // cards name the course, so the reason for the meeting is on the card.
+  //
+  // Grouped by address: two courses with the same professor are one card with
+  // two lines, not two cards. An advisor who also teaches the student is left
+  // out here, because their own card above already carries a Request button.
+  const advisorEmails = myAdvisors.map(f=>f.email);
+  const byTeacher = {};
+  myCourseTeachers.forEach(r=>{
+    if(!r.faculty_email || advisorEmails.includes(r.faculty_email)) return;
+    (byTeacher[r.faculty_email] = byTeacher[r.faculty_email] || []).push(r);
+  });
+  const courseCardsHtml = Object.entries(byTeacher).map(([email, rows])=>{
+    const f = allFaculty.find(x=>x.email===email);
+    // No faculty_profiles row means no availability and nothing to request
+    // against - an external lecturer, most often. Named, not offered.
+    const label   = facLabel(f, email);
+    const inits   = (f?.name_en||label||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const courses = rows.map(r=>esc(r.offering || r.course_id)).join(' · ');
+    return `<div class="ov-adv-card">
+      <div class="ov-adv-hd">
+        <span class="ov-adv-lbl">Course advising</span>
+      </div>
+      <div class="ov-adv-body">
+        <div class="ov-adv-av">${inits}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="ov-adv-name">${esc(label)}</div>
+          <div class="ov-adv-school">${courses}${f?` · ${esc(facProgramLabel(f))}`:''}</div>
+        </div>
+        ${f ? `<button class="btn-sm-teal" onclick="ovRequestOther('${esc(email)}')">Request meeting →</button>`
+            : `<span style="font-size:11px;color:var(--text3);font-style:italic;">Not on Telos</span>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  const shownEmails  = advisorEmails.concat(Object.keys(byTeacher));
+  const otherFaculty = allFaculty.filter(f=>!shownEmails.includes(f.email));
+  const otherCardHtml = otherFaculty.length ? `
+    <div class="ov-adv-card" style="border-style:dashed;">
+      <div class="ov-adv-hd">
+        <span class="ov-adv-lbl">Other professor</span>
+      </div>
+      <div class="ov-adv-body">
+        <div class="ov-adv-av" style="background:var(--surface2);border:1px dashed var(--border-em);color:var(--text3);">+</div>
+        <div style="flex:1;min-width:0;">
+          <div class="ov-adv-name" style="color:var(--text2);">Request from any professor</div>
+          <div class="ov-adv-school">Your course instructors, or anyone else you need to see</div>
+        </div>
+        <select class="fsel" onchange="ovRequestOther(this.value)">
+          <option value="">Choose…</option>
+          ${otherFaculty.map(f=>`<option value="${esc(f.email)}">${esc(facLabel(f))} · ${esc(facProgramLabel(f))}</option>`).join('')}
+        </select>
+      </div>
+    </div>` : '';
+
+  // Three groups, each labelled, each dropped when it is empty. The last label
+  // changes because "Someone else" only means anything after a list of someones.
+  const anyAbove = !!(advCardsHtml || courseCardsHtml);
+  const advHtml = (advCardsHtml || courseCardsHtml || otherCardHtml) ? `
+    <div style="margin-bottom:10px;">
+      ${advCardsHtml    ? `<div class="ov-adv-section-lbl">Your advisors</div>${advCardsHtml}` : ''}
+      ${courseCardsHtml ? `<div class="ov-adv-section-lbl">Course advising</div>${courseCardsHtml}` : ''}
+      ${otherCardHtml   ? `<div class="ov-adv-section-lbl">${anyAbove ? 'Someone else' : 'Meet a professor'}</div>${otherCardHtml}` : ''}
     </div>` : '';
 
   // ── Recent history ──
@@ -5557,6 +5659,17 @@ function goToPage(pg){
   renderCurrent();
 }
 function goToMeetings(){ goToPage('meetings'); }
+
+// From the Overview card. selectOtherFaculty is awaited rather than called and
+// forgotten: it is what fetches this professor's availability, and without it
+// the request form opens onto a week with no slots in it - which reads as "she
+// has no office hours" rather than "the app has not looked yet".
+async function ovRequestOther(email){
+  if(!email) return;
+  goToMeetings();
+  await selectOtherFaculty(email);
+  openRequestForm(email);
+}
 
 // ── USER MENU ──
 function toggleUserMenu(){document.getElementById('nav-dropdown').classList.toggle('open');}
