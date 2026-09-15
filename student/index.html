@@ -926,15 +926,16 @@ tr.req-cant>td{opacity:.4;}
 .fp-foot{padding:9px 14px;background:var(--surface2);display:flex;align-items:center;gap:12px;}
 .fp-empty{padding:16px 14px;font-size:14px;color:var(--text3);line-height:1.6;}
 .btn-link{font-size:13.5px;font-weight:500;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;font-family:inherit;}
-/* .fsel is width:100% because on Meetings it sits in a column. Dropped into
-   the Overview card's flex row it takes the whole line and leaves the name and
-   the courses a word wide, so here it is sized to its own content and sent to
-   the right, where the Request button sits on the cards above it. */
-.ov-adv-body .fsel{width:auto;max-width:260px;flex:0 0 auto;margin-top:0;margin-left:auto;}
+/* .fsel is width:100% because on Meetings it sits in a column. Left at that in
+   the Overview card's flex row it takes the whole line and squeezes the text to
+   a word a line. It is not pinned small either: on this card the dropdown is
+   the point, so it keeps a wide basis and takes whatever the label does not
+   need. The label yields (flex:0 1 auto on its own div). */
+.ov-adv-body .fsel{width:auto;flex:1 1 340px;min-width:200px;max-width:none;margin-top:0;margin-left:auto;}
 @media (max-width:560px){.fp-two{grid-template-columns:1fr;}
   .ov-adv-body{flex-wrap:wrap;}
   .ov-adv-body .btn-sm-teal{width:100%;margin-top:2px;}
-  .ov-adv-body .fsel{width:100%;max-width:none;margin-top:2px;margin-left:0;}}
+  .ov-adv-body .fsel{width:100%;flex:1 1 100%;margin-top:2px;margin-left:0;}}
 /* SETTINGS */
 .settings-section-divider{padding:6px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);display:flex;align-items:center;gap:6px;}
 .settings-field-row{display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);}
@@ -1643,13 +1644,26 @@ async function loadData(){
     }
     
     // 3. Availability 로드 (어드바이저 + chair 대상)
+    //
+    // The chair loaded here has to be the same person the cards show, which is
+    // the chair of this student's own program - facInProgram, the rule both
+    // Overview and Meetings use. Taking the first is_chair row instead picked
+    // an arbitrary school's chair, because there is one per school and the
+    // faculty read carries no order. A student with no advisor assigned has
+    // the chair card and nothing else, so when the two rules disagreed that
+    // card said "No slots available" about a professor with a full week of
+    // them, and the request form said no availability was registered.
+    const chairEmails = facultyRows
+      .filter(f => f.is_chair && facInProgram(f, studentData.school))
+      .map(f => f.email);
     const targetEmails=[studentData.advisor1_email,studentData.advisor2_email,
-      facultyRows.find(f=>f.is_chair)?.email].filter(Boolean);
+      ...chairEmails].filter(Boolean);
+    availMap={};
     if(targetEmails.length) loadAdvisorCourses(targetEmails);
     if(targetEmails.length){
       const availRows=await sbGet(TBL_AVAIL,
         `faculty_email=in.(${targetEmails.map(e=>encodeURIComponent(e)).join(',')})&is_active=eq.true&order=day_of_week.asc,start_time.asc`);
-      availMap={};
+      targetEmails.forEach(e=>{ availMap[e]=[]; });   // 읽었으나 비어 있음 - 아직 안 읽음과 구분
       availRows.forEach(r=>{
         if(!availMap[r.faculty_email]) availMap[r.faculty_email]=[];
         availMap[r.faculty_email].push(r);
@@ -2024,7 +2038,7 @@ function renderOverview(){
       </div>
       <div class="ov-adv-body">
         <div class="ov-adv-av" style="background:var(--surface2);border:1px dashed var(--border-em);color:var(--text3);">+</div>
-        <div style="flex:1;min-width:0;">
+        <div style="flex:0 1 auto;min-width:0;">
           <div class="ov-adv-name" style="color:var(--text2);">Request from any professor</div>
           <div class="ov-adv-school">Your course instructors, or anyone else you need to see</div>
         </div>
@@ -3805,6 +3819,12 @@ function renderMeetings(){
   const chair = allFaculty.find(f=>f.is_chair && facInProgram(f, s.school));
   const chairSeparate = chair && chair.email !== s.advisor1_email && chair.email !== s.advisor2_email;
   const cards = [adv1, adv2, chairSeparate ? chair : null].filter(Boolean);
+  // A card whose slots were never fetched must not say the professor has none.
+  // Fetch, then draw again - ensureAvail always leaves a value behind, so this
+  // runs once per professor and never turns into a render loop.
+  cards.filter(f => !availMap[f.email]).forEach(f => {
+    ensureAvail(f.email).then(() => { if(currentPage === 'meetings') renderMeetings(); });
+  });
   // 선택된 other professor가 있으면 카드 수 +1 (선택 카드 + + 카드)
   const extraCols=selectedOtherEmail?2:1;
   const cols=Math.min(5,cards.length+extraCols);
@@ -3816,6 +3836,7 @@ function renderMeetings(){
         const isAdv2=f.email===s.advisor2_email;
         const isChair=f.is_chair;
         const lbl=isChair&&!isAdv1&&!isAdv2?'Program Chair':'Advisor';
+        const looked=!!availMap[f.email];
         const hasSlots=(availMap[f.email]||[]).length>0;
         const chairPill=isChair&&isAdv1?'<span class="bdg bdg-blue" style="font-size:9px;">Chair</span>':'';
         return `<div class="adv-card ${i===0?'primary-card':''}">
@@ -3828,8 +3849,8 @@ function renderMeetings(){
             <div class="adv-name">${esc(facLabel(f))}</div>
             <div class="adv-email">${esc(f.email)}</div>
             <div class="adv-school">${esc(facProgramLabel(f))}</div>
-            <button class="adv-req-btn" ${!hasSlots?'disabled':''} onclick="openRequestForm('${f.email}')">
-              ${hasSlots?'Request meeting →':'No slots available'}
+            <button class="adv-req-btn" ${looked&&!hasSlots?'disabled':''} onclick="openRequestForm('${f.email}')">
+              ${!looked?'Loading…':hasSlots?'Request meeting →':'No slots available'}
             </button>
           </div>
         </div>`;
@@ -4275,13 +4296,7 @@ async function openRescheduleRequest(meetingId) {
   selectedFacultyEmail  = m.faculty_email;
   meetingDuration       = m.meeting_duration || 60;
   selectedMeetingSlots  = [];
-  if (!availMap[m.faculty_email]) {
-    try {
-      const rows = await sbGet(TBL_AVAIL,
-        `faculty_email=eq.${encodeURIComponent(m.faculty_email)}&is_active=eq.true&order=day_of_week.asc,start_time.asc`);
-      availMap[m.faculty_email] = rows;
-    } catch(e) { availMap[m.faculty_email] = []; }
-  }
+  await ensureAvail(m.faculty_email);
   renderMeetings();
   setTimeout(()=>{
     const form=document.querySelector('.card.accent-teal');
@@ -4297,14 +4312,7 @@ async function requestRescheduleConfirmed(meetingId) {
   selectedFacultyEmail = m.faculty_email;
   meetingDuration      = m.meeting_duration || 60;
   selectedMeetingSlots = [];
-  // availMap에 해당 교수 데이터가 없으면 로드
-  if (!availMap[m.faculty_email]) {
-    try {
-      const rows = await sbGet(TBL_AVAIL,
-        `faculty_email=eq.${encodeURIComponent(m.faculty_email)}&is_active=eq.true&order=day_of_week.asc,start_time.asc`);
-      availMap[m.faculty_email] = rows;
-    } catch(e) { availMap[m.faculty_email] = []; }
-  }
+  await ensureAvail(m.faculty_email);   // availMap에 해당 교수 데이터가 없으면 로드
   renderMeetings();
   setTimeout(() => {
     const form = document.querySelector('.card.accent-teal');
@@ -4710,16 +4718,30 @@ function buildOtherCard(){
   </div>`;
 }
 
+// The one place that fetches a professor's weekly slots, so every route into
+// the request form - advisor card, chair card, course instructor, the Other
+// professor dropdown, a reschedule - has actually looked before the form
+// decides there is nothing to show. availMap[email] is set even when the read
+// fails, so "we looked and found none" is a loaded empty array and "we have
+// not looked yet" is undefined; a render that reacts to the latter can never
+// loop on a failing request.
+const availPending = {};
+async function ensureAvail(email){
+  if(!email || availMap[email]) return;
+  if(!availPending[email]){
+    availPending[email] = sbGet(TBL_AVAIL,
+      `faculty_email=eq.${encodeURIComponent(email)}&is_active=eq.true&order=day_of_week.asc,start_time.asc`)
+      .then(rows => { availMap[email] = rows; })
+      .catch(()  => { availMap[email] = []; })
+      .finally(() => { delete availPending[email]; });
+  }
+  await availPending[email];
+}
+
 async function selectOtherFaculty(email){
   if(!email) return;
   selectedOtherEmail=email;
-  if(!availMap[email]){
-    try{
-      const rows=await sbGet(TBL_AVAIL,
-        `faculty_email=eq.${encodeURIComponent(email)}&is_active=eq.true&order=day_of_week.asc,start_time.asc`);
-      availMap[email]=rows;
-    }catch(e){ availMap[email]=[]; }
-  }
+  await ensureAvail(email);
   renderMeetings();
 }
 function clearOtherFaculty(){
@@ -4908,6 +4930,14 @@ function buildRequestForm(){
     const avBg=facIdx===0?'var(--teal-l)':facIdx===1?'var(--blue-l)':'var(--amber-l)';
     const avColor=facIdx===0?'var(--teal)':facIdx===1?'var(--blue)':'var(--amber-d)';
     const chairBadge=fac?.is_chair?`<span class="bdg bdg-blue" style="font-size:9px;">Chair</span>`:'';
+    // The form is reached for anyone on the faculty - a chair, a course
+    // instructor, whoever the student picked from the dropdown. Calling each
+    // of them the student's advisor was wrong on its face for a cohort that
+    // has no advisor assigned yet.
+    const isMyAdvisor=!!fac&&(fac.email===s.advisor1_email||fac.email===s.advisor2_email);
+    const roleBadge=isMyAdvisor
+      ? `<span class="bdg bdg-teal" style="font-size:9px;">Advisor</span>${chairBadge}`
+      : (fac?.is_chair?`<span class="bdg bdg-blue" style="font-size:9px;">Program Chair</span>`:'');
     return `<div class="card accent-teal" style="margin-bottom:12px;">
       <div class="card-hd teal-bg">
         <div><div class="card-title" style="color:#085041;">  
@@ -4935,7 +4965,7 @@ function buildRequestForm(){
             <div style="flex:1;">
               <div style="font-size:13px;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                 ${esc(facLabel(fac))}
-                <span class="bdg bdg-teal" style="font-size:9px;">Advisor</span>${chairBadge}
+                ${roleBadge}
               </div>
               <div class="prof-strip-meta">${esc(fac?.email||'')} · ${esc(fac?.school||'')}</div>
             </div>
@@ -5068,7 +5098,11 @@ function toggleMeetingSlot(dateStr, start, end, dateLabel, facStart, facEnd, fac
   renderMeetings();
 }
 
-function openRequestForm(email){
+// Awaits the slots before opening. The Overview advisor and chair cards call
+// this directly, and until they loaded nothing the form opened onto an empty
+// week and told the student the professor had registered no availability.
+async function openRequestForm(email){
+  await ensureAvail(email);
   requestFormOpen=true;
   editingRequestId=null;
   selectedFacultyEmail=email;
@@ -5090,9 +5124,10 @@ function closeRequestForm(){
 }
 
 // 신규 함수 — openEditRequest
-function openEditRequest(meetingId){
+async function openEditRequest(meetingId){
   const m = scheduledMeetings.find(x => x.id === meetingId);
   if (!m) return;
+  await ensureAvail(m.faculty_email);
   // request form을 edit 모드로 열기
   editingRequestId      = meetingId;
   requestFormOpen       = true;
@@ -5110,7 +5145,8 @@ function openEditRequest(meetingId){
   },100);
 }
   
-function selectRequestFaculty(email){
+async function selectRequestFaculty(email){
+  await ensureAvail(email);
   selectedFacultyEmail=email;
   selectedMeetingSlots=[];
   renderMeetings();
