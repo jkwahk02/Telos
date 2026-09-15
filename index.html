@@ -607,13 +607,13 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .pane-lbl{font-size:17px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
 .pane-lbl.disc{color:var(--blue);}
 .pane-lbl.conc{color:var(--amber);}
-.pane-val{font-size:17px;line-height:1.55;}
+.pane-val{font-size:17px;line-height:1.55;white-space:pre-wrap;}
 .pane-val.disc{color:#0C447C;}
 .pane-val.conc{color:var(--amber-d);}
 .pane-val.none{color:var(--text3);font-style:italic;}
 .card-bot{padding:9px 12px;background:var(--surface2);display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid var(--border);}
 .cb-lbl{font-size:17px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
-.cb-val{font-size:17px;color:var(--text);line-height:1.4;}
+.cb-val{font-size:17px;color:var(--text);line-height:1.4;white-space:pre-wrap;}
 .cb-val.ok{color:var(--green);font-weight:500;}
 .cb-val.warn{color:var(--amber);font-weight:500;}
 
@@ -2974,21 +2974,21 @@ function buildCompletedExpand(m, st) {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">
           <div style="padding:9px 12px;background:var(--blue-l);">
             <div style="font-size:17px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Discussion summary</div>
-            <div style="font-size:17px;color:#0C447C;line-height:1.5;">${esc(sess.disc) || '<span style="color:var(--text3);font-style:italic;">—</span>'}</div>
+            <div style="font-size:17px;color:#0C447C;line-height:1.5;white-space:pre-wrap;">${esc(sess.disc) || '<span style="color:var(--text3);font-style:italic;">—</span>'}</div>
           </div>
           <div style="padding:9px 12px;background:var(--amber-l);border-left:1px solid var(--border);">
             <div style="font-size:17px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Student concerns</div>
-            <div style="font-size:17px;color:var(--amber-d);line-height:1.5;">${sess.conc ? esc(sess.conc) : '<span style="color:var(--text3);font-style:italic;">None raised</span>'}</div>
+            <div style="font-size:17px;color:var(--amber-d);line-height:1.5;white-space:pre-wrap;">${sess.conc ? esc(sess.conc) : '<span style="color:var(--text3);font-style:italic;">None raised</span>'}</div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">Advisor advice</div>
-            <div style="font-size:17px;color:var(--text);line-height:1.5;">${esc(sess.advice) || '—'}</div>
+            <div style="font-size:17px;color:var(--text);line-height:1.5;white-space:pre-wrap;">${esc(sess.advice) || '—'}</div>
           </div>
           <div>
             <div style="font-size:17px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">Student action items</div>
-            <div style="font-size:17px;color:var(--text);line-height:1.5;">${esc(sess.studentAction) || '—'}</div>
+            <div style="font-size:17px;color:var(--text);line-height:1.5;white-space:pre-wrap;">${esc(sess.studentAction) || '—'}</div>
           </div>
         </div>
         <div style="height:1px;background:var(--border);"></div>
