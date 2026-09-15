@@ -708,6 +708,10 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .help-hero{background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r-lg);padding:24px 28px;margin-bottom:24px;}
 .help-hero-title{font-size:20px;font-weight:600;color:#0C447C;margin-bottom:6px;letter-spacing:-0.01em;}
 .help-hero-sub{font-size:15px;color:var(--blue-m);line-height:1.6;}
+/* Attribution, not a sentence in the definition above it. Set small and quiet
+   so it reads as a byline and does not compete with the line that says what
+   Telos is. */
+.help-hero-by{font-size:12.5px;color:var(--blue-m);opacity:.72;margin-top:12px;}
 .help-section{margin-bottom:28px;}
 .help-section-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
 .help-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:0;}
@@ -8654,27 +8658,25 @@ function buildNsForm(st){
         </div>
       </div>
 
+      <!-- There was a Referral select here - None / Academic support / Counseling /
+           Career services / Financial aid - and saveSession never read it. There is no
+           referral column on advising_log and nothing in the app has ever shown one, so
+           every referral anybody chose since the field appeared was discarded on save.
+           A control that asks a question and throws the answer away is worse than no
+           control, because the advisor believes the referral is on the record. Removed
+           rather than wired up: if referrals should be tracked, that is a column, a
+           place that reads it and a decision about who sees it, not a select. -->
       <div class="rg2">
-        <!-- ── Follow-up: 유지 -->
         <div class="fg"><div class="fl">Follow-up required? <span class="req">*</span></div>
           <select class="fsel" id="ns-fu">
             <option value="N">No</option><option value="Y">Yes</option>
           </select>
         </div>
-        <!-- ── Referral: 유지 -->
-        <div class="fg"><div class="fl">Referral</div>
-          <select class="fsel" id="ns-ref">
-            <option>None</option><option>Academic support</option>
-            <option>Counseling</option><option>Career services</option>
-            <option>Financial aid</option>
-          </select>
-        </div>
+        ${nsKind === 'course' ? '' : `
+        <div class="fg"><div class="fl">Major change note</div>
+          <input class="fi" id="ns-mc" placeholder="Leave blank if no change">
+        </div>`}
       </div>
-
-      ${nsKind === 'course' ? '' : `
-      <div class="fg"><div class="fl">Major change note</div>
-        <input class="fi" id="ns-mc" placeholder="Leave blank if no change">
-      </div>`}
 
       <div style="height:1px;background:var(--border);margin:4px 0;"></div>
       <div class="fg">
@@ -9463,8 +9465,12 @@ function renderCodebook(){
         <div class="help-hero-copy">
           <div class="help-hero-title">Help & Guide: Telos</div>
           <div class="help-hero-sub">
-            Telos is the advising portal for Taejae University faculty. Everything you enter here is saved to the shared database and accessible to the Program Chair.
+            Telos is where advising at Taejae is planned, held and remembered: your availability,
+            the meetings students book against it, the sessions you log, and where each student
+            stands against the degree, all in one place. The record stays with the student
+            &mdash; across terms, and across advisors.
           </div>
+          <div class="help-hero-by">Created by Jiyoung Kwahk</div>
         </div>
         <button class="help-hero-btn" onclick="toggleHelpHero()">
           ${helpHeroOpen ? 'Read less' : 'Read more'}
@@ -9498,14 +9504,23 @@ function renderCodebook(){
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.5" fill="#185FA5"/><rect x="11" y="3" width="6" height="6" rx="1.5" fill="#185FA5" opacity=".4"/><rect x="3" y="11" width="6" height="6" rx="1.5" fill="#185FA5" opacity=".4"/><rect x="11" y="11" width="6" height="6" rx="1.5" fill="#185FA5" opacity=".4"/></svg>
           </div>
           <div class="help-card-title">Overview</div>
-          <div class="help-card-body">A quick summary of your advising status — how many students you advise, total sessions logged this semester, students with no session yet, upcoming meetings not scheduled, and any follow-up items pending.</div>
+          <div class="help-card-body">A rail of pages, not one screen. <strong>My Advising</strong> is
+            your own: advisees, sessions this cycle, who you have not met, what is still owed.
+            <strong>Academic Insights</strong> &mdash; Major Declarations, Credit Progress, Program
+            Requirements &mdash; follows the student. <strong>Advising Insights</strong> follows the
+            advisor. Program chairs also get <strong>Program Overview</strong> and
+            <strong>Advisor Assignment</strong>; pages you have no role for are not shown.</div>
         </div>
         <div class="help-card">
           <div class="help-card-icon green">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="#3B6D11" stroke-width="1.5"/><path d="M4 17c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="#3B6D11" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
           <div class="help-card-title">Students</div>
-          <div class="help-card-body">A list of all students assigned to you as Advisor 1 or Advisor 2. Click any row to expand it &mdash; Profile, Requirements, Advising and Messages. The Advising tab holds the session timeline and the "+ Log session" button.</div>
+          <div class="help-card-body">Two panes: the roster on the left, the student on the right.
+            The <strong>My advisees</strong> chip is everyone you hold as Advisor 1 or 2;
+            <strong>All</strong> is the whole university roster, filterable by cohort, programme and
+            year. The right side is tabbed &mdash; Profile, Requirements, Advising, Messages &mdash;
+            and the Advising tab holds the session timeline and <strong>&#65291; Log session</strong>.</div>
         </div>
         <div class="help-card">
           <div class="help-card-icon purple">
@@ -9518,7 +9533,10 @@ function renderCodebook(){
           </div>
           <div class="help-card-title">Meetings</div>
           <div class="help-card-body">
-            Manage student meeting requests based on your availability. Review incoming requests, confirm a time slot, and keep track of scheduled meetings.
+            Requests run both ways. Students book against the availability you set here; you can also
+            open <strong>Request meeting</strong> from a student's panel. Confirm one of the times
+            they proposed, ask for different ones, or cancel &mdash; the student is emailed either
+            way. List and calendar views show what is scheduled.
           </div>
         </div>
         <div class="help-card">
@@ -9526,7 +9544,20 @@ function renderCodebook(){
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 6h12M4 10h8M4 14h5" stroke="#854F0B" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
           <div class="help-card-title">Session Log</div>
-          <div class="help-card-body">A chronological list of all advising sessions you have conducted. Click any session row to see the full record. You can also edit or delete a session from this view.</div>
+          <div class="help-card-body">Four lists. <strong>Major advising</strong> and
+            <strong>Course advising</strong> are the sessions you have logged, of each kind.
+            <strong>Missing logs</strong> is meetings that happened with no record written.
+            <strong>Messages</strong> is what students have sent you and have not had an answer to.
+            Click a row for the full record; edit and delete are there too.</div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-icon blue">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="4" y="2.5" width="12" height="15" rx="2" stroke="#185FA5" stroke-width="1.5"/><path d="M7.5 7h5M7.5 10h5M7.5 13h3" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="help-card-title">My Profile</div>
+          <div class="help-card-body">Your own record: the advising you carry, the courses you teach,
+            and what you have done over the academic year. It is where the figures you would otherwise
+            reconstruct by hand already sit, gathered for the cycle rather than for today.</div>
         </div>
         <div class="help-card">
           <div class="help-card-icon gray">
@@ -9577,9 +9608,25 @@ function renderCodebook(){
         <div class="help-step">
           <div class="help-step-num">4</div>
           <div>
-            <div class="help-step-title">Confirm the meeting</div>
+            <div class="help-step-title">Confirm, or ask for different times</div>
             <div class="help-step-body">
-              Click confirm to approve the request. Once confirmed, the meeting is scheduled and shared with the student.
+              Confirm one of the times the student proposed and add a meeting link if you have one.
+              If none of them work, <strong>ask for different times</strong> sends the request back
+              rather than cancelling it. Both actions email the student.
+            </div>
+          </div>
+        </div>
+
+        <div class="help-step">
+          <div class="help-step-num">5</div>
+          <div>
+            <div class="help-step-title">Afterwards, log it</div>
+            <div class="help-step-body">
+              A confirmed meeting carries a <strong>&#65291; Log session</strong> button. Logging from
+              there fills in the date, type and format and marks the meeting completed on save. A
+              meeting that has passed with nothing written shows up under Session Log &rsaquo;
+              <strong>Missing logs</strong>. You can also start the other way round and book nothing
+              at all &mdash; a session does not need a meeting behind it.
             </div>
           </div>
         </div>
@@ -9599,10 +9646,10 @@ function renderCodebook(){
               <div>
                 <div class="help-step-title">Open the student and go to Advising</div>
                 <div class="help-step-body">
-                  Students &rsaquo; click the student's row to expand it, then choose the
-                  <strong>Advising</strong> tab inside the panel. Their session timeline is
-                  there, and <strong>+ Log session</strong> sits at the top right of that card.
-                  The student's ID, name and your advisor role are filled in for you.
+                  Students &rsaquo; pick the student in the left-hand roster, then choose the
+                  <strong>Advising</strong> tab on the right. Their session timeline is there, and
+                  <strong>&#65291; Log session</strong> sits at the top right of that card. The
+                  student's ID, name and your advisor role are filled in for you.
                 </div>
               </div>
               <div class="help-step-aside">
@@ -9682,19 +9729,23 @@ function renderCodebook(){
             <div class="help-step-num">5</div>
             <div class="help-step-content split">
               <div>
-                <div class="help-step-title">Follow-up, referral, major change</div>
+                <div class="help-step-title">Follow-up and major change</div>
                 <div class="help-step-body">
                   <strong>Follow-up required?</strong> is required and starts at
                   <code>No</code>. Set it to <code>Yes</code> when something is still owed
-                  before the next session &mdash; Overview counts those as follow-up debt until
-                  a later session clears them. <strong>Referral</strong> and
-                  <strong>Major change note</strong> are optional; leave the note blank if
-                  nothing changed.
+                  before the next session &mdash; Overview and Program Overview count those as
+                  follow-up debt until a later session clears them.
+                  <strong>Major change note</strong> is optional; leave it blank if nothing
+                  changed.
                 </div>
               </div>
               <div class="help-step-aside">
-                <div class="help-aside-hd">Referral</div>
-                <div class="help-fieldrow"><div class="help-fieldval">None &middot; Academic support &middot; Counseling &middot; Career services &middot; Financial aid</div></div>
+                <div class="help-aside-hd">Follow-up debt</div>
+                <div class="help-step-body">
+                  Nothing clears a <code>Yes</code> automatically. It stays counted until you log a
+                  later session for that student, so use it for what is genuinely outstanding rather
+                  than as a note to self.
+                </div>
               </div>
             </div>
           </div>
@@ -9736,6 +9787,55 @@ function renderCodebook(){
       </div>
     </div>
       </div>
+
+    <div class="help-section">
+      <div class="help-section-title">Course sessions, and logging for several students at once</div>
+      <div class="help-cards">
+        <div class="help-card">
+          <div class="help-card-title">A different kind of conversation</div>
+          <div class="help-card-body">An hour spent on an assignment with someone you teach is not
+            major advising, and filing it as such makes both figures wrong. Session Log &rsaquo;
+            <strong>Course advising</strong> &rsaquo; <strong>&#65291; Log a session</strong> asks for
+            the course first, then offers its roster.</div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-title">The form asks different questions</div>
+          <div class="help-card-body">Same four fields, different words: what you went through, where
+            they were stuck, what you explained, what to try next. The topics change too &mdash;
+            Assignment, A concept, Project, Exam, Taking the course.</div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-title">One hour, several students</div>
+          <div class="help-card-body">Tick more than one name and the record is copied to each of
+            them, linked as one conversation. That way four students who came to the same hour read
+            as one hour in your figures, not four.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">Messages and check-ins</div>
+      <div class="help-cards">
+        <div class="help-card">
+          <div class="help-card-title">What arrives</div>
+          <div class="help-card-body">Students write from their own app &mdash; a question against a
+            requirement, or a check-in. Session Log &rsaquo; <strong>Messages</strong> collects
+            everything waiting on you, and the count beside it is what has had no answer.</div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-title">Where to answer</div>
+          <div class="help-card-body">The <strong>Messages</strong> tab on a student's panel holds the
+            thread for that student. <strong>Check in</strong> at the top of the panel starts one from
+            your side when you want to ask rather than wait.</div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-title">A message is not a session</div>
+          <div class="help-card-body">Threads carry their own visibility and are not advising records.
+            If an exchange amounted to advising, log it as a session of type <strong>Email</strong> so
+            it counts as one.</div>
+        </div>
+      </div>
+    </div>
 
     <div class="help-section">
       <div class="help-section-title">Editing and deleting sessions</div>
@@ -9783,12 +9883,18 @@ function renderCodebook(){
           <div class="help-ref-row"><div class="help-ref-key">All faculty</div><div class="help-ref-val">Every Telos advisor</div></div>
         </div>
         <div class="help-ref-card">
-          <div class="help-ref-hd">Status & follow-up</div>
-          <div class="help-ref-row"><div class="help-ref-key">Completed</div><div class="help-ref-val">Session took place as planned</div></div>
-          <div class="help-ref-row"><div class="help-ref-key">Rescheduled</div><div class="help-ref-val">Session was postponed to a later date</div></div>
-          <div class="help-ref-row"><div class="help-ref-key">No-show</div><div class="help-ref-val">Student did not attend without prior notice</div></div>
-          <div class="help-ref-row"><div class="help-ref-key">Follow-up: Yes</div><div class="help-ref-val">You have a pending action before the next session</div></div>
-          <div class="help-ref-row"><div class="help-ref-key">Follow-up: No</div><div class="help-ref-val">No immediate action needed on your end</div></div>
+          <div class="help-ref-hd">Follow-up <span class="help-ref-sub">required, starts at No</span></div>
+          <div class="help-ref-row"><div class="help-ref-key">Yes</div><div class="help-ref-val">Something is owed before the next session</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">No</div><div class="help-ref-val">Nothing outstanding on your end</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">How it clears</div><div class="help-ref-val">Only by logging a later session for that student</div></div>
+        </div>
+        <div class="help-ref-card">
+          <div class="help-ref-hd">Course session topics <span class="help-ref-sub">course advising only</span></div>
+          <div class="help-ref-row"><div class="help-ref-key">Assignment</div><div class="help-ref-val">A piece of set work</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">A concept</div><div class="help-ref-val">Something in the material itself</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Project</div><div class="help-ref-val">Project or portfolio work</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Exam</div><div class="help-ref-val">Preparation or a post mortem</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Taking the course</div><div class="help-ref-val">Whether to take it, stay in it, or how to work it</div></div>
         </div>
       </div>
     </div>
@@ -9798,7 +9904,8 @@ function renderCodebook(){
       <div class="help-ref-grid">
         <div class="help-ref-card">
           <div class="help-ref-hd">Major & program abbreviations</div>
-          <div class="help-ref-row"><div class="help-ref-key">DSA / DSAI</div><div class="help-ref-val">Data Science and AI — the program hosted by this portal</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">DSA / DSAI</div><div class="help-ref-val">Data Science and Artificial Intelligence</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">IF</div><div class="help-ref-val">Innovation Foundations — the first-year programme, advised centrally</div></div>
           <div class="help-ref-row"><div class="help-ref-key">HSS</div><div class="help-ref-val">Humanities and Social Sciences</div></div>
           <div class="help-ref-row"><div class="help-ref-key">NS</div><div class="help-ref-val">Natural Sciences</div></div>
           <div class="help-ref-row"><div class="help-ref-key">BI</div><div class="help-ref-val">Business Innovation</div></div>
@@ -9817,7 +9924,8 @@ function renderCodebook(){
           <div class="help-ref-row"><div class="help-ref-key">LOG-XXX</div><div class="help-ref-val">Advising session log ID, auto-assigned sequentially</div></div>
           <div class="help-ref-row"><div class="help-ref-key">Coverage rate</div><div class="help-ref-val">Percentage of assigned students who have had at least one session</div></div>
           <div class="help-ref-row"><div class="help-ref-key">Follow-up debt</div><div class="help-ref-val">Sessions marked follow-up required but not yet resolved</div></div>
-          <div class="help-ref-row"><div class="help-ref-key">Never met</div><div class="help-ref-val">Students with 0 sessions recorded this semester</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Never met</div><div class="help-ref-val">Students with no session ever recorded, not just this term</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">Advisor 1 / 2</div><div class="help-ref-val">Primary and secondary advisor. Access to a student record runs through Advisor 1</div></div>
         </div>
         <div class="help-ref-card">
           <div class="help-ref-hd">Academic program terms</div>
@@ -9835,11 +9943,16 @@ function renderCodebook(){
         </div>
         <div class="help-card">
           <div class="help-card-title">Separate what you said from what the student said</div>
-          <div class="help-card-body">Use the blue Discussion field for your perspective and the amber Concerns field for the student's voice. This distinction helps the Program Chair understand both sides of each conversation.</div>
+          <div class="help-card-body">Use the blue Discussion field for your perspective and the amber
+            Concerns field for the student's voice. Whoever advises this student next reads both, and the
+            two together are what makes a handover possible.</div>
         </div>
         <div class="help-card">
-          <div class="help-card-title">Always set the next meeting</div>
-          <div class="help-card-body">Students with no next meeting date set appear as alerts on the Overview page. Scheduling the next session before ending the current one keeps advising momentum going.</div>
+          <div class="help-card-title">Book the next one before you close the record</div>
+          <div class="help-card-body">The session form has no "next meeting" field &mdash; the date comes
+            from an actual booking. A student with nothing scheduled is counted as needing attention on
+            Overview, so use <strong>Request meeting</strong> on their panel while the conversation is
+            still fresh.</div>
         </div>
       </div>
     </div>
