@@ -926,9 +926,15 @@ tr.req-cant>td{opacity:.4;}
 .fp-foot{padding:9px 14px;background:var(--surface2);display:flex;align-items:center;gap:12px;}
 .fp-empty{padding:16px 14px;font-size:14px;color:var(--text3);line-height:1.6;}
 .btn-link{font-size:13.5px;font-weight:500;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;font-family:inherit;}
+/* .fsel is width:100% because on Meetings it sits in a column. Dropped into
+   the Overview card's flex row it takes the whole line and leaves the name and
+   the courses a word wide, so here it is sized to its own content and sent to
+   the right, where the Request button sits on the cards above it. */
+.ov-adv-body .fsel{width:auto;max-width:260px;flex:0 0 auto;margin-top:0;margin-left:auto;}
 @media (max-width:560px){.fp-two{grid-template-columns:1fr;}
   .ov-adv-body{flex-wrap:wrap;}
-  .ov-adv-body .btn-sm-teal{width:100%;margin-top:2px;}}
+  .ov-adv-body .btn-sm-teal{width:100%;margin-top:2px;}
+  .ov-adv-body .fsel{width:100%;max-width:none;margin-top:2px;margin-left:0;}}
 /* SETTINGS */
 .settings-section-divider{padding:6px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);display:flex;align-items:center;gap:6px;}
 .settings-field-row{display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);}
