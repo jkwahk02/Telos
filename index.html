@@ -3673,7 +3673,7 @@ function tsOfferings(list){
 }
 
 function ovTaughtCard(){
-  const hd = extra => `<div class="ov-card-hd">Students I have taught
+  const hd = extra => `<div class="ov-card-hd">Students I have taught in courses
     <span style="font-weight:400;color:var(--text3);">${extra}</span></div>`;
   if(TAUGHT.err)     return `<div class="ov-card" style="margin-top:12px;">${hd('')}<div class="ov-item"><div class="text-muted">Could not load: ${esc(TAUGHT.err)}</div></div></div>`;
   if(!TAUGHT.loaded) return `<div class="ov-card" style="margin-top:12px;">${hd('')}<div class="ov-item"><div class="text-muted">Loading…</div></div></div>`;
@@ -6143,8 +6143,29 @@ const AA = {
   off:    new Set(),          // advisor emails held out of this distribution
 };
 
-const AA_TARGET = 16;   // advisees a programme is willing to let one person carry
-const AA_SCALE  = 26;   // bar full width, so the target tick sits at 62%
+// What one advisor is expected to carry: the programme's students divided by
+// the advisors it has. Not a constant, because 16 was never a fact about
+// anybody - it was a round number that happened to suit a bench of three and a
+// roster of sixty-three, and it was wrong for every other programme on the
+// day it was written. Business Innovation has one advisor; telling him his
+// target is 16 when the programme has forty students describes nothing.
+//
+// Ceiling, so the number is reachable: sixty-four students across three
+// advisors is twenty-two each, not twenty-one and a remainder nobody holds.
+//
+// The bench here is aaBenchAll(), not aaBench(). Setting somebody aside is a
+// fact about this round; the target is a fact about the programme. Keeping it
+// steady is what lets the bars show what setting them aside costs, instead of
+// quietly raising everyone's target to hide it.
+function aaTarget(){
+  const n = aaBenchAll().length;
+  if(!n) return 0;
+  const inProgramme = students.filter(st => isCounted(st) &&
+    (aaHolds(st.major1) || aaHolds(st.major2) || aaHolds(st.minor))).length;
+  return Math.max(1, Math.ceil(inProgramme / n));
+}
+// Bar full width, so the target tick sits at 62% of it wherever the target is.
+function aaScale(){ return Math.max(1, Math.ceil(aaTarget() / 0.62)); }
 
 // The label is the rule. Each band names the condition a student meets and the
 // action it licenses, in that order and in the same words everywhere, so a
@@ -6468,11 +6489,12 @@ function aaLoadOf(f){
 }
 function aaTotalOf(f){ const l = aaLoadOf(f); return l.now + l.add; }
 
-// What a full load means for this advisor, this round. AA_TARGET is the
-// programme's ordinary answer; a chair who knows that one colleague is back
-// from leave in February, or that a new hire should start with two, types the
-// exception here. Every rule, bar and warning asks this function rather than
-// the constant, so one number moves all of them together - and rules 2 and 3,
+// What a full load means for this advisor, this round. aaTarget() is the
+// programme's ordinary answer - its students divided by its advisors; a chair
+// who knows that one colleague is back from leave in February, or that a new
+// hire should start with two, types the exception here. Every rule, bar and
+// warning asks this function rather than the target itself, so one number
+// moves all of them together - and rules 2 and 3,
 // which only ever consider somebody under their cap, start running again.
 //
 // Nothing here is written. It changes what Suggest is allowed to do before
@@ -6480,7 +6502,7 @@ function aaTotalOf(f){ const l = aaLoadOf(f); return l.now + l.add; }
 function aaCapOf(f){
   const e = typeof f === 'string' ? f : f.email;
   const v = AA.caps.get(e);
-  return Number.isFinite(v) ? v : AA_TARGET;
+  return Number.isFinite(v) ? v : aaTarget();
 }
 // Blank, nonsense, or the programme's own number all mean the same thing - no
 // exception for this person - so they all clear the entry rather than storing
@@ -6488,7 +6510,7 @@ function aaCapOf(f){
 // from never having typed.
 function aaSetCap(email, raw){
   const n = parseInt(raw, 10);
-  if(!Number.isFinite(n) || n < 0 || n === AA_TARGET) AA.caps.delete(email);
+  if(!Number.isFinite(n) || n < 0 || n === aaTarget()) AA.caps.delete(email);
   else AA.caps.set(email, Math.min(n, 99));
   renderOverview();
 }
@@ -6921,12 +6943,14 @@ function aaBenchHtml(){
   if(!bench.length) return `<div class="aa-empty"><div class="aa-empty-i mute">–</div>
     <h4>No advisors on file for this programme.</h4>
     <p>faculty_profiles lists nobody whose programme matches yours.</p></div>`;
+  // Once per render rather than once per advisor: both read the whole roster.
+  const scale = aaScale();
   return bench.map(f => {
     const {now, add} = aaLoadOf(f);
     const off = AA.off.has(f.email);
     const cap = aaCapOf(f), total = now + add, over = !off && total > cap;
-    const wNow = Math.min(100, now / AA_SCALE * 100);
-    const wAdd = Math.min(100 - wNow, add / AA_SCALE * 100);
+    const wNow = Math.min(100, now / scale * 100);
+    const wAdd = Math.min(100 - wNow, add / scale * 100);
     return `<div class="aa-fac ${off ? 'off' : add ? 'has' : ''}">
       <div class="aa-fhd">
         <div class="aa-fn">
@@ -6946,7 +6970,7 @@ function aaBenchHtml(){
       <div class="aa-lbar">
         <div class="aa-lnow" style="width:${wNow}%"></div>
         <div class="aa-ladd" style="width:${wAdd}%"></div>
-        <div class="aa-lcap" style="left:${Math.min(100, cap / AA_SCALE * 100)}%"></div>
+        <div class="aa-lcap" style="left:${Math.min(100, cap / scale * 100)}%"></div>
       </div>
       <div class="aa-lnum">
         <span>${f.pri} as Advisor 1 · ${f.sec} as Advisor 2</span>
@@ -7105,7 +7129,7 @@ function aaPage(b){
           ? `${aaBench().length} of ${aaBenchAll().length} in this round${
               AA.caps.size ? ` · ${AA.caps.size} cap${AA.caps.size === 1 ? '' : 's'} changed` : ''}
              <button class="aa-btn sm" onclick="aaResetBench()">Reset</button>`
-          : `load after staging, lightest first · target ${AA_TARGET}`}</span></div>
+          : `load after staging, lightest first · target ${aaTarget()}`}</span></div>
         <div class="aa-bench-list">${aaBenchHtml()}</div>
       </div>
     </div>
