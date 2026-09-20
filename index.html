@@ -6231,7 +6231,12 @@ function aaSlotHolder(r){
 function aaSlotOpen(r){
   const band = aaBandOf(r);
   if(band === 'none') return false;
-  if(band === 'own')  return true;
+  // First major. This used to return true on the strength of how the queue was
+  // built - it only ever carried students whose Advisor 1 was empty or interim,
+  // so there was nothing to ask. The queue now also carries students who need
+  // an Advisor 2 and already have an Advisor 1, so the question has to be asked
+  // rather than assumed. An interim hold is still open: it is a placeholder.
+  if(band === 'own') return !r.held_by_email || r.held_kind === 'interim';
   return !aaSlotHolder(r);
 }
 function aaIn(k){
@@ -6685,7 +6690,13 @@ function aaRowTag(r){
   // gave an advisor to last week - which is what made Apply look broken.
   const held2 = aaSlotHolder(r);
   if(held2) return `<span class="aa-tag tg-other">${esc(aaLastName(held2))} · Advisor 2</span>`;
-  if(r.held_by) return `<span class="aa-tag tg-other">${esc(aaLastName(r.held_by_email) || r.held_by)} · interim</span>`;
+  // Somebody holds Advisor 1. Which kind of hold it is decides whether this is
+  // still work: an interim placement is a gap waiting to be filled, a permanent
+  // one is a colleague who advises them. Calling both "interim" was harmless
+  // while the queue carried nothing but the first kind, and is a false
+  // statement now that it carries both.
+  if(r.held_by) return `<span class="aa-tag tg-other">${esc(aaLastName(r.held_by_email) || r.held_by)} · ${
+    r.held_kind === 'interim' ? 'interim' : 'Advisor 1'}</span>`;
   if((r.status || '').toLowerCase().includes('leave')) return `<span class="aa-tag tg-loa">On leave</span>`;
   // Nobody in the field this band writes. For a second major or a minor that
   // is all it says: their Advisor 1 is another chair's to give, and this page
