@@ -3675,9 +3675,15 @@ function tsOfferings(list){
 // ── advising history ─────────────────────────────────────────────────────
 //
 // Needs attention answers "who", in badges. This answers "how the year went":
-// one row per advisee, one column per term, the shade is how many sessions.
-// A student seen four times last spring and not since reads differently from
-// one seen once a month, and neither is visible in a count.
+// one row per advisee, one column per term, one block per meeting. A student
+// seen four times last spring and not since reads differently from one seen
+// once a month, and neither is visible in a count.
+//
+// Two things this had to get right, having got them wrong first time round.
+// A session another advisor logged is not a session with me, so the two are
+// different marks rather than one total. And the marks are blocks, not shaded
+// cells: a shaded numeric grid sat directly above the teaching matrix and read
+// as a second copy of it.
 //
 // Terms run Fall (September to February) and Spring (March to August), the
 // same halves the review cycle and the teaching records use.
@@ -3703,30 +3709,23 @@ function ciTermShort(t){
   const [k, y] = t.split(' ');
   return `'${y.slice(2)} ${k === 'Fall' ? 'Fall' : 'Spr'}`;
 }
-
-// Which band this student sits in for me - the Advisor Assignment page's
-// vocabulary. Undeclared students are not here: they are held by the
-// Innovation Foundations chair on an interim assignment and never handed on,
-// so no other advisor's list can contain one.
-const CI_BANDS = ['First major', 'Second major', 'Minor', 'Outside my programme'];
-function ciBandOf(s){
-  const mine = FACULTY_PROGRAMS || [];
-  if(s.major1 && mine.includes(s.major1)) return 'First major';
-  if(s.major2 && mine.includes(s.major2)) return 'Second major';
-  if(s.minor  && mine.includes(s.minor))  return 'Minor';
-  return 'Outside my programme';
+// 'C1' from 'Cohort 1 (2023)', falling back to the student number, which is
+// the entry year and is what the rest of the app groups on.
+function ciCohortTag(s){
+  const m = /Cohort (\d+)/.exec(s.cohort || '');
+  if(m) return 'C' + m[1];
+  const y = Number(String(s.id || '').slice(0, 4));
+  return y >= 2023 ? 'C' + (y - 2022) : '';
 }
 
-const CI_GROUPERS = {
-  cohort: { label:'Cohort',
-            of: s => s.cohort || 'Cohort not recorded',
-            cmp: (a, b) => a.localeCompare(b) },
-  band:   { label:'My role',
-            of: ciBandOf,
-            cmp: (a, b) => CI_BANDS.indexOf(a) - CI_BANDS.indexOf(b) },
-};
-let CI_GROUP = 'cohort';
-function ciSetGroup(k){ CI_GROUP = k; ciDraw(); }
+// Which slot I hold. Advisor 1 owns the record and the handover; Advisor 2 is
+// a second pair of eyes. That is the line worth drawing across this list -
+// four students I have not seen mean something different in each half.
+function ciSlotOf(s){
+  return (s.advisor1_email === FACULTY_EMAIL || s.advisor1 === FACULTY)
+    ? 'As Advisor 1' : 'As Advisor 2';
+}
+const CI_SLOTS = ['As Advisor 1', 'As Advisor 2'];
 
 function ovContactCard(){
   if(!myStudents().length) return '';
@@ -3734,13 +3733,6 @@ function ovContactCard(){
       <div class="ov-card-hd">Advising history
         <span style="font-weight:400;color:var(--text3);" id="ci-hd"></span></div>
       <div style="padding:14px 16px;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;">
-          <span class="flabel">Group by</span>
-          <button class="fchip${CI_GROUP === 'cohort' ? ' active' : ''}"
-            onclick="ciSetGroup('cohort')">Cohort</button>
-          <button class="fchip${CI_GROUP === 'band' ? ' active' : ''}"
-            onclick="ciSetGroup('band')">My role</button>
-        </div>
         <p style="font-size:14.5px;color:var(--text2);line-height:1.6;margin:0 0 12px;"
            id="ci-lede"></p>
         <div class="ov-cw" id="ci-mx"></div>
@@ -3754,11 +3746,6 @@ function ciMonths(from, to){
   return Math.round((new Date(to + 'T12:00:00') - new Date(from + 'T12:00:00'))
                     / 86400000 / 30.44);
 }
-// A cell, and the group line above it: sessions, then check-ins after a slash.
-function ciCellText(v, k){
-  if(!k) return v ? String(v) : '·';
-  return `${v} / ${k}`;
-}
 
 function ciDraw(){
   const box = document.getElementById('ci-mx');
@@ -3767,43 +3754,37 @@ function ciDraw(){
   const today = ymdLocal(facTodayDate());
   const view  = ciTermWindow();
 
-  // Per student: sessions and check-ins bucketed by term, and the date of the
-  // last of either. Sessions are counted whoever logged them - a session with
-  // the other advisor is still a term in which this student was seen.
+  // Per student: marks bucketed by term, and the date of the last contact of
+  // any kind. A session with the other advisor still means the student was
+  // seen, so it counts towards Last; it is simply not a session with me.
   const rows = myStudents().map(st => {
-    const sess = {}, chk = {};
+    const by = {};   // term -> { mine, other, chk }
+    const cell = t => (by[t] = by[t] || { mine:0, other:0, chk:0 });
     let last = '';
     realSessions().filter(x => x.studentId === st.id && x.date).forEach(x => {
-      const t = ciTermOf(x.date);
-      sess[t] = (sess[t] || 0) + 1;
+      cell(ciTermOf(x.date))[x.faculty === FACULTY_EMAIL ? 'mine' : 'other']++;
       if(x.date > last) last = x.date;
     });
     ((CONTACT.checkin && CONTACT.checkin[String(st.id)]) || []).forEach(d => {
-      const t = ciTermOf(d);
-      chk[t] = (chk[t] || 0) + 1;
+      cell(ciTermOf(d)).chk++;
       if(d > last) last = d;
     });
-    return { st, sess, chk, last, age: last ? ciMonths(last, today) : null };
+    const mine  = Object.values(by).reduce((n, c) => n + c.mine, 0);
+    const other = Object.values(by).reduce((n, c) => n + c.other, 0);
+    return { st, by, last, mine, other, tag: ciCohortTag(st), slot: ciSlotOf(st),
+             age: last ? ciMonths(last, today) : null };
   }).sort((a, b) => (a.last || '').localeCompare(b.last || '')
                  || a.st.name.localeCompare(b.st.name));
-
-  const g = CI_GROUPERS[CI_GROUP];
-  const names = [...new Set(rows.map(r => g.of(r.st)))].sort(g.cmp);
-  const groups = names.map(n => ({ name:n, rows: rows.filter(r => g.of(r.st) === n) }));
+  const groups = CI_SLOTS.map(n => ({ name:n, rows: rows.filter(r => r.slot === n) }))
+                         .filter(g => g.rows.length);
 
   const ink = ovVar('--text'), ink3 = ovVar('--text3');
-  const ln = ovVar('--border'), lnEm = ovVar('--border-em');
-  const sf = ovVar('--surface'), red = ovVar('--red');
-  const LBL = 210, RGT = 104, CW = 130, CH = 30, GH = 34, TOP = 62;
+  const ln = ovVar('--border'), blue = ovVar('--blue'), red = ovVar('--red');
+  const lnEm = ovVar('--border-em');
+  const LBL = 226, RGT = 90, CW = 130, CH = 30, GH = 34, TOP = 62;
+  const BW = 9, BP = 12, BH = 13, MAXB = 9;
   const W = LBL + view.length * CW + RGT + 14;
   const H = TOP + rows.length * CH + groups.length * GH + 12;
-
-  // The scale comes from the whole record, not from the three columns on
-  // screen: taking it from the view made a term of single sessions come out
-  // solid black, and the same cell changed colour when the window moved.
-  let MAX = 1;
-  rows.forEach(r => Object.values(r.sess).forEach(v => MAX = Math.max(MAX, v)));
-  const shade = v => 0.10 + 0.90 * (v / MAX);
 
   // The drawing keeps its own width rather than being stretched to the card:
   // three columns blown up to full width would change the size of every figure.
@@ -3822,55 +3803,55 @@ function ciDraw(){
     if(gi) svg.appendChild(ovEl('line', { x1:14, y1:y + 2, x2:W - 14, y2:y + 2,
       stroke:lnEm, 'stroke-width':1 }));
     const over = grp.rows.filter(r => !r.last || r.age >= 6).length;
-    const hd = ovEl('text', { x:LBL - 12, y:y + GH/2 + 6, 'text-anchor':'end',
+    const gh = ovEl('text', { x:LBL - 12, y:y + GH/2 + 6, 'text-anchor':'end',
       'font-size':15, 'font-weight':600, fill:ink, 'letter-spacing':'0.04em' });
-    hd.appendChild(ovEl('tspan', {}, grp.name.toUpperCase()));
-    hd.appendChild(ovEl('tspan', { fill:ink3, 'font-weight':400, 'font-size':14,
+    gh.appendChild(ovEl('tspan', {}, grp.name.toUpperCase()));
+    gh.appendChild(ovEl('tspan', { fill:ink3, 'font-weight':400, 'font-size':14,
       'font-family':'DM Mono, monospace', 'letter-spacing':'0' }, `  ${grp.rows.length}`));
-    svg.appendChild(hd);
-    view.forEach((t, j) => {
-      const v = grp.rows.reduce((n, r) => n + (r.sess[t] || 0), 0);
-      const k = grp.rows.reduce((n, r) => n + (r.chk[t]  || 0), 0);
-      svg.appendChild(ovEl('text', { x:LBL + j*CW + CW/2, y:y + GH/2 + 6,
-        'text-anchor':'middle', 'font-size':15, 'font-family':'DM Mono, monospace',
-        fill:ink3 }, ciCellText(v, k)));
-    });
-    // Said in words. A red '3!' sat here first and had to be looked up in the
-    // legend every time, which is the same as not being readable.
+    svg.appendChild(gh);
     if(over) svg.appendChild(ovEl('text', { x:LBL + view.length*CW + 12, y:y + GH/2 + 6,
       'font-size':14, 'font-family':'DM Mono, monospace', fill:red }, `${over} overdue`));
     y += GH;
 
     grp.rows.forEach(r => {
+      // The cohort rides with the name. The list is split by slot, not by
+      // cohort, and two nested groupings would be one too many.
       const nm = ovEl('text', { x:LBL - 12, y:y + CH/2, 'text-anchor':'end',
-        'dominant-baseline':'middle', 'font-size':16.5, fill:ink,
-        style:'cursor:pointer' }, r.st.name);
+        'dominant-baseline':'middle', 'font-size':16.5, fill:ink, style:'cursor:pointer' });
+      if(r.tag) nm.appendChild(ovEl('tspan', { fill:ink3, 'font-size':14,
+        'font-family':'DM Mono, monospace' }, `${r.tag}  `));
+      nm.appendChild(ovEl('tspan', {}, r.st.name));
       nm.addEventListener('click', () => goToStudent(r.st.id));
       svg.appendChild(nm);
 
       view.forEach((t, j) => {
-        const v = r.sess[t] || 0, k = r.chk[t] || 0, x = LBL + j*CW;
-        const lit = v && shade(v) > 0.55;
-        const cell = ovEl('g', {});
-        cell.appendChild(ovEl('rect', { x:x + 1, y:y + 1, width:CW - 2, height:CH - 2, rx:3,
-          fill: v ? ink : sf, 'fill-opacity': v ? shade(v) : 1,
-          stroke: v ? 'none' : ln, 'stroke-width':1 }));
-        const txt = ovEl('text', { x:x + CW/2, y:y + CH/2, 'text-anchor':'middle',
-          'dominant-baseline':'middle', 'font-size': (v || k) ? 17 : 15,
-          'font-family':'DM Mono, monospace', 'font-weight': v ? 500 : 400,
-          fill: v ? (lit ? '#fff' : ink) : ink3 });
-        if(k){
-          // Sessions lead; the check-in count follows the slash, lighter.
-          txt.appendChild(ovEl('tspan', {}, v ? String(v) : '0'));
-          txt.appendChild(ovEl('tspan', { 'fill-opacity': lit ? 0.75 : 0.6,
-            fill: lit ? '#fff' : ink, 'font-weight':400 }, ` / ${k}`));
-        } else {
-          txt.textContent = v ? String(v) : '·';
+        const x = LBL + j*CW, c = r.by[t] || { mine:0, other:0, chk:0 };
+        svg.appendChild(ovEl('line', { x1:x + 12, y1:y + CH - 3, x2:x + CW - 12, y2:y + CH - 3,
+          stroke:ln, 'stroke-width':1 }));
+        const marks = [].concat(
+          Array(c.mine).fill('mine'), Array(c.other).fill('other'), Array(c.chk).fill('chk'));
+        if(!marks.length){
+          svg.appendChild(ovEl('text', { x:x + 12, y:y + CH/2, 'dominant-baseline':'middle',
+            'font-size':15, 'font-family':'DM Mono, monospace', fill:ink3 }, '·'));
+          return;
         }
-        cell.appendChild(txt);
-        cell.appendChild(ovEl('title', {}, `${r.st.name} · ${ciTermShort(t)} · ${
-          v} session${v === 1 ? '' : 's'}${k ? `, ${k} check-in${k === 1 ? '' : 's'}` : ''}`));
-        svg.appendChild(cell);
+        const g = ovEl('g', {});
+        marks.slice(0, MAXB).forEach((k, n) => {
+          const bx = x + 12 + n * BP;
+          g.appendChild(k === 'chk'
+            ? ovEl('rect', { x:bx + 0.8, y:y + (CH - BH)/2 + 0.8, width:BW - 1.6,
+                             height:BH - 1.6, rx:1.6, fill:'none', stroke:ink3, 'stroke-width':1.5 })
+            : ovEl('rect', { x:bx, y:y + (CH - BH)/2, width:BW, height:BH, rx:2,
+                             fill: k === 'mine' ? blue : ink3 }));
+        });
+        if(marks.length > MAXB)
+          g.appendChild(ovEl('text', { x:x + 12 + MAXB*BP + 2, y:y + CH/2,
+            'dominant-baseline':'middle', 'font-size':13,
+            'font-family':'DM Mono, monospace', fill:ink3 }, `+${marks.length - MAXB}`));
+        g.appendChild(ovEl('title', {}, `${r.st.name} · ${ciTermShort(t)} · ${
+          c.mine} with me${c.other ? `, ${c.other} with another advisor` : ''}${
+          c.chk ? `, ${c.chk} check-in${c.chk === 1 ? '' : 's'}` : ''}`));
+        svg.appendChild(g);
       });
 
       svg.appendChild(ovEl('text', { x:LBL + view.length*CW + 12, y:y + CH/2,
@@ -3883,14 +3864,14 @@ function ciDraw(){
 
   box.innerHTML = ''; box.appendChild(svg);
 
-  const ramp = [1,2,3,4,5,6].map(i =>
-    `<span style="display:inline-block;width:22px;height:13px;background:${ink};opacity:${
-      shade(Math.round(MAX * i / 6)).toFixed(2)};"></span>`).join('');
+  const swatch = (fill, ring) => `<span style="display:inline-block;width:11px;height:13px;`
+    + `border-radius:2px;${ring ? `border:1.6px solid ${ring};` : `background:${fill};`}`
+    + `margin-right:7px;vertical-align:-2px;"></span>`;
   const lg = document.getElementById('ci-lg');
   if(lg) lg.innerHTML =
-    `<span class="ov-i" style="gap:8px;">sessions&nbsp;1${ramp}${MAX}</span>`
-    + `<span class="ov-i"><span style="font-family:'DM Mono',monospace;color:${ink};`
-    + `margin-right:7px;">2 / 1</span>two sessions and one check-in</span>`
+    `<span class="ov-i">${swatch(blue)}session with me</span>`
+    + `<span class="ov-i">${swatch(ink3)}session with another advisor</span>`
+    + `<span class="ov-i">${swatch(null, ink3)}check-in I sent</span>`
     + `<span class="ov-i"><span style="font-family:'DM Mono',monospace;color:${red};`
     + `margin-right:7px;">3 overdue</span>never met, or no contact in six months</span>`
     + (CONTACT.checkin ? '' :
@@ -3899,18 +3880,19 @@ function ciDraw(){
 
   const never = rows.filter(r => !r.last).length;
   const stale = rows.filter(r => r.last && r.age >= 6).length;
-  const sess  = rows.reduce((n, r) => n + Object.values(r.sess).reduce((m, v) => m + v, 0), 0);
-  const hd2 = document.getElementById('ci-hd');
-  if(hd2) hd2.textContent = `${rows.length} advisee${rows.length === 1 ? '' : 's'} · ${
-    sess} session${sess === 1 ? '' : 's'}`;
+  const mine  = rows.reduce((n, r) => n + r.mine, 0);
+  const all   = rows.reduce((n, r) => n + r.mine + r.other, 0);
+  const hd = document.getElementById('ci-hd');
+  if(hd) hd.textContent = `${rows.length} advisee${rows.length === 1 ? '' : 's'} · ${
+    all} session${all === 1 ? '' : 's'}, ${mine} with me`;
   const lede = document.getElementById('ci-lede');
   if(lede) lede.innerHTML =
-    `Shade is how many sessions that term; a second figure after the slash is check-ins. `
-    + `Inside each group the longest out of contact comes first. The columns are this term and `
-    + `the two before it; <b>Last</b> is measured against the whole record, so a student with an `
-    + `empty row may still show a figure. ${never} ${never === 1 ? 'has' : 'have'} never been met `
-    + `and ${stale} ${stale === 1 ? 'has' : 'have'} been out of contact over six months. `
-    + `Click a name to open the student.`;
+    `Split by the slot I hold, longest out of contact first inside each. The columns are this `
+    + `term and the two `
+    + `before it; <b>Last</b> is measured against the whole record and counts a session with `
+    + `either advisor, so a student with an empty row may still show a figure. ${never} `
+    + `${never === 1 ? 'has' : 'have'} never been met and ${stale} ${stale === 1 ? 'has' : 'have'} `
+    + `been out of contact over six months. Click a name to open the student.`;
 }
 
 function ovTaughtCard(){
