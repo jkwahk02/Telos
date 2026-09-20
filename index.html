@@ -3878,21 +3878,19 @@ function ciDraw(){
        `<span class="ov-i" style="flex:0 0 100%;">Check-ins could not be loaded, so the grid`
        + ` shows logged sessions only.</span>`);
 
-  const never = rows.filter(r => !r.last).length;
-  const stale = rows.filter(r => r.last && r.age >= 6).length;
-  const mine  = rows.reduce((n, r) => n + r.mine, 0);
-  const all   = rows.reduce((n, r) => n + r.mine + r.other, 0);
+  const mine = rows.reduce((n, r) => n + r.mine, 0);
+  const all  = rows.reduce((n, r) => n + r.mine + r.other, 0);
   const hd = document.getElementById('ci-hd');
   if(hd) hd.textContent = `${rows.length} advisee${rows.length === 1 ? '' : 's'} · ${
     all} session${all === 1 ? '' : 's'}, ${mine} with me`;
+  // The one thing the drawing cannot say for itself: why a row with no blocks
+  // still carries a figure. Everything else was a caption for what is already
+  // on screen - the column heads name the terms, the group lines carry their
+  // own counts, and the order is visible in the column it is sorted on.
   const lede = document.getElementById('ci-lede');
   if(lede) lede.innerHTML =
-    `Split by the slot I hold, longest out of contact first inside each. The columns are this `
-    + `term and the two `
-    + `before it; <b>Last</b> is measured against the whole record and counts a session with `
-    + `either advisor, so a student with an empty row may still show a figure. ${never} `
-    + `${never === 1 ? 'has' : 'have'} never been met and ${stale} ${stale === 1 ? 'has' : 'have'} `
-    + `been out of contact over six months. Click a name to open the student.`;
+    `<b>Last</b> counts either advisor's sessions over the whole record, `
+    + `so an empty row can still show a figure.`;
 }
 
 function ovTaughtCard(){
@@ -3950,9 +3948,13 @@ function tsDraw(){
   });
   const shade = v => 0.10 + 0.90 * (v / MAX);
 
-  // No max-width: .ov-cw makes it fill the column the way the Major
-  // Declarations charts do, and the type below is sized for that scale.
-  const svg = ovEl('svg', { viewBox:`0 0 ${W} ${H}`, width:'100%' });
+  // Capped at its own width. .ov-cw stretches an svg to the column, and this
+  // one's type was sized for that, so on a wide screen the whole card grew
+  // past everything around it - at 1500px the cell figures set at 26px against
+  // 17px body text. It still scales down on a narrow column; it just stops
+  // growing once there is room for it.
+  const svg = ovEl('svg', { viewBox:`0 0 ${W} ${H}`,
+    style:`width:100%;max-width:${W}px;` });
   const head = (x, w, label) => svg.appendChild(ovEl('text', { x:x + w/2, y:22,
     'text-anchor':'middle', 'font-size':15.5, 'font-weight':600, fill:ink3,
     'letter-spacing':'0.06em' }, label));
