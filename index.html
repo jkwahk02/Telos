@@ -133,6 +133,15 @@ button,input,select,textarea{font-family:inherit;}
   color:var(--text);margin-bottom:4px;}
 .ov-hs.bad b{color:var(--red);}
 .ov-cw{overflow-x:auto;}
+/* Advising history: names and Last are fixed panels either side of a grid that
+   scrolls, so two years of history can sit off-screen without taking the names
+   with it. Each panel is drawn at its own pixel size, never stretched. */
+.ci-wrap{display:flex;align-items:flex-start;}
+.ci-wrap>div{flex:none;}
+.ci-wrap svg{display:block;height:auto;}
+/* Specific enough to beat .ci-wrap>div above it: without this the scroller
+   keeps its full width, and the Last panel is pushed out of the card. */
+.ci-wrap>.ci-scroll{flex:1 1 auto;min-width:0;overflow-x:auto;}
 .ov-cw svg{display:block;width:100%;min-width:620px;height:auto;}
 .ov-lg{display:flex;gap:20px;flex-wrap:wrap;font-size:15.5px;color:var(--text2);margin:12px 0;}
 .ov-i{display:inline-flex;align-items:center;}
@@ -3683,12 +3692,24 @@ function tsOfferings(list){
 // the answer moves with whether July and August belong to spring or to the
 // break - and it is a question this card does not have to answer. A month is
 // a month.
-const CI_MONTHS = 18;                // eighteen columns, oldest first
+//
+// The grid runs back to the oldest meeting on record and scrolls, opening at
+// the right where this month is. Names and Last sit outside the scroller in
+// panels of their own, so scrolling back two years does not take the names
+// with it.
+const CI_MIN_MONTHS = 12;            // never fewer, however new the roster is
 const CI_MON3 = ['Jan','Feb','Mar','Apr','May','Jun',
                  'Jul','Aug','Sep','Oct','Nov','Dec'];
-function ciMonthWindow(){
-  const t = facTodayDate(), out = [];
-  for(let i = CI_MONTHS - 1; i >= 0; i--){
+function ciMonthsBack(from){
+  const t = facTodayDate();
+  return (t.getFullYear() - Number(from.slice(0, 4))) * 12
+       + (t.getMonth() + 1 - Number(from.slice(5, 7)));
+}
+function ciMonthWindow(oldest){
+  const t = facTodayDate();
+  const n = Math.max(CI_MIN_MONTHS, (oldest ? ciMonthsBack(oldest) : 0) + 1);
+  const out = [];
+  for(let i = n - 1; i >= 0; i--){
     const d = new Date(t.getFullYear(), t.getMonth() - i, 1);
     out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   }
@@ -3722,7 +3743,11 @@ function ovContactCard(){
       <div style="padding:14px 16px;">
         <p style="font-size:14.5px;color:var(--text2);line-height:1.6;margin:0 0 12px;"
            id="ci-lede"></p>
-        <div class="ov-cw" id="ci-mx"></div>
+        <div class="ci-wrap">
+          <div id="ci-names"></div>
+          <div class="ci-scroll" id="ci-mx"></div>
+          <div id="ci-last"></div>
+        </div>
       </div>
       <div style="padding:0 16px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:5px 20px;" id="ci-lg"></div>
     </div>`;
@@ -3739,18 +3764,18 @@ function ciDraw(){
   if(!box) return;
   loadCheckinDates();
   const today = ymdLocal(facTodayDate());
-  const view  = ciMonthWindow();
 
   // Per student: marks bucketed by month, and the date of the last contact of
   // any kind. A session with the other advisor still means the student was
   // seen, so it counts towards Last; it is simply not a session with me.
+  let oldest = '';
   const rows = myStudents().map(st => {
     const by = {};   // 'YYYY-MM' -> [{ kind, date }]
     let last = '', mine = 0, other = 0;
     const put = (d, kind) => {
-      const k = d.slice(0, 7);
-      (by[k] = by[k] || []).push({ kind, date:d });
+      (by[d.slice(0, 7)] = by[d.slice(0, 7)] || []).push({ kind, date:d });
       if(d > last) last = d;
+      if(!oldest || d < oldest) oldest = d;
     };
     realSessions().filter(x => x.studentId === st.id && x.date).forEach(x => {
       const k = x.faculty === FACULTY_EMAIL ? 'mine' : 'other';
@@ -3764,37 +3789,37 @@ function ciDraw(){
                  || a.st.name.localeCompare(b.st.name));
   const groups = CI_SLOTS.map(n => ({ name:n, rows: rows.filter(r => r.slot === n) }))
                          .filter(g => g.rows.length);
+  const view = ciMonthWindow(oldest);
 
   const ink = ovVar('--text'), ink3 = ovVar('--text3'), ln = ovVar('--border');
   const lnEm = ovVar('--border-em'), blue = ovVar('--blue');
   const red = ovVar('--red'), amber = ovVar('--amber-b');
-  // Wide enough that a month holding four meetings still draws four marks.
-  // They were collapsed into one mark with a count at CW = 30, which is the
-  // one thing this card is for: a meeting is a mark.
   const LBL = 226, RGT = 90, CW = 50, CH = 30, GH = 34, TOP = 70;
   const MK = 10, MP = 12, MAXM = 4;
-  const W = LBL + view.length * CW + RGT + 14;
+  const GW = view.length * CW;
   const H = TOP + rows.length * CH + groups.length * GH + 12;
 
-  // The drawing keeps its own width rather than being stretched to the column:
-  // eighteen columns blown up to full width would change the size of every
-  // figure on the page, which is what went wrong on the card below this one.
-  const svg = ovEl('svg', { viewBox:`0 0 ${W} ${H}`,
-    style:`width:100%;max-width:${W}px;min-width:0;` });
-  svg.appendChild(ovEl('text', { x:LBL - 12, y:34, 'text-anchor':'end', 'font-size':15.5,
+  // Three panels on one set of y coordinates: names, the scrolling grid, Last.
+  // Each is drawn at its own size rather than stretched, so the type stays put
+  // whatever the column does.
+  const pane = (w) => ovEl('svg', { viewBox:`0 0 ${w} ${H}`,
+    width:w, height:H, style:`width:${w}px;height:${H}px;` });
+  const sName = pane(LBL), sGrid = pane(GW), sLast = pane(RGT);
+
+  sName.appendChild(ovEl('text', { x:LBL - 12, y:34, 'text-anchor':'end', 'font-size':15.5,
     'font-weight':600, fill:ink3, 'letter-spacing':'0.06em' }, 'MY ADVISEE'));
-  svg.appendChild(ovEl('text', { x:LBL + view.length*CW + 12, y:34, 'font-size':15.5,
+  sLast.appendChild(ovEl('text', { x:12, y:34, 'font-size':15.5,
     'font-weight':600, fill:ink3, 'letter-spacing':'0.06em' }, 'LAST'));
 
   // Two header rows: the year, written once over its January and once over the
   // first column so the left edge is never unlabelled, then the month.
   view.forEach((ym, j) => {
-    const x = LBL + j*CW, jan = ym.slice(5) === '01';
-    if(jan && j) svg.appendChild(ovEl('line', { x1:x, y1:40, x2:x, y2:H - 8,
+    const x = j*CW, jan = ym.slice(5) === '01';
+    if(jan && j) sGrid.appendChild(ovEl('line', { x1:x, y1:40, x2:x, y2:H - 8,
       stroke:lnEm, 'stroke-width':1 }));
-    if(jan || !j) svg.appendChild(ovEl('text', { x:x + 4, y:30, 'font-size':13.5,
+    if(jan || !j) sGrid.appendChild(ovEl('text', { x:x + 4, y:30, 'font-size':13.5,
       'font-weight':600, 'font-family':'DM Mono, monospace', fill:ink3 }, ym.slice(0, 4)));
-    svg.appendChild(ovEl('text', { x:x + CW/2, y:56, 'text-anchor':'middle', 'font-size':12.5,
+    sGrid.appendChild(ovEl('text', { x:x + CW/2, y:56, 'text-anchor':'middle', 'font-size':12.5,
       'font-family':'DM Mono, monospace', fill:ink3 }, CI_MON3[Number(ym.slice(5)) - 1]));
   });
 
@@ -3806,25 +3831,31 @@ function ciDraw(){
   const cj = view.indexOf(ymdLocal(cut).slice(0, 7));
   if(cj >= 0){
     const dim = new Date(cut.getFullYear(), cut.getMonth() + 1, 0).getDate();
-    const cx = LBL + (cj + (cut.getDate() - 1) / dim) * CW;
-    svg.appendChild(ovEl('line', { x1:cx, y1:40, x2:cx, y2:H - 8, stroke:amber,
+    const cx = (cj + (cut.getDate() - 1) / dim) * CW;
+    sGrid.appendChild(ovEl('line', { x1:cx, y1:40, x2:cx, y2:H - 8, stroke:amber,
       'stroke-width':1.4, 'stroke-dasharray':'4 3' }));
-    svg.appendChild(ovEl('text', { x:cx, y:16, 'text-anchor':'middle', 'font-size':13,
+    sGrid.appendChild(ovEl('text', { x:cx, y:16, 'text-anchor':'middle', 'font-size':13,
       fill:amber }, '6 months'));
   }
 
   let y = TOP;
   groups.forEach((grp, gi) => {
-    if(gi) svg.appendChild(ovEl('line', { x1:14, y1:y + 2, x2:W - 14, y2:y + 2,
-      stroke:lnEm, 'stroke-width':1 }));
+    if(gi){
+      sName.appendChild(ovEl('line', { x1:14, y1:y + 2, x2:LBL, y2:y + 2,
+        stroke:lnEm, 'stroke-width':1 }));
+      sGrid.appendChild(ovEl('line', { x1:0, y1:y + 2, x2:GW, y2:y + 2,
+        stroke:lnEm, 'stroke-width':1 }));
+      sLast.appendChild(ovEl('line', { x1:0, y1:y + 2, x2:RGT - 14, y2:y + 2,
+        stroke:lnEm, 'stroke-width':1 }));
+    }
     const over = grp.rows.filter(r => !r.last || r.age >= 6).length;
     const gh = ovEl('text', { x:LBL - 12, y:y + GH/2 + 6, 'text-anchor':'end',
       'font-size':15, 'font-weight':600, fill:ink, 'letter-spacing':'0.04em' });
     gh.appendChild(ovEl('tspan', {}, grp.name.toUpperCase()));
     gh.appendChild(ovEl('tspan', { fill:ink3, 'font-weight':400, 'font-size':14,
       'font-family':'DM Mono, monospace', 'letter-spacing':'0' }, `  ${grp.rows.length}`));
-    svg.appendChild(gh);
-    if(over) svg.appendChild(ovEl('text', { x:LBL + view.length*CW + 12, y:y + GH/2 + 6,
+    sName.appendChild(gh);
+    if(over) sLast.appendChild(ovEl('text', { x:12, y:y + GH/2 + 6,
       'font-size':14, 'font-family':'DM Mono, monospace', fill:red }, `${over} overdue`));
     y += GH;
 
@@ -3837,16 +3868,16 @@ function ciDraw(){
         'font-family':'DM Mono, monospace' }, `${r.tag}  `));
       nm.appendChild(ovEl('tspan', {}, r.st.name));
       nm.addEventListener('click', () => goToStudent(r.st.id));
-      svg.appendChild(nm);
+      sName.appendChild(nm);
       // One rule the width of the row, so an empty month is a gap in a line
       // rather than a blank the eye has to measure.
-      svg.appendChild(ovEl('line', { x1:LBL + 4, y1:y + CH - 3,
-        x2:LBL + view.length*CW - 4, y2:y + CH - 3, stroke:ln, 'stroke-width':1 }));
+      sGrid.appendChild(ovEl('line', { x1:4, y1:y + CH - 3, x2:GW - 4, y2:y + CH - 3,
+        stroke:ln, 'stroke-width':1 }));
 
       view.forEach((ym, j) => {
         const here = r.by[ym];
         if(!here || !here.length) return;
-        const x = LBL + j*CW;
+        const x = j*CW;
         // One mark per meeting, the set centred in its month, so a single
         // meeting sits on the column's midline and a busy month spreads either
         // side of it without reaching into the next month.
@@ -3868,12 +3899,12 @@ function ciDraw(){
         const word = { mine:'session with me', other:'session with another advisor',
                        chk:'check-in' };
         g.appendChild(ovEl('title', {}, `${r.st.name} · ${ciMonthLabel(ym)} · `
-          + here.slice().sort((a, b) => a.date.localeCompare(b.date))
+          + list.slice().sort((a, b) => a.date.localeCompare(b.date))
                 .map(m => `${word[m.kind]} on the ${Number(m.date.slice(8))}`).join(', ')));
-        svg.appendChild(g);
+        sGrid.appendChild(g);
       });
 
-      svg.appendChild(ovEl('text', { x:LBL + view.length*CW + 12, y:y + CH/2,
+      sLast.appendChild(ovEl('text', { x:12, y:y + CH/2,
         'dominant-baseline':'middle', 'font-size':15.5, 'font-family':'DM Mono, monospace',
         fill: (r.age === null || r.age >= 6) ? red : ink },
         r.age === null ? 'never' : `${r.age} mo`));
@@ -3881,7 +3912,14 @@ function ciDraw(){
     });
   });
 
-  box.innerHTML = ''; box.appendChild(svg);
+  const names = document.getElementById('ci-names');
+  const lastc = document.getElementById('ci-last');
+  names.innerHTML = ''; names.appendChild(sName);
+  box.innerHTML   = ''; box.appendChild(sGrid);
+  lastc.innerHTML = ''; lastc.appendChild(sLast);
+  // Opens on this month. The left end is two years of history nobody needs to
+  // see first, and scrolling there is the deliberate act.
+  box.scrollLeft = box.scrollWidth;
 
   const swatch = (fill, ring) => `<span style="display:inline-block;width:11px;height:12px;`
     + `border-radius:2px;${ring ? `border:1.6px solid ${ring};` : `background:${fill};`}`
@@ -3902,14 +3940,14 @@ function ciDraw(){
   const hd = document.getElementById('ci-hd');
   if(hd) hd.textContent = `${rows.length} advisee${rows.length === 1 ? '' : 's'} · ${
     all} session${all === 1 ? '' : 's'}, ${mine} with me`;
-  // The one thing the drawing cannot say for itself: why a row with no marks
-  // still carries a figure. Everything else is already on screen - the header
-  // names the months, the group lines carry their own counts, and the order is
-  // visible in the column it is sorted on.
+  // Two things the drawing cannot say for itself: that Last is not only my own
+  // meetings, and that there is more of the grid off to the left. Everything
+  // else is already on screen - the header names the months, the group lines
+  // carry their own counts, and the order is visible in the column it sorts on.
   const lede = document.getElementById('ci-lede');
-  if(lede) lede.innerHTML =
-    `<b>Last</b> counts either advisor's sessions over the whole record, `
-    + `so an empty row can still show a figure.`;
+  if(lede) lede.innerHTML = `<b>Last</b> counts either advisor's sessions.`
+    + (box.scrollWidth > box.clientWidth + 1
+        ? ` Opens on this month; scroll left for the ${view.length} months on record.` : '');
 }
 
 function ovTaughtCard(){
