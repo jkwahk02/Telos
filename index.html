@@ -3698,6 +3698,8 @@ function tsOfferings(list){
 // panels of their own, so scrolling back two years does not take the names
 // with it.
 const CI_MIN_MONTHS = 12;            // never fewer, however new the roster is
+const CI_SHOW = 18;                  // months the available width is divided among
+const CI_CW_MIN = 34, CI_CW_MAX = 96;
 const CI_MON3 = ['Jan','Feb','Mar','Apr','May','Jun',
                  'Jul','Aug','Sep','Oct','Nov','Dec'];
 function ciMonthsBack(from){
@@ -3759,9 +3761,24 @@ function ciMonths(from, to){
                     / 86400000 / 30.44);
 }
 
+// The column width is measured, so the drawing has to be redone when the
+// measurement changes. Registered once, debounced, and a no-op when the card
+// is not on screen.
+let ciResizeBound = false;
+function ciWatchResize(){
+  if(ciResizeBound) return;
+  ciResizeBound = true;
+  let t = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(t);
+    t = setTimeout(() => { if(document.getElementById('ci-mx')) ciDraw(); }, 150);
+  });
+}
+
 function ciDraw(){
   const box = document.getElementById('ci-mx');
   if(!box) return;
+  ciWatchResize();
   loadCheckinDates();
   const today = ymdLocal(facTodayDate());
 
@@ -3794,8 +3811,20 @@ function ciDraw(){
   const ink = ovVar('--text'), ink3 = ovVar('--text3'), ln = ovVar('--border');
   const lnEm = ovVar('--border-em'), blue = ovVar('--blue');
   const red = ovVar('--red'), amber = ovVar('--amber-b');
-  const LBL = 226, RGT = 90, CW = 50, CH = 30, GH = 34, TOP = 70;
-  const MK = 10, MP = 12, MAXM = 4;
+  const LBL = 226, RGT = 90, CH = 30, GH = 34, TOP = 70;
+  // A month is the width left over divided by the months meant to be on screen,
+  // so the grid fills the card instead of ending wherever a fixed 50px landed.
+  // The mark follows the column rather than the column being built around a
+  // fixed mark. Clamped at both ends: below 34 the three-letter month label
+  // stops fitting, and above 96 a sparse year turns into bunting.
+  const avail = Math.max(0, (box.parentElement ? box.parentElement.clientWidth : 0)
+                            - LBL - RGT);
+  const shown = Math.min(view.length, CI_SHOW);
+  const CW = (avail && shown)
+    ? Math.max(CI_CW_MIN, Math.min(CI_CW_MAX, Math.floor(avail / shown))) : 50;
+  const MK = Math.max(8, Math.min(16, Math.round(CW * 0.20)));
+  const MP = MK + 2;
+  const MAXM = Math.max(1, Math.floor((CW - 4 - MK) / MP) + 1);
   const GW = view.length * CW;
   const H = TOP + rows.length * CH + groups.length * GH + 12;
 
