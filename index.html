@@ -3672,6 +3672,247 @@ function tsOfferings(list){
     a.base.localeCompare(b.base) || tsKey(b.term) - tsKey(a.term) || a.sec.localeCompare(b.sec));
 }
 
+// ── advising history ─────────────────────────────────────────────────────
+//
+// Needs attention answers "who", in badges. This answers "how the year went":
+// one row per advisee, one column per term, the shade is how many sessions.
+// A student seen four times last spring and not since reads differently from
+// one seen once a month, and neither is visible in a count.
+//
+// Terms run Fall (September to February) and Spring (March to August), the
+// same halves the review cycle and the teaching records use.
+function ciTermOf(d){
+  const y = Number(d.slice(0, 4)), m = Number(d.slice(5, 7));
+  if(m >= 9) return `Fall ${y}`;
+  if(m <= 2) return `Fall ${y - 1}`;
+  return `Spring ${y}`;
+}
+// The current term and the two before it. Anything older is what Last is for.
+const CI_TERMS = 3;
+function ciTermWindow(){
+  const t = facTodayDate(), y = t.getFullYear(), m = t.getMonth() + 1;
+  let cur = m >= 9 ? { k:'Fall', y } : m <= 2 ? { k:'Fall', y:y - 1 } : { k:'Spring', y };
+  const out = [];
+  for(let i = 0; i < CI_TERMS; i++){
+    out.unshift(`${cur.k} ${cur.y}`);
+    cur = cur.k === 'Fall' ? { k:'Spring', y:cur.y } : { k:'Fall', y:cur.y - 1 };
+  }
+  return out;
+}
+function ciTermShort(t){
+  const [k, y] = t.split(' ');
+  return `'${y.slice(2)} ${k === 'Fall' ? 'Fall' : 'Spr'}`;
+}
+
+// Which band this student sits in for me - the Advisor Assignment page's
+// vocabulary. Undeclared students are not here: they are held by the
+// Innovation Foundations chair on an interim assignment and never handed on,
+// so no other advisor's list can contain one.
+const CI_BANDS = ['First major', 'Second major', 'Minor', 'Outside my programme'];
+function ciBandOf(s){
+  const mine = FACULTY_PROGRAMS || [];
+  if(s.major1 && mine.includes(s.major1)) return 'First major';
+  if(s.major2 && mine.includes(s.major2)) return 'Second major';
+  if(s.minor  && mine.includes(s.minor))  return 'Minor';
+  return 'Outside my programme';
+}
+
+const CI_GROUPERS = {
+  cohort: { label:'Cohort',
+            of: s => s.cohort || 'Cohort not recorded',
+            cmp: (a, b) => a.localeCompare(b) },
+  band:   { label:'My role',
+            of: ciBandOf,
+            cmp: (a, b) => CI_BANDS.indexOf(a) - CI_BANDS.indexOf(b) },
+};
+let CI_GROUP = 'cohort';
+function ciSetGroup(k){ CI_GROUP = k; ciDraw(); }
+
+function ovContactCard(){
+  if(!myStudents().length) return '';
+  return `<div class="ov-card" style="margin-top:12px;">
+      <div class="ov-card-hd">Advising history
+        <span style="font-weight:400;color:var(--text3);" id="ci-hd"></span></div>
+      <div style="padding:14px 16px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;">
+          <span class="flabel">Group by</span>
+          <button class="fchip${CI_GROUP === 'cohort' ? ' active' : ''}"
+            onclick="ciSetGroup('cohort')">Cohort</button>
+          <button class="fchip${CI_GROUP === 'band' ? ' active' : ''}"
+            onclick="ciSetGroup('band')">My role</button>
+        </div>
+        <p style="font-size:14.5px;color:var(--text2);line-height:1.6;margin:0 0 12px;"
+           id="ci-lede"></p>
+        <div class="ov-cw" id="ci-mx"></div>
+      </div>
+      <div style="padding:0 16px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:5px 20px;" id="ci-lg"></div>
+    </div>`;
+}
+
+// Months between two YYYY-MM-DD dates, rounded, for the Last column.
+function ciMonths(from, to){
+  return Math.round((new Date(to + 'T12:00:00') - new Date(from + 'T12:00:00'))
+                    / 86400000 / 30.44);
+}
+// A cell, and the group line above it: sessions, then check-ins after a slash.
+function ciCellText(v, k){
+  if(!k) return v ? String(v) : '·';
+  return `${v} / ${k}`;
+}
+
+function ciDraw(){
+  const box = document.getElementById('ci-mx');
+  if(!box) return;
+  loadCheckinDates();
+  const today = ymdLocal(facTodayDate());
+  const view  = ciTermWindow();
+
+  // Per student: sessions and check-ins bucketed by term, and the date of the
+  // last of either. Sessions are counted whoever logged them - a session with
+  // the other advisor is still a term in which this student was seen.
+  const rows = myStudents().map(st => {
+    const sess = {}, chk = {};
+    let last = '';
+    realSessions().filter(x => x.studentId === st.id && x.date).forEach(x => {
+      const t = ciTermOf(x.date);
+      sess[t] = (sess[t] || 0) + 1;
+      if(x.date > last) last = x.date;
+    });
+    ((CONTACT.checkin && CONTACT.checkin[String(st.id)]) || []).forEach(d => {
+      const t = ciTermOf(d);
+      chk[t] = (chk[t] || 0) + 1;
+      if(d > last) last = d;
+    });
+    return { st, sess, chk, last, age: last ? ciMonths(last, today) : null };
+  }).sort((a, b) => (a.last || '').localeCompare(b.last || '')
+                 || a.st.name.localeCompare(b.st.name));
+
+  const g = CI_GROUPERS[CI_GROUP];
+  const names = [...new Set(rows.map(r => g.of(r.st)))].sort(g.cmp);
+  const groups = names.map(n => ({ name:n, rows: rows.filter(r => g.of(r.st) === n) }));
+
+  const ink = ovVar('--text'), ink3 = ovVar('--text3');
+  const ln = ovVar('--border'), lnEm = ovVar('--border-em');
+  const sf = ovVar('--surface'), red = ovVar('--red');
+  const LBL = 210, RGT = 104, CW = 130, CH = 30, GH = 34, TOP = 62;
+  const W = LBL + view.length * CW + RGT + 14;
+  const H = TOP + rows.length * CH + groups.length * GH + 12;
+
+  // The scale comes from the whole record, not from the three columns on
+  // screen: taking it from the view made a term of single sessions come out
+  // solid black, and the same cell changed colour when the window moved.
+  let MAX = 1;
+  rows.forEach(r => Object.values(r.sess).forEach(v => MAX = Math.max(MAX, v)));
+  const shade = v => 0.10 + 0.90 * (v / MAX);
+
+  // The drawing keeps its own width rather than being stretched to the card:
+  // three columns blown up to full width would change the size of every figure.
+  const svg = ovEl('svg', { viewBox:`0 0 ${W} ${H}`,
+    style:`width:100%;max-width:${W}px;min-width:0;` });
+  svg.appendChild(ovEl('text', { x:LBL - 12, y:26, 'text-anchor':'end', 'font-size':15.5,
+    'font-weight':600, fill:ink3, 'letter-spacing':'0.06em' }, 'MY ADVISEE'));
+  svg.appendChild(ovEl('text', { x:LBL + view.length*CW + 12, y:26, 'font-size':15.5,
+    'font-weight':600, fill:ink3, 'letter-spacing':'0.06em' }, 'LAST'));
+  view.forEach((t, j) => svg.appendChild(ovEl('text', { x:LBL + j*CW + CW/2, y:48,
+    'text-anchor':'middle', 'font-size':16, 'font-family':'DM Mono, monospace',
+    fill:ink3, 'font-weight':600 }, ciTermShort(t))));
+
+  let y = TOP;
+  groups.forEach((grp, gi) => {
+    if(gi) svg.appendChild(ovEl('line', { x1:14, y1:y + 2, x2:W - 14, y2:y + 2,
+      stroke:lnEm, 'stroke-width':1 }));
+    const over = grp.rows.filter(r => !r.last || r.age >= 6).length;
+    const hd = ovEl('text', { x:LBL - 12, y:y + GH/2 + 6, 'text-anchor':'end',
+      'font-size':15, 'font-weight':600, fill:ink, 'letter-spacing':'0.04em' });
+    hd.appendChild(ovEl('tspan', {}, grp.name.toUpperCase()));
+    hd.appendChild(ovEl('tspan', { fill:ink3, 'font-weight':400, 'font-size':14,
+      'font-family':'DM Mono, monospace', 'letter-spacing':'0' }, `  ${grp.rows.length}`));
+    svg.appendChild(hd);
+    view.forEach((t, j) => {
+      const v = grp.rows.reduce((n, r) => n + (r.sess[t] || 0), 0);
+      const k = grp.rows.reduce((n, r) => n + (r.chk[t]  || 0), 0);
+      svg.appendChild(ovEl('text', { x:LBL + j*CW + CW/2, y:y + GH/2 + 6,
+        'text-anchor':'middle', 'font-size':15, 'font-family':'DM Mono, monospace',
+        fill:ink3 }, ciCellText(v, k)));
+    });
+    // Said in words. A red '3!' sat here first and had to be looked up in the
+    // legend every time, which is the same as not being readable.
+    if(over) svg.appendChild(ovEl('text', { x:LBL + view.length*CW + 12, y:y + GH/2 + 6,
+      'font-size':14, 'font-family':'DM Mono, monospace', fill:red }, `${over} overdue`));
+    y += GH;
+
+    grp.rows.forEach(r => {
+      const nm = ovEl('text', { x:LBL - 12, y:y + CH/2, 'text-anchor':'end',
+        'dominant-baseline':'middle', 'font-size':16.5, fill:ink,
+        style:'cursor:pointer' }, r.st.name);
+      nm.addEventListener('click', () => goToStudent(r.st.id));
+      svg.appendChild(nm);
+
+      view.forEach((t, j) => {
+        const v = r.sess[t] || 0, k = r.chk[t] || 0, x = LBL + j*CW;
+        const lit = v && shade(v) > 0.55;
+        const cell = ovEl('g', {});
+        cell.appendChild(ovEl('rect', { x:x + 1, y:y + 1, width:CW - 2, height:CH - 2, rx:3,
+          fill: v ? ink : sf, 'fill-opacity': v ? shade(v) : 1,
+          stroke: v ? 'none' : ln, 'stroke-width':1 }));
+        const txt = ovEl('text', { x:x + CW/2, y:y + CH/2, 'text-anchor':'middle',
+          'dominant-baseline':'middle', 'font-size': (v || k) ? 17 : 15,
+          'font-family':'DM Mono, monospace', 'font-weight': v ? 500 : 400,
+          fill: v ? (lit ? '#fff' : ink) : ink3 });
+        if(k){
+          // Sessions lead; the check-in count follows the slash, lighter.
+          txt.appendChild(ovEl('tspan', {}, v ? String(v) : '0'));
+          txt.appendChild(ovEl('tspan', { 'fill-opacity': lit ? 0.75 : 0.6,
+            fill: lit ? '#fff' : ink, 'font-weight':400 }, ` / ${k}`));
+        } else {
+          txt.textContent = v ? String(v) : '·';
+        }
+        cell.appendChild(txt);
+        cell.appendChild(ovEl('title', {}, `${r.st.name} · ${ciTermShort(t)} · ${
+          v} session${v === 1 ? '' : 's'}${k ? `, ${k} check-in${k === 1 ? '' : 's'}` : ''}`));
+        svg.appendChild(cell);
+      });
+
+      svg.appendChild(ovEl('text', { x:LBL + view.length*CW + 12, y:y + CH/2,
+        'dominant-baseline':'middle', 'font-size':15.5, 'font-family':'DM Mono, monospace',
+        fill: (r.age === null || r.age >= 6) ? red : ink },
+        r.age === null ? 'never' : `${r.age} mo`));
+      y += CH;
+    });
+  });
+
+  box.innerHTML = ''; box.appendChild(svg);
+
+  const ramp = [1,2,3,4,5,6].map(i =>
+    `<span style="display:inline-block;width:22px;height:13px;background:${ink};opacity:${
+      shade(Math.round(MAX * i / 6)).toFixed(2)};"></span>`).join('');
+  const lg = document.getElementById('ci-lg');
+  if(lg) lg.innerHTML =
+    `<span class="ov-i" style="gap:8px;">sessions&nbsp;1${ramp}${MAX}</span>`
+    + `<span class="ov-i"><span style="font-family:'DM Mono',monospace;color:${ink};`
+    + `margin-right:7px;">2 / 1</span>two sessions and one check-in</span>`
+    + `<span class="ov-i"><span style="font-family:'DM Mono',monospace;color:${red};`
+    + `margin-right:7px;">3 overdue</span>never met, or no contact in six months</span>`
+    + (CONTACT.checkin ? '' :
+       `<span class="ov-i" style="flex:0 0 100%;">Check-ins could not be loaded, so the grid`
+       + ` shows logged sessions only.</span>`);
+
+  const never = rows.filter(r => !r.last).length;
+  const stale = rows.filter(r => r.last && r.age >= 6).length;
+  const sess  = rows.reduce((n, r) => n + Object.values(r.sess).reduce((m, v) => m + v, 0), 0);
+  const hd2 = document.getElementById('ci-hd');
+  if(hd2) hd2.textContent = `${rows.length} advisee${rows.length === 1 ? '' : 's'} · ${
+    sess} session${sess === 1 ? '' : 's'}`;
+  const lede = document.getElementById('ci-lede');
+  if(lede) lede.innerHTML =
+    `Shade is how many sessions that term; a second figure after the slash is check-ins. `
+    + `Inside each group the longest out of contact comes first. The columns are this term and `
+    + `the two before it; <b>Last</b> is measured against the whole record, so a student with an `
+    + `empty row may still show a figure. ${never} ${never === 1 ? 'has' : 'have'} never been met `
+    + `and ${stale} ${stale === 1 ? 'has' : 'have'} been out of contact over six months. `
+    + `Click a name to open the student.`;
+}
+
 function ovTaughtCard(){
   const hd = extra => `<div class="ov-card-hd">Students I have taught in courses
     <span style="font-weight:400;color:var(--text3);">${extra}</span></div>`;
@@ -3905,20 +4146,76 @@ function tsTable(){
 }
 
 // ── OVERVIEW ──
+
+// Contact recency. "Met" is a logged session; a check-in is outreach that
+// counts as contact too, so a student written to last month is not neglected.
+// Check-ins live in their own view, fetched once for the advisee list; the
+// card renders on sessions alone first and refines when they land.
+const CONTACT_STALE_DAYS = 183;                  // six months
+const CONTACT = { checkin: null, busy: false, tried: false };  // { id: ['YYYY-MM-DD'] }
+
+async function loadCheckinDates(){
+  // `tried` and not `checkin`: a failed fetch leaves the map null, and this
+  // function re-renders the page that called it, so the guard has to hold
+  // whether or not the rows arrived.
+  if(CONTACT.tried || CONTACT.busy || !dataLoaded) return;
+  CONTACT.busy = true; CONTACT.tried = true;
+  const ids = myStudents().map(x => x.id);
+  if(!ids.length){ CONTACT.checkin = {}; CONTACT.busy = false; CONTACT.tried = false; return; }
+  try {
+    const rows = await sbGet(VW_CHECKIN,
+      `student_id=in.(${ids.map(encodeURIComponent).join(',')})`
+      + `&select=student_id,created_at&order=created_at.desc&${OV_LIMIT}`);
+    // Every date, not just the last: the history grid counts one per term.
+    const by = {};
+    (rows || []).forEach(r => {
+      const sid = String(r.student_id), d = String(r.created_at || '').slice(0, 10);
+      if(d) (by[sid] = by[sid] || []).push(d);
+    });
+    Object.keys(by).forEach(k => by[k].sort().reverse());
+    CONTACT.checkin = by;
+  } catch(e) {
+    // A failed fetch must not invent neglect: leave the map null and the
+    // stale rule stays silent rather than flagging students we wrote to.
+    CONTACT.checkin = null;
+  } finally {
+    CONTACT.busy = false;
+    if(currentPage === 'overview') renderOverview();
+  }
+}
+
+// The later of the last logged session and the last check-in, or '' for neither.
+function lastContactYmd(s){
+  const ci = (CONTACT.checkin && (CONTACT.checkin[String(s.id)] || [])[0]) || '';
+  return (s.lastMeeting || '') > ci ? (s.lastMeeting || '') : ci;
+}
+
+// The date a student fell out of contact, or '' if they have not. Students
+// never met are their own badge, and an unread check-in map means no verdict.
+function contactStaleSince(s){
+  if(!CONTACT.checkin || s.sessions === 0) return '';
+  const last = lastContactYmd(s);
+  if(!last) return '';
+  const cut = new Date(facTodayDate());
+  cut.setDate(cut.getDate() - CONTACT_STALE_DAYS);
+  return last < ymdLocal(cut) ? last : '';
+}
+
 function ovAdviseeHome() {
   const mine = myStudents();
   const mySess = realSessions().filter(s=>s.faculty===FACULTY_EMAIL);
-  const confirmedMeetingIds = new Set(
-    meetings.filter(m => m.facultyEmail===FACULTY_EMAIL && m.advisorConfirmed && m.status==='scheduled')
-            .map(m => m.studentId)
-  );
+  loadCheckinDates();
   const zeroSess = mine.filter(s=>s.sessions===0).length;
+  // Three things actually need an advisor: a student never met, one who has
+  // dropped out of contact, and a follow-up still owed. A missing next-meeting
+  // date used to sit here too, but it came from a field the session form no
+  // longer writes, so it fired on nearly everyone and meant nothing.
   const needsAttention = mine.filter(s =>
     s.sessions === 0 ||
-    (!s.nextMeeting && !confirmedMeetingIds.has(s.id)) ||
+    contactStaleSince(s) !== '' ||
     mySess.filter(x => x.studentId===s.id && x.followUp==='Y').length > 0
   );
-  const noNext = needsAttention.length;
+  const attentionCount = needsAttention.length;
   const followUp = mySess.filter(s=>s.followUp==='Y').length;
   const pendingRequests = meetings.filter(m =>
     m.facultyEmail === FACULTY_EMAIL &&
@@ -3987,14 +4284,14 @@ function ovAdviseeHome() {
 
     <div class="overview-cards">
       <div class="ov-card">
-        <div class="ov-card-hd">Needs attention <span class="text-muted" style="font-weight:400;font-size:17px;">${noNext} students</span></div>
-        ${needsAttention.map(s=>{
-          const hasNoNext = !s.nextMeeting && !confirmedMeetingIds.has(s.id);
+        <div class="ov-card-hd">Needs attention <span class="text-muted" style="font-weight:400;font-size:17px;">${attentionCount} student${attentionCount===1?'':'s'}</span></div>
+        ${needsAttention.length ? needsAttention.map(s=>{
           const neverMet  = s.sessions === 0;
+          const staleSince = contactStaleSince(s);
           const hasFU     = mySess.filter(x=>x.studentId===s.id&&x.followUp==='Y').length>0;
           const tags = [
             neverMet  ? `<span class="bdg bdg-red" style="font-size:11px;">Never met</span>` : '',
-            hasNoNext && !neverMet ? `<span class="bdg bdg-amber" style="font-size:11px;">No next meeting</span>` : '',
+            staleSince ? `<span class="bdg bdg-amber" style="font-size:11px;">No contact since ${esc(staleSince)}</span>` : '',
             hasFU     ? `<span class="bdg bdg-amber" style="font-size:11px;">Follow-up pending</span>` : '',
           ].filter(Boolean).join(' ');
           return `<div class="ov-item">
@@ -4003,7 +4300,7 @@ function ovAdviseeHome() {
             <div style="flex:1;display:flex;gap:4px;flex-wrap:wrap;align-items:center;">${tags}</div>
             <span class="go-link" onclick="goToStudent('${s.id}')">View →</span>
           </div>`;
-        }).join('')}
+        }).join('') : '<div class="ov-item"><div class="text-muted">Nothing needs attention right now</div></div>'}
       </div>    
       <div class="ov-card">
         <div class="ov-card-hd">Recent sessions</div>
@@ -4016,6 +4313,7 @@ function ovAdviseeHome() {
         </div>`).join('') : '<div class="ov-item"><div class="text-muted">No sessions recorded yet</div></div>'}
       </div>
     </div>
+    ${ovContactCard()}
     ${ovTaughtCard()}
 `;
 }
@@ -4299,7 +4597,7 @@ function ovRenderBody(){
   // Fired here rather than at sign-in: an account that never opens My Advising
   // never pays for the query, and the card redraws itself when it lands.
   if(OV.page === 'advisees'){
-    taughtLoad(); b.innerHTML = ovAdviseeHome(); tsDraw(); return;
+    taughtLoad(); b.innerHTML = ovAdviseeHome(); ciDraw(); tsDraw(); return;
   }
   if(OV.page === 'chair'   ){ b.innerHTML = renderProgramSummary(); return; }
   // Reads its own view rather than the registry, so like the two pages below
@@ -10099,6 +10397,7 @@ function renderCodebook(){
           <div class="help-ref-row"><div class="help-ref-key">Coverage rate</div><div class="help-ref-val">Percentage of assigned students who have had at least one session</div></div>
           <div class="help-ref-row"><div class="help-ref-key">Follow-up debt</div><div class="help-ref-val">Sessions marked follow-up required but not yet resolved</div></div>
           <div class="help-ref-row"><div class="help-ref-key">Never met</div><div class="help-ref-val">Students with no session ever recorded, not just this term</div></div>
+          <div class="help-ref-row"><div class="help-ref-key">No contact since</div><div class="help-ref-val">Six months have passed since the last logged session or check-in with this student</div></div>
           <div class="help-ref-row"><div class="help-ref-key">Advisor 1 / 2</div><div class="help-ref-val">Primary and secondary advisor. Access to a student record runs through Advisor 1</div></div>
         </div>
         <div class="help-ref-card">
@@ -10123,10 +10422,10 @@ function renderCodebook(){
         </div>
         <div class="help-card">
           <div class="help-card-title">Book the next one before you close the record</div>
-          <div class="help-card-body">The session form has no "next meeting" field &mdash; the date comes
-            from an actual booking. A student with nothing scheduled is counted as needing attention on
-            Overview, so use <strong>Request meeting</strong> on their panel while the conversation is
-            still fresh.</div>
+          <div class="help-card-body">Use <strong>Request meeting</strong> on the student's panel while the
+            conversation is still fresh. Nothing on Overview counts a missing booking against you &mdash;
+            <strong>Needs attention</strong> waits six months without a session or a check-in before it
+            says anything &mdash; but a date agreed now is the one that holds.</div>
         </div>
       </div>
     </div>
