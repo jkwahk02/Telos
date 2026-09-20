@@ -6206,10 +6206,40 @@ function aaCounted(r){
   const st = students.find(x => String(x.id) === String(r.student_id));
   return st ? isCounted(st) : !hasLeft(r.status);
 }
+// Which field this chair writes for this student, and whether it is still
+// empty. The band already names the field - First major writes Advisor 1, the
+// other two write Advisor 2 - so the question is only ever asked of one of
+// them.
+//
+// The queue is built on advisor1_email alone, which is right for the band that
+// writes it and blind for the two that do not: a student given an Advisor 2
+// yesterday comes back today looking exactly like one who was never touched.
+// So for those bands the answer comes from the roster, or from the view when
+// it carries the column.
+//
+// Unknown counts as still needed. A chair shown work that turns out to be done
+// presses Assign and is told; a chair shown nothing never finds out.
+function aaSlotHolder(r){
+  const band = aaBandOf(r);
+  // First major: the queue's own test is the answer, and it is always "empty".
+  // An interim hold is in this queue on purpose - it is a placeholder, not an
+  // advisor - so it is not a holder here.
+  if(band === 'none' || band === 'own') return '';
+  const st = students.find(x => String(x.id) === String(r.student_id));
+  return (st && st.advisor2_email) || r.advisor2_email || '';
+}
+function aaSlotOpen(r){
+  const band = aaBandOf(r);
+  if(band === 'none') return false;
+  if(band === 'own')  return true;
+  return !aaSlotHolder(r);
+}
 function aaIn(k){
   return AA.queue.filter(r => aaBandOf(r) === k);
 }
-function aaOpen(k){ return aaIn(k).filter(r => !AA.done.has(r.student_id)); }
+function aaOpen(k){
+  return aaIn(k).filter(r => !AA.done.has(r.student_id) && aaSlotOpen(r));
+}
 
 async function aaLoad(){
   if(AA.loaded || AA.loading) return;
@@ -6401,7 +6431,7 @@ function aaSetBand(k){
 }
 function aaToggle(id){
   const r = AA.queue.find(x => x.student_id === id);
-  if(!r || AA.done.has(id) || aaBandOf(r) === 'none') return;
+  if(!r || AA.done.has(id) || aaBandOf(r) === 'none' || !aaSlotOpen(r)) return;
   if(AA.pending.has(id)){ AA.pending.delete(id); renderOverview(); return; }
   AA.sel.has(id) ? AA.sel.delete(id) : AA.sel.add(id);
   renderOverview();
@@ -6650,9 +6680,17 @@ function aaRowTag(r){
   const pend = AA.pending.get(r.student_id);
   if(pend) return aaWhy(pend)
     + `<span class="aa-tag tg-pend">→ ${esc(aaLastName(pend.email))}</span>`;
+  // The slot this band writes is already filled. Said plainly, because the
+  // alternative is a row that reads "No advisor" about a student this chair
+  // gave an advisor to last week - which is what made Apply look broken.
+  const held2 = aaSlotHolder(r);
+  if(held2) return `<span class="aa-tag tg-other">${esc(aaLastName(held2))} · Advisor 2</span>`;
   if(r.held_by) return `<span class="aa-tag tg-other">${esc(aaLastName(r.held_by_email) || r.held_by)} · interim</span>`;
   if((r.status || '').toLowerCase().includes('leave')) return `<span class="aa-tag tg-loa">On leave</span>`;
-  return `<span class="aa-tag tg-never">No advisor</span>`;
+  // Nobody in the field this band writes. For a second major or a minor that
+  // is all it says: their Advisor 1 is another chair's to give, and this page
+  // neither knows nor can change whether they have one.
+  return `<span class="aa-tag tg-never">No ${aaBandOf(r) === 'own' ? 'advisor' : 'Advisor 2'}</span>`;
 }
 function aaLastName(email){
   const f = FACULTY_ROWS.find(x => x.email === email);
@@ -6665,7 +6703,8 @@ function aaRows(){
   return list.map(r => {
     const id = r.student_id;
     const cls = AA.done.has(id) ? 'done' : AA.pending.has(id) ? 'pend'
-              : AA.sel.has(id) ? 'sel' : (aaBandOf(r) === 'none' ? 'locked' : '');
+              : AA.sel.has(id) ? 'sel'
+              : (aaBandOf(r) === 'none' || !aaSlotOpen(r) ? 'locked' : '');
     const tick = (AA.done.has(id) || AA.pending.has(id) || AA.sel.has(id)) ? '✓' : '';
     const chips = r.major1
       ? aaChip(r.major1, 1) + aaChip(r.major2, 2) + aaChip(r.minor, 3)
@@ -6893,7 +6932,12 @@ function aaPage(b){
   const mine   = aaMine().join(' / ') || 'your programme';
   const scope  = students.filter(st => isCounted(st) &&
     (aaHolds(st.major1) || aaHolds(st.major2) || aaHolds(st.minor))).length;
-  const left   = AA.queue.filter(r => !AA.done.has(r.student_id) && aaBandOf(r) !== 'none').length;
+  // Advisor slots this chair still has to fill, counted across all three bands
+  // they may write in. It is not "students with no Advisor 1": most of this
+  // queue declared another programme first, so their Advisor 1 belongs to that
+  // chair and is not work this page can do. What is left is one slot per
+  // student, the one their band names - and only while it is still empty.
+  const left   = AA.queue.filter(r => !AA.done.has(r.student_id) && aaSlotOpen(r)).length;
   const own    = aaOpen('own').length;
   const cur    = AA_BANDS.find(x => x.k === AA.band) || AA_BANDS[0];
   const qOpen  = aaOpen(AA.band).length;
@@ -6910,7 +6954,7 @@ function aaPage(b){
 
   b.innerHTML = `
     <div class="ov-scope">
-      <span class="ov-caption">${esc(mine)} · ${scope} students · ${left} needing an Advisor 1</span>
+      <span class="ov-caption">${esc(mine)} · ${scope} students · ${left} needing an advisor from you</span>
       <span class="ov-meta">queue read ${esc(AA.checked)}</span>
     </div>
 
@@ -6918,12 +6962,14 @@ function aaPage(b){
     <p class="ov-sub">A student with no Advisor 1 is not merely unadvised — they are invisible.
       Access to a student record runs through
       <code style="font-family:'DM Mono',monospace;font-size:15px;">advisor1_email</code>, so an
-      empty field means no faculty member sees them anywhere in Telos. This page exists to empty
-      that field&rsquo;s queue.</p>
+      empty field means no faculty member sees them anywhere in Telos. Advisor 1 belongs to the
+      chair of the student&rsquo;s first major, so most of this queue is not yours to fill: what
+      you write for a second major or a minor is Advisor 2. The counts below are the slots
+      <em>you</em> can write, one per student, and only while they are still empty.</p>
 
     <div class="db-stats" style="grid-template-columns:repeat(4,1fr);">
       <div class="db-stat"><div class="db-val">${scope}</div><div class="db-lbl">In your programme</div></div>
-      <div class="db-stat"><div class="db-val ${left ? 'bad' : 'ok'}">${left}</div><div class="db-lbl">Need Advisor 1</div></div>
+      <div class="db-stat"><div class="db-val ${left ? 'bad' : 'ok'}">${left}</div><div class="db-lbl">Need advisors</div></div>
       <div class="db-stat"><div class="db-val ${own ? 'warn' : ''}">${own}</div><div class="db-lbl">Advisor 1 to assign</div></div>
       <div class="db-stat"><div class="db-val ${AA.done.size ? 'ok' : ''}">${AA.done.size}</div><div class="db-lbl">Assigned today</div></div>
     </div>
