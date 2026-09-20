@@ -3684,7 +3684,6 @@ function tsOfferings(list){
 // break - and it is a question this card does not have to answer. A month is
 // a month.
 const CI_MONTHS = 18;                // eighteen columns, oldest first
-const CI_MON = ['J','F','M','A','M','J','J','A','S','O','N','D'];
 const CI_MON3 = ['Jan','Feb','Mar','Apr','May','Jun',
                  'Jul','Aug','Sep','Oct','Nov','Dec'];
 function ciMonthWindow(){
@@ -3769,7 +3768,11 @@ function ciDraw(){
   const ink = ovVar('--text'), ink3 = ovVar('--text3'), ln = ovVar('--border');
   const lnEm = ovVar('--border-em'), blue = ovVar('--blue');
   const red = ovVar('--red'), amber = ovVar('--amber-b');
-  const LBL = 226, RGT = 90, CW = 30, CH = 30, GH = 34, TOP = 70, MK = 11;
+  // Wide enough that a month holding four meetings still draws four marks.
+  // They were collapsed into one mark with a count at CW = 30, which is the
+  // one thing this card is for: a meeting is a mark.
+  const LBL = 226, RGT = 90, CW = 50, CH = 30, GH = 34, TOP = 70;
+  const MK = 10, MP = 12, MAXM = 4;
   const W = LBL + view.length * CW + RGT + 14;
   const H = TOP + rows.length * CH + groups.length * GH + 12;
 
@@ -3791,8 +3794,8 @@ function ciDraw(){
       stroke:lnEm, 'stroke-width':1 }));
     if(jan || !j) svg.appendChild(ovEl('text', { x:x + 4, y:30, 'font-size':13.5,
       'font-weight':600, 'font-family':'DM Mono, monospace', fill:ink3 }, ym.slice(0, 4)));
-    svg.appendChild(ovEl('text', { x:x + CW/2, y:56, 'text-anchor':'middle', 'font-size':11.5,
-      'font-family':'DM Mono, monospace', fill:ink3 }, CI_MON[Number(ym.slice(5)) - 1]));
+    svg.appendChild(ovEl('text', { x:x + CW/2, y:56, 'text-anchor':'middle', 'font-size':12.5,
+      'font-family':'DM Mono, monospace', fill:ink3 }, CI_MON3[Number(ym.slice(5)) - 1]));
   });
 
   // The six-month rule, drawn where it actually falls inside its month rather
@@ -3844,21 +3847,24 @@ function ciDraw(){
         const here = r.by[ym];
         if(!here || !here.length) return;
         const x = LBL + j*CW;
-        // A month with more than one goes darker rather than wider: the column
-        // is one month and must not borrow the next one's space.
-        const kind = here.some(m => m.kind === 'mine') ? 'mine'
-                   : here.some(m => m.kind === 'other') ? 'other' : 'chk';
+        // One mark per meeting, the set centred in its month, so a single
+        // meeting sits on the column's midline and a busy month spreads either
+        // side of it without reaching into the next month.
+        const list = here.slice().sort((a, b) =>
+          ({ mine:0, other:1, chk:2 })[a.kind] - ({ mine:0, other:1, chk:2 })[b.kind]
+          || a.date.localeCompare(b.date));
+        const n = Math.min(list.length, MAXM);
+        const x0 = x + (CW - (MK + (n - 1) * MP)) / 2;
         const g = ovEl('g', {});
-        g.appendChild(kind === 'chk'
-          ? ovEl('rect', { x:x + (CW - MK)/2 + 0.8, y:y + (CH - MK)/2 + 0.8, width:MK - 1.6,
-                           height:MK - 1.6, rx:1.6, fill:'none', stroke:ink3, 'stroke-width':1.5 })
-          : ovEl('rect', { x:x + (CW - MK)/2, y:y + (CH - MK)/2, width:MK, height:MK, rx:2,
-                           fill: kind === 'mine' ? blue : ink3 }));
-        if(here.length > 1)
-          g.appendChild(ovEl('text', { x:x + CW/2, y:y + CH/2 + 0.5, 'text-anchor':'middle',
-            'dominant-baseline':'middle', 'font-size':9, 'font-weight':600,
-            'font-family':'DM Mono, monospace', fill: kind === 'chk' ? ink3 : '#fff' },
-            String(here.length)));
+        list.slice(0, n).forEach((m, i) => {
+          const mx = x0 + i * MP;
+          g.appendChild(m.kind === 'chk'
+            ? ovEl('rect', { x:mx + 0.8, y:y + (CH - MK)/2 + 0.8, width:MK - 1.6,
+                             height:MK - 1.6, rx:1.6, fill:'none', stroke:ink3,
+                             'stroke-width':1.5 })
+            : ovEl('rect', { x:mx, y:y + (CH - MK)/2, width:MK, height:MK, rx:2,
+                             fill: m.kind === 'mine' ? blue : ink3 }));
+        });
         const word = { mine:'session with me', other:'session with another advisor',
                        chk:'check-in' };
         g.appendChild(ovEl('title', {}, `${r.st.name} · ${ciMonthLabel(ym)} · `
