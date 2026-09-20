@@ -6128,7 +6128,8 @@ const AA = {
   // What the middle two rules need. Loaded with the queue, for this bench and
   // these students only, so the page makes three small requests rather than
   // reading the whole of anybody's teaching history.
-  taught: new Map(),          // student id -> [{email, courses[], lastKey}] strongest first
+  taught: new Map(),          // student id -> [{email, courses[], sizes[], minSize, lastKey}] strongest first
+  sizes:  new Map(),          // "offering\0term label" -> how many were in that room
   topics: new Map(),          // advisor email -> [{topic_key, facet, evidence}]
   labels: new Map(),          // topic key -> label, for the words on the row
   facets: new Map(),          // topic key -> subject | approach, to group them
@@ -6186,12 +6187,40 @@ function aaChip(prog, role){
 function aaMine(){ return FACULTY_PROGRAMS || []; }
 function aaHolds(p){ return !!p && aaMine().includes(p); }
 
-// The same test the database makes, drawn so the chair can see it first.
+// Which band a student belongs in for THIS chair - which is to say, which of
+// this chair's fields is still empty for them.
+//
+// Declaration alone used to decide it, and that was right while the queue held
+// nothing but students missing an Advisor 1. It stopped being right when the
+// queue widened to carry students who need an Advisor 2 and already have an
+// Advisor 1: 2023089 Minwoo Choi declared DS&AI first and HSS as his minor,
+// his Advisor 1 has been settled for a year, and the empty field is the HSS
+// one. Asking only "did they declare my programme" put him in this chair's
+// First major band, where there is nothing anyone here can ever do about him.
+//
+// So each test now carries the field it implies. A student whose only open
+// field belongs to another chair falls to 'none', which is the band that says
+// exactly that.
+// A row applied this session keeps its band until the page is reloaded. Apply
+// refetches the roster, which fills the field this band is about, which would
+// otherwise move the row to 'none' between one render and the next - the list
+// reshuffling under the chair's hands at the moment they press the button.
+// On the next load it is gone, which is the honest resting state.
 function aaBandOf(r){
-  if(aaHolds(r.major1_key)) return 'own';
-  if(aaHolds(r.major2))     return 'shared';
-  if(aaHolds(r.minor))      return 'minor';
+  const done = AA.done.has(r.student_id);
+  if(aaHolds(r.major1_key) && (done || aaSlot1Open(r))) return 'own';
+  if(aaHolds(r.major2)     && (done || aaSlot2Open(r))) return 'shared';
+  if(aaHolds(r.minor)      && (done || aaSlot2Open(r))) return 'minor';
   return 'none';
+}
+// An interim hold is open: it is a placeholder, not an advisor.
+function aaSlot1Open(r){ return !r.held_by_email || r.held_kind === 'interim'; }
+// Advisor 2 comes off the roster, or off the view when it carries the column.
+// Unknown counts as still needed - a chair shown work that turns out to be
+// done presses Assign and is told; one shown nothing never finds out.
+function aaSlot2Open(r){
+  const st = students.find(x => String(x.id) === String(r.student_id));
+  return !((st && st.advisor2_email) || r.advisor2_email || '');
 }
 // The queue asks the roster's question of one field, so it asks it about the
 // same people. The test is applied where the rows arrive rather than at each of
@@ -6219,25 +6248,18 @@ function aaCounted(r){
 //
 // Unknown counts as still needed. A chair shown work that turns out to be done
 // presses Assign and is told; a chair shown nothing never finds out.
+// Who holds this student's Advisor 2, whoever it belongs to.
 function aaSlotHolder(r){
-  const band = aaBandOf(r);
-  // First major: the queue's own test is the answer, and it is always "empty".
-  // An interim hold is in this queue on purpose - it is a placeholder, not an
-  // advisor - so it is not a holder here.
-  if(band === 'none' || band === 'own') return '';
   const st = students.find(x => String(x.id) === String(r.student_id));
   return (st && st.advisor2_email) || r.advisor2_email || '';
 }
+// Is the row actionable for this chair right now. The band already encodes the
+// answer - a student whose field is filled is not in a writable band - so this
+// only has to name which field the band means.
 function aaSlotOpen(r){
   const band = aaBandOf(r);
   if(band === 'none') return false;
-  // First major. This used to return true on the strength of how the queue was
-  // built - it only ever carried students whose Advisor 1 was empty or interim,
-  // so there was nothing to ask. The queue now also carries students who need
-  // an Advisor 2 and already have an Advisor 1, so the question has to be asked
-  // rather than assumed. An interim hold is still open: it is a placeholder.
-  if(band === 'own') return !r.held_by_email || r.held_kind === 'interim';
-  return !aaSlotHolder(r);
+  return band === 'own' ? aaSlot1Open(r) : aaSlot2Open(r);
 }
 function aaIn(k){
   return AA.queue.filter(r => aaBandOf(r) === k);
@@ -6277,7 +6299,7 @@ async function aaLoadRules(){
   const list  = a => a.map(encodeURIComponent).join(',');
   if(!bench.length) return;
 
-  const [taught, topics, labels] = await Promise.all([
+  const [taught, topics, labels, sizes] = await Promise.all([
     ids.length ? sbGet('v_student_taught_courses',
         `faculty_email=in.(${list(bench)})&student_id=in.(${list(ids)})`
         + `&select=student_id,faculty_email,offering,term_label&${OV_LIMIT}`)
@@ -6288,7 +6310,19 @@ async function aaLoadRules(){
         .catch(e => { console.warn('advisor topics unavailable:', e.message); return null; }),
     sbGet('advising_topics', `active=eq.true&select=key,label,facet`)
         .catch(() => null),
+    // How big each room was. Not filtered to this bench: it is one row per
+    // offering per term, a few hundred at most, and the join key has to exist
+    // for every offering the taught rows can name.
+    //
+    // Losing this does not stand rule 2 down. An offering with no size sorts
+    // last rather than first - an uncounted room is not evidence of a small
+    // one - and the rule falls back to what it used before, which is the
+    // number of courses shared and how recent they were.
+    sbGet('v_offering_size', `select=offering,term_label,students&${OV_LIMIT}`)
+        .catch(e => { console.warn('offering sizes unavailable:', e.message); return null; }),
   ]);
+
+  AA.sizes = new Map((sizes || []).map(z => [z.offering + ' ' + z.term_label, z.students]));
 
   // null means the request failed and the rule stands down; [] means it
   // succeeded and there is nothing there, which is a different fact.
@@ -6299,15 +6333,37 @@ async function aaLoadRules(){
       if(!by.has(id)) by.set(id, new Map());
       const per = by.get(id);
       if(!per.has(r.faculty_email)) per.set(r.faculty_email,
-        { email:r.faculty_email, courses:[], lastKey:0 });
+        { email:r.faculty_email, rooms:new Map(), lastKey:0 });
       const e = per.get(r.faculty_email);
-      if(!e.courses.includes(r.offering)) e.courses.push(r.offering);
+      const z = AA.sizes.get(r.offering + ' ' + r.term_label);
+      // Unknown sorts last, not first: a room nobody counted is not evidence
+      // of a small one.
+      const n = Number.isFinite(z) ? z : Infinity;
+      if(!e.rooms.has(r.offering) || n < e.rooms.get(r.offering)) e.rooms.set(r.offering, n);
       e.lastKey = Math.max(e.lastKey, tsKey(r.term_label));
     });
-    // More courses first, then more recently. Ranked once here so the rule
-    // reads a list rather than sorting inside a loop over students.
-    return new Map([...by].map(([id, per]) => [id, [...per.values()]
-      .sort((a,b) => (b.courses.length - a.courses.length) || (b.lastKey - a.lastKey))]));
+    // Smallest room first, then more courses, then more recently.
+    //
+    // Size leads because it is the only one of the three that speaks to
+    // whether they know each other. Twenty-two people in XD232 shared a
+    // timetable; five in DA322 shared a table. Counting courses put the
+    // lecturer ahead of the seminar leader whenever the lecturer happened to
+    // teach two of them, which is backwards.
+    //
+    // Ties fall through cleanly even when both sides are unknown: Infinity
+    // minus Infinity is NaN, which is falsy, so `||` moves to the next test.
+    // Ranked once here so the rule reads a list rather than sorting inside a
+    // loop over students.
+    return new Map([...by].map(([id, per]) => [id, [...per.values()].map(e => {
+      const ranked = [...e.rooms].sort((a, b) => a[1] - b[1]);
+      return { email:   e.email,
+               lastKey: e.lastKey,
+               courses: ranked.map(([o]) => o),
+               sizes:   ranked.map(([, n]) => n),
+               minSize: ranked.length ? ranked[0][1] : Infinity };
+    }).sort((a,b) => (a.minSize - b.minSize)
+                  || (b.courses.length - a.courses.length)
+                  || (b.lastKey - a.lastKey))]));
   })();
 
   AA.topics = topics === null ? null : (() => {
@@ -6465,6 +6521,15 @@ function aaAssignTo(email){
 }
 function aaDiscard(){ AA.pending.clear(); AA.sel.clear(); renderOverview(); }
 
+// The course this link rests on, and how crowded it was. The size is the whole
+// of the rule's new argument, so a chair who is told "taught XD232" and cannot
+// see that twenty-two people were in it has been given the claim without the
+// evidence. Silent when nothing counted that room.
+function aaRoomNote(c){
+  const course = c.courses[0], n = c.sizes[0];
+  return Number.isFinite(n) ? `${course} · ${n} in the room` : course;
+}
+
 // Which of the bench taught this student, strongest link first.
 function aaTaughtBy(id, bench){
   return ((AA.taught && AA.taught.get(String(id))) || [])
@@ -6567,13 +6632,23 @@ function aaSuggestBand(k, role, bench, load, under){
   //    the first had.
   const cand = new Map(rest.map(r => [r.student_id, aaTaughtBy(r.student_id, bench)]));
   const left = rest.filter(r => !cand.get(r.student_id).length);
+  // Rarest evidence first, then fewest options.
+  //
+  // Both tests are about not spending a place that somebody else needed more.
+  // The student whose best link is a five-person seminar is settled before the
+  // one whose best link is a lecture hall, because the seminar is the claim
+  // that is worth something and the lecture will still be true later. Within
+  // equal rooms, a student with one former instructor goes before a student
+  // with three, or the second takes the only place the first had.
+  const best = r => { const c = cand.get(r.student_id); return c.length ? c[0].minSize : Infinity; };
   rest.filter(r => cand.get(r.student_id).length)
-      .sort((a, b) => cand.get(a.student_id).length - cand.get(b.student_id).length)
+      .sort((a, b) => (best(a) - best(b))
+                   || (cand.get(a.student_id).length - cand.get(b.student_id).length))
       .forEach(r => {
         const pick = cand.get(r.student_id).find(c => under(c.email));
-        if(pick){ stage(r, pick.email, 'taught', pick.courses[0]); return; }
+        if(pick){ stage(r, pick.email, 'taught', aaRoomNote(pick)); return; }
         const top = cand.get(r.student_id)[0];   // strongest link, and full
-        miss(r, 'taught', top.courses[0], top.email);
+        miss(r, 'taught', aaRoomNote(top), top.email);
         left.push(r);
       });
 
@@ -6685,11 +6760,17 @@ function aaRowTag(r){
   const pend = AA.pending.get(r.student_id);
   if(pend) return aaWhy(pend)
     + `<span class="aa-tag tg-pend">→ ${esc(aaLastName(pend.email))}</span>`;
-  // The slot this band writes is already filled. Said plainly, because the
-  // alternative is a row that reads "No advisor" about a student this chair
-  // gave an advisor to last week - which is what made Apply look broken.
-  const held2 = aaSlotHolder(r);
-  if(held2) return `<span class="aa-tag tg-other">${esc(aaLastName(held2))} · Advisor 2</span>`;
+  // The tag names the field THIS band is about, not whichever field happens to
+  // be filled. In Second major and Minor the student's Advisor 1 belongs to
+  // another chair, and printing that name here reads as though the row were
+  // already dealt with.
+  const band = aaBandOf(r);
+  if(band === 'shared' || band === 'minor'){
+    const held2 = aaSlotHolder(r);
+    return held2
+      ? `<span class="aa-tag tg-other">${esc(aaLastName(held2))} · Advisor 2</span>`
+      : `<span class="aa-tag tg-never">No Advisor 2</span>`;
+  }
   // Somebody holds Advisor 1. Which kind of hold it is decides whether this is
   // still work: an interim placement is a gap waiting to be filled, a permanent
   // one is a colleague who advises them. Calling both "interim" was harmless
@@ -6698,10 +6779,9 @@ function aaRowTag(r){
   if(r.held_by) return `<span class="aa-tag tg-other">${esc(aaLastName(r.held_by_email) || r.held_by)} · ${
     r.held_kind === 'interim' ? 'interim' : 'Advisor 1'}</span>`;
   if((r.status || '').toLowerCase().includes('leave')) return `<span class="aa-tag tg-loa">On leave</span>`;
-  // Nobody in the field this band writes. For a second major or a minor that
-  // is all it says: their Advisor 1 is another chair's to give, and this page
-  // neither knows nor can change whether they have one.
-  return `<span class="aa-tag tg-never">No ${aaBandOf(r) === 'own' ? 'advisor' : 'Advisor 2'}</span>`;
+  // Only First major and 'Outside your programme' reach here; the Advisor 2
+  // bands answered above. Both mean the same thing in this field: nobody.
+  return `<span class="aa-tag tg-never">No advisor</span>`;
 }
 function aaLastName(email){
   const f = FACULTY_ROWS.find(x => x.email === email);
@@ -7024,9 +7104,12 @@ function aaPage(b){
       <div class="db-card-hd aa-sugg-hd">Suggest a distribution <span>how the button decides</span></div>
       <div class="aa-sugg-l">
         <div class="aa-rule"><b>1</b><span><u>Continuity.</u> Anyone who has already met an advisor stays with them.</span></div>
-        <div class="aa-rule ${AA.taught === null ? 'off' : ''}"><b>2</b><span><u>Then whoever taught them.</u>
-          The instructor they took the most courses with, most recently, while that advisor is under the target.
-          ${AA.taught === null ? '<i>teaching history unavailable — this rule is skipped</i>' : ''}</span></div>
+        <div class="aa-rule ${AA.taught === null ? 'off' : ''}"><b>2</b><span><u>Then whoever taught them, in the smallest room.</u>
+          The instructor who had them in the least crowded class — then the most courses, then the most recently —
+          while that advisor is under the target. Students whose best link is a small class are settled first, so a
+          seminar is not outbid by a lecture hall.
+          ${AA.taught === null ? '<i>teaching history unavailable — this rule is skipped</i>'
+            : AA.sizes && AA.sizes.size ? '' : '<i>class sizes unavailable — ranked by courses shared instead</i>'}</span></div>
         <div class="aa-rule ${AA.topics === null ? 'off' : ''}"><b>3</b><span><u>Then what they said they care about.</u>
           An advisor working on a topic the student named — and one that no more than half the bench shares, since a topic
           everyone works on names nobody.
