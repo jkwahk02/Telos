@@ -6267,6 +6267,16 @@ function aaIn(k){
 function aaOpen(k){
   return aaIn(k).filter(r => !AA.done.has(r.student_id) && aaSlotOpen(r));
 }
+// What a band button counts. For the three bands the chair writes in, open
+// work. 'Outside your programme' holds no work by definition - its field
+// belongs to somebody else, so aaSlotOpen is false for every row in it and
+// counting open work there would always print 0 under a list of names. It
+// counts heads, which is the only thing it was ever telling anyone.
+function aaBandCount(k){
+  return k === 'none'
+    ? aaIn(k).filter(r => !AA.done.has(r.student_id)).length
+    : aaOpen(k).length;
+}
 
 async function aaLoad(){
   if(AA.loaded || AA.loading) return;
@@ -7068,7 +7078,7 @@ function aaPage(b){
     <div class="aa-bands">
       ${AA_BANDS.map(x => `<button class="aa-band ${AA.band === x.k ? 'on' : ''}"
         onclick="aaSetBand('${x.k}')">
-        <b>${aaOpen(x.k).length}</b><i>${esc(x.n)}</i>
+        <b>${aaBandCount(x.k)}</b><i>${esc(x.n)}</i>
         <em class="${x.role ? '' : 'no'}">→ ${esc(x.act)}</em></button>`).join('')}
     </div>
 
