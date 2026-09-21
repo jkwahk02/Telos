@@ -3707,11 +3707,14 @@ function ciMonthsBack(from){
   return (t.getFullYear() - Number(from.slice(0, 4))) * 12
        + (t.getMonth() + 1 - Number(from.slice(5, 7)));
 }
-function ciMonthWindow(oldest){
+function ciMonthWindow(oldest, newest){
   const t = facTodayDate();
-  const n = Math.max(CI_MIN_MONTHS, (oldest ? ciMonthsBack(oldest) : 0) + 1);
+  const back = Math.max(CI_MIN_MONTHS, (oldest ? ciMonthsBack(oldest) : 0) + 1);
+  // Forward as far as the last booking, so a meeting arranged for next term
+  // has a column to sit in rather than falling off the right-hand edge.
+  const fwd = newest ? Math.max(0, -ciMonthsBack(newest)) : 0;
   const out = [];
-  for(let i = n - 1; i >= 0; i--){
+  for(let i = back - 1; i >= -fwd; i--){
     const d = new Date(t.getFullYear(), t.getMonth() - i, 1);
     out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   }
@@ -3755,6 +3758,24 @@ function ovContactCard(){
     </div>`;
 }
 
+// One colour rule and two shapes. Blue is mine and grey is the other advisor's,
+// whichever the mark; a square is a meeting and a tick is a check-in, because
+// writing to a student is a different act from sitting with them. A booking not
+// yet kept is the square left open - a session-shaped hole waiting to be filled.
+function ciMark(kind, x, y, k, blue, ink3){
+  if(kind === 'chk' || kind === 'chkother')
+    return ovEl('path', { d:`M${x + k*0.16} ${y + k*0.54}L${x + k*0.40} ${y + k*0.80}`
+                          + `L${x + k*0.88} ${y + k*0.16}`,
+      fill:'none', stroke: kind === 'chk' ? blue : ink3,
+      'stroke-width':Math.max(1.4, k * 0.17),
+      'stroke-linecap':'round', 'stroke-linejoin':'round' });
+  if(kind === 'soon')
+    return ovEl('rect', { x:x + 0.8, y:y + 0.8, width:k - 1.6, height:k - 1.6, rx:1.6,
+      fill:'none', stroke:blue, 'stroke-width':1.6 });
+  return ovEl('rect', { x, y, width:k, height:k, rx:2,
+    fill: kind === 'mine' ? blue : ink3 });
+}
+
 // Months between two YYYY-MM-DD dates, rounded, for the Last column.
 function ciMonths(from, to){
   return Math.round((new Date(to + 'T12:00:00') - new Date(from + 'T12:00:00'))
@@ -3785,7 +3806,7 @@ function ciDraw(){
   // Per student: marks bucketed by month, and the date of the last contact of
   // any kind. A session with the other advisor still means the student was
   // seen, so it counts towards Last; it is simply not a session with me.
-  let oldest = '';
+  let oldest = '', newest = '';
   const rows = myStudents().map(st => {
     const by = {};   // 'YYYY-MM' -> [{ kind, date }]
     let last = '', mine = 0, other = 0;
@@ -3799,14 +3820,26 @@ function ciDraw(){
       if(k === 'mine') mine++; else other++;
       put(x.date, k);
     });
-    ((CONTACT.checkin && CONTACT.checkin[String(st.id)]) || []).forEach(d => put(d, 'chk'));
+    ((CONTACT.checkin && CONTACT.checkin[String(st.id)]) || [])
+      .forEach(c => put(c.date, c.mine ? 'chk' : 'chkother'));
+    // A booking is drawn but is not contact: it does not move Last, it does not
+    // pull the window further back, and a student with nothing but a booking is
+    // still someone I have never met.
+    meetings.filter(m => m.studentId === st.id && m.facultyEmail === FACULTY_EMAIL
+                      && m.status === 'scheduled' && m.advisorConfirmed === true
+                      && m.meetingDate && m.meetingDate >= today)
+            .forEach(m => {
+              (by[m.meetingDate.slice(0, 7)] = by[m.meetingDate.slice(0, 7)] || [])
+                .push({ kind:'soon', date:m.meetingDate });
+              if(!newest || m.meetingDate > newest) newest = m.meetingDate;
+            });
     return { st, by, last, mine, other, tag: ciCohortTag(st), slot: ciSlotOf(st),
              age: last ? ciMonths(last, today) : null };
   }).sort((a, b) => (a.last || '').localeCompare(b.last || '')
                  || a.st.name.localeCompare(b.st.name));
   const groups = CI_SLOTS.map(n => ({ name:n, rows: rows.filter(r => r.slot === n) }))
                          .filter(g => g.rows.length);
-  const view = ciMonthWindow(oldest);
+  const view = ciMonthWindow(oldest, newest);
 
   const ink = ovVar('--text'), ink3 = ovVar('--text3'), ln = ovVar('--border');
   const lnEm = ovVar('--border-em'), blue = ovVar('--blue');
@@ -3823,8 +3856,7 @@ function ciDraw(){
   const CW = (avail && shown)
     ? Math.max(CI_CW_MIN, Math.min(CI_CW_MAX, Math.floor(avail / shown))) : 50;
   const MK = Math.max(8, Math.min(16, Math.round(CW * 0.20)));
-  const MP = MK + 2;
-  const MAXM = Math.max(1, Math.floor((CW - 4 - MK) / MP) + 1);
+  const CI_MAXM = 6;   // past this a month is a run of marks nobody counts
   const GW = view.length * CW;
   const H = TOP + rows.length * CH + groups.length * GH + 12;
 
@@ -3909,24 +3941,24 @@ function ciDraw(){
         const x = j*CW;
         // One mark per meeting, the set centred in its month, so a single
         // meeting sits on the column's midline and a busy month spreads either
-        // side of it without reaching into the next month.
-        const list = here.slice().sort((a, b) =>
-          ({ mine:0, other:1, chk:2 })[a.kind] - ({ mine:0, other:1, chk:2 })[b.kind]
-          || a.date.localeCompare(b.date));
-        const n = Math.min(list.length, MAXM);
-        const x0 = x + (CW - (MK + (n - 1) * MP)) / 2;
+        // side of it without reaching into the next month. Date order, since
+        // shape and colour already say which kind each one is.
+        const list = here.slice().sort((a, b) => a.date.localeCompare(b.date));
+        // A crowded month shrinks its marks rather than dropping any. Fitting
+        // four at the narrowest column meant silently losing the fourth, and
+        // the fourth is often the booking - the one mark worth acting on.
+        const n = Math.min(list.length, CI_MAXM);
+        const room = CW - 4;
+        const mk = Math.max(5, Math.min(MK, Math.floor((room + 2) / n) - 2));
+        const mp = mk + 2;
+        const x0 = x + (CW - (mk + (n - 1) * mp)) / 2;
         const g = ovEl('g', {});
         list.slice(0, n).forEach((m, i) => {
-          const mx = x0 + i * MP;
-          g.appendChild(m.kind === 'chk'
-            ? ovEl('rect', { x:mx + 0.8, y:y + (CH - MK)/2 + 0.8, width:MK - 1.6,
-                             height:MK - 1.6, rx:1.6, fill:'none', stroke:ink3,
-                             'stroke-width':1.5 })
-            : ovEl('rect', { x:mx, y:y + (CH - MK)/2, width:MK, height:MK, rx:2,
-                             fill: m.kind === 'mine' ? blue : ink3 }));
+          g.appendChild(ciMark(m.kind, x0 + i * mp, y + (CH - mk)/2, mk, blue, ink3));
         });
         const word = { mine:'session with me', other:'session with another advisor',
-                       chk:'check-in' };
+                       chk:'check-in from me', chkother:'check-in from another advisor',
+                       soon:'booked' };
         g.appendChild(ovEl('title', {}, `${r.st.name} · ${ciMonthLabel(ym)} · `
           + list.slice().sort((a, b) => a.date.localeCompare(b.date))
                 .map(m => `${word[m.kind]} on the ${Number(m.date.slice(8))}`).join(', ')));
@@ -3950,14 +3982,20 @@ function ciDraw(){
   // see first, and scrolling there is the deliberate act.
   box.scrollLeft = box.scrollWidth;
 
-  const swatch = (fill, ring) => `<span style="display:inline-block;width:11px;height:12px;`
-    + `border-radius:2px;${ring ? `border:1.6px solid ${ring};` : `background:${fill};`}`
-    + `margin-right:7px;vertical-align:-2px;"></span>`;
+  // Drawn with ciMark, so the key cannot drift from the grid.
+  const swatch = kind => {
+    const k = 12, s = ovEl('svg', { width:k + 2, height:k + 2,
+      viewBox:`0 0 ${k + 2} ${k + 2}`, style:'margin-right:7px;vertical-align:-2px;' });
+    s.appendChild(ciMark(kind, 1, 1, k, blue, ink3));
+    return s.outerHTML;
+  };
   const lg = document.getElementById('ci-lg');
   if(lg) lg.innerHTML =
-    `<span class="ov-i">${swatch(blue)}session with me</span>`
-    + `<span class="ov-i">${swatch(ink3)}session with another advisor</span>`
-    + `<span class="ov-i">${swatch(null, ink3)}check-in I sent</span>`
+    `<span class="ov-i">${swatch('mine')}session with me</span>`
+    + `<span class="ov-i">${swatch('other')}session with another advisor</span>`
+    + `<span class="ov-i">${swatch('soon')}booked, not yet held</span>`
+    + `<span class="ov-i">${swatch('chk')}check-in I sent</span>`
+    + `<span class="ov-i">${swatch('chkother')}check-in from another advisor</span>`
     + `<span class="ov-i"><span style="font-family:'DM Mono',monospace;color:${red};`
     + `margin-right:7px;">3 overdue</span>never met, or no contact in six months</span>`
     + (CONTACT.checkin ? '' :
@@ -3976,7 +4014,7 @@ function ciDraw(){
   const lede = document.getElementById('ci-lede');
   if(lede) lede.innerHTML = `<b>Last</b> counts either advisor's sessions.`
     + (box.scrollWidth > box.clientWidth + 1
-        ? ` Opens on this month; scroll left for the ${view.length} months on record.` : '');
+        ? ` Opens at the recent end; scroll left for the ${view.length} months shown.` : '');
 }
 
 function ovTaughtCard(){
@@ -4235,14 +4273,15 @@ async function loadCheckinDates(){
   try {
     const rows = await sbGet(VW_CHECKIN,
       `student_id=in.(${ids.map(encodeURIComponent).join(',')})`
-      + `&select=student_id,created_at&order=created_at.desc&${OV_LIMIT}`);
-    // Every date, not just the last: the history grid counts one per term.
+      + `&select=student_id,created_at,author_email&order=created_at.desc&${OV_LIMIT}`);
+    // Every date, not just the last, and who sent it: the history grid draws
+    // one mark each and colours mine apart from the other advisor's.
     const by = {};
     (rows || []).forEach(r => {
       const sid = String(r.student_id), d = String(r.created_at || '').slice(0, 10);
-      if(d) (by[sid] = by[sid] || []).push(d);
+      if(d) (by[sid] = by[sid] || []).push({ date:d, mine: r.author_email === FACULTY_EMAIL });
     });
-    Object.keys(by).forEach(k => by[k].sort().reverse());
+    Object.keys(by).forEach(k => by[k].sort((a, b) => b.date.localeCompare(a.date)));
     CONTACT.checkin = by;
   } catch(e) {
     // A failed fetch must not invent neglect: leave the map null and the
@@ -4256,7 +4295,8 @@ async function loadCheckinDates(){
 
 // The later of the last logged session and the last check-in, or '' for neither.
 function lastContactYmd(s){
-  const ci = (CONTACT.checkin && (CONTACT.checkin[String(s.id)] || [])[0]) || '';
+  const row = CONTACT.checkin && (CONTACT.checkin[String(s.id)] || [])[0];
+  const ci = row ? row.date : '';
   return (s.lastMeeting || '') > ci ? (s.lastMeeting || '') : ci;
 }
 
