@@ -12418,8 +12418,8 @@ function mtgUpcoming(box, S){
 function mtgCalendar(box){
   box.innerHTML = `
     <h1 class="ov-h1">Calendar</h1>
-    <p class="m2-lede">Confirmed meetings and the requests waiting on you, in your own timezone
-      <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span>.</p>
+    <p class="m2-lede">Confirmed meetings, the requests waiting on you, and sessions you have
+      logged, in your own timezone <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span>.</p>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;
         border-bottom:1px solid var(--border);">
@@ -12438,11 +12438,12 @@ function mtgCalendar(box){
       </div>
       <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);"></div>
       <div style="display:flex;align-items:center;gap:18px;padding:11px 18px;border-top:1px solid var(--border);">
-        ${[['var(--green-l)','var(--green-b)','Confirmed'],
-           ['var(--amber-l)','var(--amber-b)','Waiting on you'],
-           ['var(--gray-l)','var(--border-em)','Completed']].map(([bg,bd,l]) => `
+        ${[['var(--green-l)','var(--green-b)','Confirmed','solid'],
+           ['var(--amber-l)','var(--amber-b)','Waiting on you','solid'],
+           ['var(--gray-l)','var(--border-em)','Completed','solid'],
+           ['var(--gray-l)','var(--border-em)','Logged, never booked','dashed']].map(([bg,bd,l,dash]) => `
           <div style="display:flex;align-items:center;gap:7px;font-size:15px;color:var(--text2);">
-            <div style="width:12px;height:12px;border-radius:3px;background:${bg};border:1px solid ${bd};"></div>${l}
+            <div style="width:12px;height:12px;border-radius:3px;background:${bg};border:1px ${dash} ${bd};"></div>${l}
           </div>`).join('')}
       </div>
     </div>`;
@@ -12605,6 +12606,12 @@ function buildCalendar() {
   // Completed only. A cancelled meeting did not happen, and a calendar is a
   // record of what did: leaving it in put a grey block on a day that was free.
   const past     = allMtg.filter(m => m.status==='completed');
+  // Plenty of advising never went through Request meeting - a student catches
+  // you after class, and the only record is the session log. Those days looked
+  // empty here. A session counts as booked if some meeting carries its log id.
+  const booked   = new Set(allMtg.map(m => m.logId).filter(Boolean));
+  const logOnly  = realSessions().filter(x =>
+    x.faculty === FACULTY_EMAIL && x.date && x.logId && !booked.has(x.logId));
 
   function getEventsForDay(day) {
     const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
@@ -12613,8 +12620,10 @@ function buildCalendar() {
       upcoming.filter(m=>m.meetingDate===dateStr).forEach(m=>evs.push({m,cat:'upcoming'}));
     if (calFilter==='all'||calFilter==='pending')
       pending.filter(m=>m.meetingDate===dateStr).forEach(m=>evs.push({m,cat:'pending'}));
-    if (calFilter==='all'||calFilter==='past')
+    if (calFilter==='all'||calFilter==='past'){
       past.filter(m=>m.meetingDate===dateStr).forEach(m=>evs.push({m,cat:'past'}));
+      logOnly.filter(x=>x.date===dateStr).forEach(x=>evs.push({s:x,cat:'log'}));
+    }
     return evs;
   }
 
@@ -12640,20 +12649,28 @@ function buildCalendar() {
     const isToday = dateStr === todayStr;
     const evs = getEventsForDay(day);
 
-    const evHtml = evs.map(({m, cat}) => {
-      const st = students.find(s => s.id === m.studentId);
+    const evHtml = evs.map(({m, s: sess, cat}) => {
+      const sid  = cat==='log' ? sess.studentId : m.studentId;
+      const st   = students.find(x => x.id === sid);
       // The full name, not the surname. Half this roster shares a surname -
       // three Kims teach nobody which Kim is on Wednesday - and the cell has
       // the room for two lines.
-      const name = st?.name || m.studentId;
-      const time = m.confirmedStart || (m.proposedSlots?.[0]?.start) || '';
+      const name = st?.name || (cat==='log' ? sess.studentName : '') || sid;
+      const time = cat==='log' ? (sess.meetingTime || '').slice(0,5)
+                 : (m.confirmedStart || (m.proposedSlots?.[0]?.start) || '');
       const bg   = cat==='upcoming'?'var(--green-l)':cat==='pending'?'var(--amber-l)':'var(--gray-l)';
       const border = cat==='upcoming'?'var(--green-b)':cat==='pending'?'var(--amber-b)':'var(--border-em)';
       const color  = cat==='upcoming'?'var(--green)':cat==='pending'?'var(--amber)':'var(--text3)';
+      // A session with no booking behind it is the same category - it happened -
+      // so it takes the same grey. The edge is dashed rather than solid, which
+      // says where the record came from without adding a fourth colour.
+      const dash = cat==='log' ? 'dashed' : 'solid';
+      const go   = cat==='log' ? `goToLog('${esc(sess.logId)}')` : `goToMeeting('${m.id}')`;
+      const tip  = cat==='log' ? 'Session logged without a booking' : '';
       // Every chip lands on the page that holds that meeting, with it open.
-      return `<div onclick="event.stopPropagation();goToMeeting('${m.id}')"
+      return `<div onclick="event.stopPropagation();${go}"${tip ? ` title="${tip}"` : ''}
         style="font-size:13px;line-height:1.35;padding:3px 6px;border-radius:4px;margin-bottom:3px;
-          background:${bg};border:1px solid ${border};color:${color};cursor:pointer;">
+          background:${bg};border:1px ${dash} ${border};color:${color};cursor:pointer;">
         ${time ? `<span style="font-family:'DM Mono',monospace;font-size:12px;">${esc(time)}</span> ` : ''}${esc(name)}
       </div>`;
     }).join('');
