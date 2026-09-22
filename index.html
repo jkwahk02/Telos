@@ -12441,7 +12441,7 @@ function mtgCalendar(box){
         ${[['var(--green-l)','var(--green-b)','Confirmed','solid'],
            ['var(--amber-l)','var(--amber-b)','Waiting on you','solid'],
            ['var(--gray-l)','var(--border-em)','Completed','solid'],
-           ['var(--gray-l)','var(--border-em)','Logged, never booked','dashed']].map(([bg,bd,l,dash]) => `
+           ['var(--gray-l)','var(--border-em)','Logged, not booked','dashed']].map(([bg,bd,l,dash]) => `
           <div style="display:flex;align-items:center;gap:7px;font-size:15px;color:var(--text2);">
             <div style="width:12px;height:12px;border-radius:3px;background:${bg};border:1px ${dash} ${bd};"></div>${l}
           </div>`).join('')}
