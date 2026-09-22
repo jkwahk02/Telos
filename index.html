@@ -3733,15 +3733,32 @@ function ciCohortTag(s){
 }
 // Which slot I hold. Advisor 1 owns the record and the handover; Advisor 2 is
 // a second pair of eyes. That is the line worth drawing across this list -
-// four students I have not seen mean something different in each half.
+// four students I have not seen mean something different in each half. The
+// third group is nobody's duty: students I have sat with who are not mine to
+// advise, kept because the history is real even when the responsibility is not.
 function ciSlotOf(s){
-  return (s.advisor1_email === FACULTY_EMAIL || s.advisor1 === FACULTY)
-    ? 'As Advisor 1' : 'As Advisor 2';
+  if(s.advisor1_email === FACULTY_EMAIL || s.advisor1 === FACULTY) return 'As Advisor 1';
+  if(s.advisor2_email === FACULTY_EMAIL || s.advisor2 === FACULTY) return 'As Advisor 2';
+  return 'Not my advisee';
 }
-const CI_SLOTS = ['As Advisor 1', 'As Advisor 2'];
+const CI_SLOTS = ['As Advisor 1', 'As Advisor 2', 'Not my advisee'];
+const CI_NOT_MINE = 'Not my advisee';
+
+// Everyone this card draws: my advisees, plus anyone else I have actually sat
+// with. A student met once but not advised has a history worth seeing; a
+// student neither met nor advised has nothing to draw, so the roster is not
+// the whole register.
+function ciRoster(){
+  const mine = myStudents();
+  const have = new Set(mine.map(x => String(x.id)));
+  const met = new Set(realSessions()
+    .filter(x => x.faculty === FACULTY_EMAIL && x.studentId && !have.has(String(x.studentId)))
+    .map(x => String(x.studentId)));
+  return mine.concat(students.filter(x => met.has(String(x.id)) && isCounted(x)));
+}
 
 function ovContactCard(){
-  if(!myStudents().length) return '';
+  if(!ciRoster().length) return '';
   return `<div class="ov-card" style="margin-top:12px;">
       <div class="ov-card-hd">Advising history
         <span style="font-weight:400;color:var(--text3);" id="ci-hd"></span></div>
@@ -3807,7 +3824,7 @@ function ciDraw(){
   // any kind. A session with the other advisor still means the student was
   // seen, so it counts towards Last; it is simply not a session with me.
   let oldest = '', newest = '';
-  const rows = myStudents().map(st => {
+  const rows = ciRoster().map(st => {
     const by = {};   // 'YYYY-MM' -> [{ kind, date }]
     let last = '', mine = 0, other = 0;
     const put = (d, kind) => {
@@ -3868,7 +3885,7 @@ function ciDraw(){
   const sName = pane(LBL), sGrid = pane(GW), sLast = pane(RGT);
 
   sName.appendChild(ovEl('text', { x:LBL - 12, y:34, 'text-anchor':'end', 'font-size':15.5,
-    'font-weight':600, fill:ink3, 'letter-spacing':'0.06em' }, 'MY ADVISEE'));
+    'font-weight':600, fill:ink3, 'letter-spacing':'0.06em' }, 'STUDENT'));
   sLast.appendChild(ovEl('text', { x:12, y:34, 'font-size':15.5,
     'font-weight':600, fill:ink3, 'letter-spacing':'0.06em' }, 'LAST'));
 
@@ -3909,7 +3926,10 @@ function ciDraw(){
       sLast.appendChild(ovEl('line', { x1:0, y1:y + 2, x2:RGT - 14, y2:y + 2,
         stroke:lnEm, 'stroke-width':1 }));
     }
-    const over = grp.rows.filter(r => !r.last || r.age >= 6).length;
+    // Overdue is a duty. Nobody owes a meeting to a student they do not advise,
+    // so the third group carries no count and its Last figures stay black.
+    const duty = grp.name !== CI_NOT_MINE;
+    const over = duty ? grp.rows.filter(r => !r.last || r.age >= 6).length : 0;
     const gh = ovEl('text', { x:LBL - 12, y:y + GH/2 + 6, 'text-anchor':'end',
       'font-size':15, 'font-weight':600, fill:ink, 'letter-spacing':'0.04em' });
     gh.appendChild(ovEl('tspan', {}, grp.name.toUpperCase()));
@@ -3967,7 +3987,7 @@ function ciDraw(){
 
       sLast.appendChild(ovEl('text', { x:12, y:y + CH/2,
         'dominant-baseline':'middle', 'font-size':15.5, 'font-family':'DM Mono, monospace',
-        fill: (r.age === null || r.age >= 6) ? red : ink },
+        fill: (duty && (r.age === null || r.age >= 6)) ? red : ink },
         r.age === null ? 'never' : `${r.age} mo`));
       y += CH;
     });
@@ -4004,9 +4024,12 @@ function ciDraw(){
 
   const mine = rows.reduce((n, r) => n + r.mine, 0);
   const all  = rows.reduce((n, r) => n + r.mine + r.other, 0);
+  const adv  = rows.filter(r => r.slot !== CI_NOT_MINE).length;
+  const oth  = rows.length - adv;
   const hd = document.getElementById('ci-hd');
-  if(hd) hd.textContent = `${rows.length} advisee${rows.length === 1 ? '' : 's'} · ${
-    all} session${all === 1 ? '' : 's'}, ${mine} with me`;
+  if(hd) hd.textContent = `${adv} advisee${adv === 1 ? '' : 's'}`
+    + (oth ? ` · ${oth} other${oth === 1 ? '' : 's'} met` : '')
+    + ` · ${all} session${all === 1 ? '' : 's'}, ${mine} with me`;
   // Two things the drawing cannot say for itself: that Last is not only my own
   // meetings, and that there is more of the grid off to the left. Everything
   // else is already on screen - the header names the months, the group lines
@@ -4268,7 +4291,7 @@ async function loadCheckinDates(){
   // whether or not the rows arrived.
   if(CONTACT.tried || CONTACT.busy || !dataLoaded) return;
   CONTACT.busy = true; CONTACT.tried = true;
-  const ids = myStudents().map(x => x.id);
+  const ids = ciRoster().map(x => x.id);
   if(!ids.length){ CONTACT.checkin = {}; CONTACT.busy = false; CONTACT.tried = false; return; }
   try {
     const rows = await sbGet(VW_CHECKIN,
