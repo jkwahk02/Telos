@@ -5190,7 +5190,12 @@ async function submitRequest(){
     const row={
       student_id:studentData.id,
       faculty_email:selectedFacultyEmail,
-      meeting_date:selectedMeetingSlots[0].dateStr, // 첫 번째 제안 날짜
+      // The advisor's date, not the student's. dateStr is the student's own
+      // calendar day and the two differ across a date line: a slot at 20:00 on
+      // the 23rd in the Americas is midday on the 24th in Seoul. meeting_date
+      // is what the advisor's calendar files the request under, so it has to be
+      // their day or the request lands twenty-four hours early.
+      meeting_date:selectedMeetingSlots[0].facDateStr || selectedMeetingSlots[0].dateStr,
       meeting_format: document.getElementById('req-format')?.value || 'Zoom',
       meeting_type:type,
       meeting_duration:meetingDuration,

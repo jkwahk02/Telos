@@ -12629,8 +12629,10 @@ function buildCalendar() {
 
   const firstDay  = new Date(calYear, calMonth, 1).getDay();
   const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
-  const today = new Date(); today.setHours(0,0,0,0);
-  const todayStr = today.toISOString().slice(0,10);
+  // The advisor's own date, not UTC. toISOString() put the highlight on
+  // yesterday for every Korean morning before nine, which is most of the times
+  // anyone opens this. Everywhere else in the app today comes from here.
+  const todayStr = ymdLocal(facTodayDate());
 
   let html = '';
 
@@ -12656,8 +12658,11 @@ function buildCalendar() {
       // three Kims teach nobody which Kim is on Wednesday - and the cell has
       // the room for two lines.
       const name = st?.name || (cat==='log' ? sess.studentName : '') || sid;
+      // A slot a student proposed carries both clocks; facStart is the one in
+      // the advisor's own timezone, which is the only one this calendar is in.
+      const slot0 = m && m.proposedSlots && m.proposedSlots[0];
       const time = cat==='log' ? (sess.meetingTime || '').slice(0,5)
-                 : (m.confirmedStart || (m.proposedSlots?.[0]?.start) || '');
+                 : (m.confirmedStart || (slot0 && (slot0.facStart || slot0.start)) || '');
       const bg   = cat==='upcoming'?'var(--green-l)':cat==='pending'?'var(--amber-l)':'var(--gray-l)';
       const border = cat==='upcoming'?'var(--green-b)':cat==='pending'?'var(--amber-b)':'var(--border-em)';
       const color  = cat==='upcoming'?'var(--green)':cat==='pending'?'var(--amber)':'var(--text3)';
