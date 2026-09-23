@@ -8715,7 +8715,7 @@ let mrDur  = 30;
 let mrWeek = 0;           // 0 = the coming week, 1 = the one after
 let mrNote = '';
 
-function openMeetingRequest(sid){
+async function openMeetingRequest(sid){
   const st = students.find(s => s.id === sid);
   if(!st) return;
   mrPick = new Set(); mrDur = Math.min(30, FACULTY_MAX_MEETING || 30); mrWeek = 0; mrNote = '';
@@ -8726,6 +8726,17 @@ function openMeetingRequest(sid){
     <div class="ci-bd" id="mr-bd" style="max-height:72vh;overflow:auto;"></div></div>`;
   m.classList.add('on');
   renderMeetingRequest(sid);
+
+  // The offer is built from availSlots, and only Profile, Settings and
+  // Meetings ever fill it. Opened from a student panel the array was still
+  // empty, so every week read "Nothing to offer" to an advisor with thirteen
+  // slots registered. Fetch it here and redraw; the modal is already on screen
+  // so the wait shows as the hint changing rather than as a blank pause.
+  if(!availSlots.length){
+    await loadAvailability();
+    PROF.availTried = true;
+    if(document.getElementById('mr-bd')) renderMeetingRequest(sid);
+  }
 }
 
 function mrSet(key, val, sid){
