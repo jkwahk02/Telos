@@ -485,7 +485,8 @@ button,input,select,textarea{font-family:inherit;}
 .mg-compose{border-top:1px solid var(--border);padding-top:16px;margin-top:4px;}
 .mg-nact{display:flex;align-items:flex-start;gap:8px;}
 .mg-nact textarea{flex:1;min-width:0;border:1px solid var(--border-em);border-radius:var(--r);
-  padding:9px 12px;font-size:15px;font-family:inherit;color:var(--text);background:var(--surface);resize:vertical;}
+  padding:9px 12px;font-size:15px;font-family:inherit;color:var(--text);background:var(--surface);
+  resize:none;min-height:88px;line-height:1.55;}
 .mg-nact textarea:focus{outline:none;border-color:var(--blue-m);}
 .mg-post{flex-shrink:0;padding:6px 15px;}
 .mg-post:disabled{opacity:.45;cursor:default;}
@@ -539,7 +540,7 @@ button,input,select,textarea{font-family:inherit;}
 .ci-bd{padding:14px 18px 18px;}
 .ci-bd textarea{width:100%;border:1px solid var(--border-em);border-radius:var(--r);
   padding:10px 12px;font-size:15px;font-family:inherit;color:var(--text);
-  background:var(--surface);resize:vertical;}
+  background:var(--surface);resize:none;min-height:120px;line-height:1.55;}
 .ci-bd textarea:focus{outline:none;border-color:var(--blue-m);}
 .ci-ft{display:flex;align-items:center;gap:9px;margin-top:16px;padding-top:13px;
   border-top:1px solid var(--border);}
@@ -1637,8 +1638,9 @@ let reqOpenFor   = null; // which student's panel is expanded
 let meetings = [];  // ← 추가
 let dataLoaded = false;
 let pendingSelSlot   = {};   // { meetingId: slotIndex }
-let pendingPropose   = {};   // { meetingId: Set<availIndex> }
+let pendingPropose   = {};   // { meetingId: Set<'date|start|end'> }
 let pendingPropMode  = {};   // { meetingId: boolean }
+let pendingWeek      = {};   // { meetingId: 0 | 1 }, as mrWeek
 let pendingExpanded = {};  // { meetingId: boolean }
 let confirmedExpanded = {};
 let pastExpanded = {};
@@ -3071,6 +3073,20 @@ async function markMeetingCompleted(meetingId) {
   }
 }
   
+// Confirmed meetings a proposed time would run into. Students cannot see other
+// students' bookings, so they propose times that are already taken; this is
+// where the advisor finds out. Both sides are in the advisor's timezone, the
+// convention confirmed_start_time is written in.
+function slotClashes(sl, selfId) {
+  const date = sl.facDateStr || sl.dateStr;
+  const s = tMinFac(sl.facStart || sl.start), e = tMinFac(sl.facEnd || sl.end);
+  if (!date || isNaN(s) || isNaN(e)) return [];
+  return meetings.filter(x => x.id !== selfId && x.facultyEmail === FACULTY_EMAIL
+    && x.status === 'scheduled' && x.advisorConfirmed
+    && x.meetingDate === date && x.confirmedStart && x.confirmedEnd
+    && tMinFac(x.confirmedStart) < e && s < tMinFac(x.confirmedEnd));
+}
+
 function buildPendingExpand(m, st) {
   const hasSlots    = m.proposedSlots && m.proposedSlots.length > 0;
   // A request the advisor started is waiting on the student, not on us. The
@@ -3106,6 +3122,11 @@ function buildPendingExpand(m, st) {
             </span>
             <span class="tz-pill" style="margin-left:3px;">${tzAbbrFac(st.timezone)}</span>
           </div>` : ''}
+          ${slotClashes(sl, m.id).map(x => `
+          <div style="margin-top:5px;font-size:12px;font-weight:600;color:var(--red);">
+            ⚠ Conflicts with ${esc(students.find(s => String(s.id) === x.studentId)?.name || 'another meeting')}
+            ${esc(x.confirmedStart)}–${esc(x.confirmedEnd)}
+          </div>`).join('')}
         </div>
       </label>`).join('')}` : '';
 
@@ -3126,50 +3147,37 @@ function buildPendingExpand(m, st) {
         </div>
       </div>`).join('')}` : '';
 
+  // The same picker the advisor uses to request a meeting, so offering times
+  // looks and works the same whichever side started. The length is not asked:
+  // the student already chose it, within the advisor's own cap.
+  const propDur  = proposeDur(m);
+  const propWeek = pendingWeek[m.id] || 0;
   const proposePanelHtml = isProposeMode ? `
-    <div style="border:1px solid var(--border-em);border-radius:var(--r);overflow:hidden;margin-bottom:14px;">
-      <div style="padding:8px 13px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:13px;font-weight:500;color:var(--text2);">
-        Your availability — select blocks to offer ${esc(st?.name?.split(' ')[0] || 'student')}.
-        They choose a start time inside one, ${m.meetingDuration || 30} minutes long.
-      </div>
-      ${availSlots.filter(a => a.is_active).map((a, ai) => {
-        const isPicked = picked.has(ai);
-        const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-        return `
-        <div style="display:flex;align-items:center;gap:12px;padding:9px 13px;border-bottom:1px solid var(--border);cursor:pointer;background:${isPicked?'var(--blue-l)':'var(--surface)'};transition:background .12s;"
-          onclick="if(!pendingPropose[${m.id}])pendingPropose[${m.id}]=new Set();if(pendingPropose[${m.id}].has(${ai}))pendingPropose[${m.id}].delete(${ai});else pendingPropose[${m.id}].add(${ai});renderOverview();renderMeetings();">
-          <div style="width:16px;height:16px;border-radius:3px;border:1.5px solid ${isPicked?'var(--blue)':'var(--border-em)'};background:${isPicked?'var(--blue)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            ${isPicked?`<svg width="9" height="9" viewBox="0 0 10 10"><polyline points="1.5,5 3.5,7.5 8.5,2.5" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`:''}
-          </div>
-          <div style="font-size:11px;font-weight:600;background:${isPicked?'var(--blue)':'var(--surface2)'};color:${isPicked?'#fff':'var(--text2)'};padding:2px 8px;border-radius:20px;flex-shrink:0;">
-            ${days[a.day_of_week]}
-          </div>
-          <div style="flex:1;">
-            <div style="font-size:13px;font-weight:500;${isPicked?'color:#0C447C;':''}">${(() => {
-              const pd = offerDate(a, 0, m.meetingDuration || 30);
-              const pw = blockWindow(a, m.meetingDuration || 30, pd);
-              return `${fmtShortDateFac(pd)} · ${pw.start} – ${pw.end}`;
-            })()} <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span></div>
-            ${a.note?`<div style="font-size:11px;color:var(--text3);">${esc(a.note)}</div>`:''}
-          </div>
-        </div>`; 
-      }).join('')}
+    <div style="margin-bottom:14px;">
+      <div class="mg-vislabel" style="margin-top:0;">Which week</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">${weekChipsHtml(propWeek, w => `ppWeek(${m.id},${w})`)}</div>
+      <div class="mg-vislabel">Offer these times</div>
+      ${slotPickerHtml(mrOptions(propWeek, propDur), picked, propDur,
+          key => `ppToggle(${m.id},'${key}')`, d => `ppToggleDay(${m.id},'${d}')`)}
+      <div class="mg-hint" style="margin-top:6px;">${propDur}-minute appointments, the length
+        ${esc(st?.name?.split(' ')[0] || 'the student')} asked for. They take one of the times you offer.</div>
     </div>` : '';
 
   let actionHtml = '';
   if (isProposeMode) {
     actionHtml = `
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div style="border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="flex:1;min-width:200px;font-size:13px;color:var(--text3);">Nothing is booked until they pick one.</span>
+        <button class="btn-cancel" style="background:var(--surface);color:var(--text2);border:1px solid var(--border-em);" onclick="closeProposePanel(${m.id})">Cancel</button>
         <button class="btn-log" onclick="sendProposal(${m.id})" ${picked.size===0?'disabled style="opacity:.4;cursor:default;"':''}>
           ${advisorOffered ? 'Send new times' : 'Send proposal'}${picked.size>0?' ('+picked.size+')':''}
         </button>
-        <button class="btn-cancel" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border-em);" onclick="pendingPropMode[${m.id}]=false;if(pendingPropose[${m.id}])pendingPropose[${m.id}].clear();renderOverview();renderMeetings();">Cancel</button>
       </div>`;
   } else if (advisorOffered) {
     actionHtml = `
       <div style="border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="flex:1;min-width:200px;font-size:13px;color:var(--text3);">Nothing is booked until they pick one.</span>
-        <button class="btn-cancel" style="background:var(--surface);color:var(--text2);border:1px solid var(--border-em);" onclick="pendingPropMode[${m.id}]=true;renderOverview();renderMeetings();">Offer different times</button>
+        <button class="btn-cancel" style="background:var(--surface);color:var(--text2);border:1px solid var(--border-em);" onclick="openProposePanel(${m.id})">Offer different times</button>
       </div>`;
   } else if (hasSlots) {
     actionHtml = `
@@ -3187,7 +3195,7 @@ function buildPendingExpand(m, st) {
     actionHtml = `
       <div style="border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2);
         display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <button class="btn-log" onclick="pendingPropMode[${m.id}]=true;renderOverview();renderMeetings();">Propose a time</button>
+        <button class="btn-log" onclick="openProposePanel(${m.id})">Propose a time</button>
         <button class="btn-cancel" style="background:var(--surface);color:var(--text2);border:1px solid var(--border-em);" onclick="rescheduleMeetingRequest(${m.id})">Ask to reschedule</button>
         ${m.status === 'rescheduling' ? `
         <button class="btn-cancel" style="background:var(--surface);color:var(--text3);border:1px solid var(--border-em);margin-left:auto;"
@@ -3520,23 +3528,50 @@ function dayNameFac(dow) {
   return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dow] || '';
 }
 
-// The offer itself. Times are the advisor's own timezone throughout — the
-// student app converts them for display and writes the confirmed time back in
-// the advisor's timezone, which is the convention the rest of the app reads by.
-function advisorSlot(a, dur, weeksAhead = 0) {
-  const dateStr = offerDate(a, weeksAhead, dur);
-  const w = blockWindow(a, dur, dateStr);
-  const start = w.start, end = w.end;
-  return {
-    block: true,
-    duration: dur,
-    day_of_week: a.day_of_week,
-    dateStr, dateLabel: fmtShortDateFac(dateStr),
-    facDateStr: dateStr, facStart: start, facEnd: end,
-    start, end,
-    tz: FACULTY_TIMEZONE || '',
-    note: a.note || '',
-  };
+// The panel lists availSlots, which only Profile, Settings and Availability
+// used to fill. Opened from Requests first, it showed its header and no rows.
+async function openProposePanel(meetingId) {
+  pendingPropMode[meetingId] = true;
+  renderOverview(); renderMeetings();
+  if (!availSlots.length) {
+    await loadAvailability();
+    PROF.availTried = true;
+    renderOverview(); renderMeetings();
+  }
+}
+
+function closeProposePanel(meetingId) {
+  delete pendingPropMode[meetingId];
+  delete pendingPropose[meetingId];
+  delete pendingWeek[meetingId];
+  renderOverview(); renderMeetings();
+}
+
+// The advisor's cap binds the advisor too — otherwise they offer an hour
+// inside a window they have told students is twenty minutes.
+function proposeDur(m) {
+  return Math.min(m?.meetingDuration || 30, FACULTY_MAX_MEETING || 1e9);
+}
+
+function ppToggle(meetingId, key) {
+  const set = pendingPropose[meetingId] = pendingPropose[meetingId] || new Set();
+  if (set.has(key)) set.delete(key); else set.add(key);
+  renderOverview(); renderMeetings();
+}
+function ppToggleDay(meetingId, dateStr) {
+  const m   = meetings.find(x => x.id === meetingId);
+  const day = mrOptions(pendingWeek[meetingId] || 0, proposeDur(m)).find(g => g.dateStr === dateStr);
+  if (!day) return;
+  const set  = pendingPropose[meetingId] = pendingPropose[meetingId] || new Set();
+  const keys = day.times.map(t => `${dateStr}|${t.start}|${t.end}`);
+  const all  = keys.every(k => set.has(k));
+  keys.forEach(k => all ? set.delete(k) : set.add(k));
+  renderOverview(); renderMeetings();
+}
+function ppWeek(meetingId, w) {
+  pendingWeek[meetingId] = w;
+  pendingPropose[meetingId]?.clear();   // the times picked were for the other week
+  renderOverview(); renderMeetings();
 }
 
 async function sendProposal(meetingId) {
@@ -3544,11 +3579,9 @@ async function sendProposal(meetingId) {
   const picked = pendingPropose[meetingId];
   if (!picked || picked.size === 0) { showToast('Select at least one slot.'); return; }
 
-  // The advisor's cap binds the advisor too — otherwise they offer an hour
-  // inside a window they have told students is twenty minutes.
-  const dur = Math.min(m?.meetingDuration || 30, FACULTY_MAX_MEETING || 1e9);
+  const dur = proposeDur(m);
   const proposedByAdvisor = Array.from(picked)
-    .map(ai => advisorSlot(availSlots[ai], dur))
+    .map(k => { const [dateStr, start, end] = k.split('|'); return advisorTimeSlot(dateStr, start, end, dur); })
     .sort((x, y) => (x.dateStr + x.start).localeCompare(y.dateStr + y.start));
 
   try {
@@ -3568,6 +3601,7 @@ async function sendProposal(meetingId) {
     }
     delete pendingPropMode[meetingId];
     delete pendingPropose[meetingId];
+    delete pendingWeek[meetingId];
     showToast(`Proposal sent — ${picked.size} slot${picked.size>1?'s':''} proposed to student`);
     renderCurrent();
   } catch(e) {
@@ -8762,16 +8796,16 @@ function mrToggleDay(dateStr, sid){
 // Every appointment the advisor could offer for the chosen week and length,
 // gathered by date rather than by block: two windows on a Tuesday are one
 // Tuesday to the student, and the advisor reads their week the same way.
-function mrOptions(){
+function mrOptions(week = mrWeek, dur = mrDur){
   const byDate = {};
   availSlots.forEach(a => {
     if(!a.is_active) return;
-    const date = offerDate(a, mrWeek, mrDur);
-    const w    = blockWindow(a, mrDur, date);
+    const date = offerDate(a, week, dur);
+    const w    = blockWindow(a, dur, date);
     if(!w.count) return;
     const from = tMinFac(w.start);
     for(let k = 0; k < w.count; k++){
-      const start = minTFac(from + k*mrDur), end = minTFac(from + (k+1)*mrDur);
+      const start = minTFac(from + k*dur), end = minTFac(from + (k+1)*dur);
       byDate[date] = byDate[date] || {};
       byDate[date][start] = { start, end };   // overlapping blocks collapse
     }
@@ -8789,6 +8823,43 @@ function mrOptions(){
     });
     return { dateStr: d, label: fmtShortDateFac(d), times };
   });
+}
+
+// The week chips and the picker, shared by the request modal and the propose
+// panel on Requests. Each caller keeps its own picks; onToggle and onToggleDay
+// return the onclick for one time and for a whole day.
+function weekChipsHtml(week, onPick){
+  return [0, 1].map(w => `
+    <button class="sp-btn" style="padding:5px 12px;font-size:14px;${week===w?'border-color:var(--teal);color:var(--teal);font-weight:600;background:var(--teal-l);':''}"
+      onclick="${onPick(w)}">${w===0?'This coming week':'The week after'}</button>`).join('');
+}
+
+function slotPickerHtml(groups, picked, dur, onToggle, onToggleDay){
+  if(!groups.length){
+    return !availSlots.length && !PROF.availTried
+      ? `<div class="mg-hint" style="margin:0;">Loading your availability…</div>`
+      : `<div class="mg-hint" style="margin:0;">Nothing to offer for this week. Add availability under
+      Meetings → Availability, or try the week after.</div>`;
+  }
+  return groups.map(g => {
+    const keys = g.times.map(t => `${g.dateStr}|${t.start}|${t.end}`);
+    const all  = keys.every(k => picked.has(k));
+    return `
+    <div class="mr-day">
+      <div class="mr-day-hd">${g.label}
+        <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span>
+        <span style="font-weight:400;font-size:12px;color:var(--text3);">${g.times.length} × ${dur} min</span>
+        <button class="mr-all" onclick="${onToggleDay(g.dateStr)}">${all?'Clear day':'All day'}</button>
+      </div>
+      <div class="mr-day-bd">
+        ${g.times.map(t => {
+          const key = `${g.dateStr}|${t.start}|${t.end}`;
+          return `<button class="mr-t ${picked.has(key)?'on':''}"
+            onclick="${onToggle(key)}">${t.start}</button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderMeetingRequest(sid){
@@ -8809,32 +8880,10 @@ function renderMeetingRequest(sid){
     <button class="sp-btn" style="padding:5px 12px;font-size:14px;${mrDur===d?'border-color:var(--teal);color:var(--teal);font-weight:600;background:var(--teal-l);':''}"
       onclick="mrSet('dur',${d},'${esc(sid)}')">${d} min</button>`).join('');
 
-  const weekChips = [0, 1].map(w => `
-    <button class="sp-btn" style="padding:5px 12px;font-size:14px;${mrWeek===w?'border-color:var(--teal);color:var(--teal);font-weight:600;background:var(--teal-l);':''}"
-      onclick="mrSet('week',${w},'${esc(sid)}')">${w===0?'This coming week':'The week after'}</button>`).join('');
+  const weekChips = weekChipsHtml(mrWeek, w => `mrSet('week',${w},'${esc(sid)}')`);
 
-  const groups = mrOptions();
-  const rows = groups.length ? groups.map(g => {
-    const keys = g.times.map(t => `${g.dateStr}|${t.start}|${t.end}`);
-    const all  = keys.every(k => mrPick.has(k));
-    return `
-    <div class="mr-day">
-      <div class="mr-day-hd">${g.label}
-        <span class="tz-pill">${tzAbbrFac(FACULTY_TIMEZONE)}</span>
-        <span style="font-weight:400;font-size:12px;color:var(--text3);">${g.times.length} × ${mrDur} min</span>
-        <button class="mr-all" onclick="mrToggleDay('${g.dateStr}','${esc(sid)}')">${all?'Clear day':'All day'}</button>
-      </div>
-      <div class="mr-day-bd">
-        ${g.times.map(t => {
-          const key = `${g.dateStr}|${t.start}|${t.end}`;
-          return `<button class="mr-t ${mrPick.has(key)?'on':''}"
-            onclick="mrToggle('${key}','${esc(sid)}')">${t.start}</button>`;
-        }).join('')}
-      </div>
-    </div>`;
-  }).join('') : `
-    <div class="mg-hint" style="margin:0;">Nothing to offer for this week. Add availability under
-      Meetings → Availability, or try the week after.</div>`;
+  const rows = slotPickerHtml(mrOptions(), mrPick, mrDur,
+    key => `mrToggle('${key}','${esc(sid)}')`, d => `mrToggleDay('${d}','${esc(sid)}')`);
 
   const fits = mrPick.size;
 
@@ -8848,7 +8897,7 @@ function renderMeetingRequest(sid){
     <div class="mg-vislabel">Offer these times</div>
     ${rows}
     <div class="mg-vislabel">A line to go with it</div>
-    <textarea id="mr-note" rows="5" style="min-height:110px;" oninput="mrNote=this.value"
+    <textarea id="mr-note" rows="5" oninput="mrNote=this.value"
       placeholder="I would like to catch up before the add/drop deadline.">${esc(mrNote)}</textarea>
     <div class="mg-hint" style="margin-top:6px;">They take one of the times you offer. Nothing is
       booked until they do, and the request is logged in their advising history either way.</div>
