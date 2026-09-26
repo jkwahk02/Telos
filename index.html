@@ -3006,16 +3006,31 @@ return `
             style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--surface);color:var(--text2);border:1px solid var(--border-em);font-size:13px;cursor:pointer;">
             Ask to reschedule
           </button>
+          ${mtgStarted(m) ? `
+          <button onclick="event.stopPropagation();markMeetingNoShow(${m.id})"
+            style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--surface);color:var(--red);border:1px solid var(--red-l);font-size:13px;cursor:pointer;margin-left:auto;">
+            Mark as no-show
+          </button>` : ''}
         </div>
         <div style="font-size:12px;color:var(--text3);margin-top:7px;">
           Session log can be added later from Students.
           Rescheduling releases this time and asks ${esc(st?.name?.split(' ')[0] || 'the student')} to propose new ones.
+          ${mtgStarted(m) ? '' : 'If they do not show up, you can record it here once the meeting time has come.'}
         </div>
       </div>
     </div>`;
 }
 
 function buildCompletedExpand(m, st) {
+  if (m.status === 'no_show') return `
+    <div style="padding:14px 16px;background:var(--surface);border-top:1px solid var(--border);
+      display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="flex:1;min-width:220px;font-size:13px;color:var(--text3);">
+        ${esc(st?.name?.split(' ')[0] || 'The student')} did not show up. This does not count as a meeting held,
+        and no session log is expected for it.
+      </span>
+      <button class="btn-cancel" onclick="event.stopPropagation();undoMeetingNoShow(${m.id})">Undo no-show</button>
+    </div>`;
   const sess = sessions.find(s => s.logId === m.logId);
   return `
     <div style="padding:14px 16px;background:var(--surface);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;">
@@ -3057,6 +3072,44 @@ function buildCompletedExpand(m, st) {
         </div>
       `}
     </div>`;
+}
+
+// Whether a confirmed meeting's time has come, in the advisor's timezone. Before
+// then a no-show cannot have happened, so the button is not offered.
+function mtgStarted(m) {
+  if (!m.meetingDate) return false;
+  const today = ymdLocal(facTodayDate());
+  if (m.meetingDate !== today) return m.meetingDate < today;
+  return !m.confirmedStart || m.confirmedStart <= facNowHM();
+}
+
+// A confirmed meeting the student did not come to. Its own status, not
+// 'cancelled': nobody called it off, and the difference is what the record is for.
+async function markMeetingNoShow(meetingId) {
+  const m  = meetings.find(x => x.id === meetingId);
+  const st = students.find(s => String(s.id) === m?.studentId);
+  if (!confirm(`Record that ${st?.name || 'the student'} did not show up?\nIt moves to Past meetings, and you can undo it there.`)) return;
+  try {
+    await sbUpdate(TBL_MEETING, 'id', meetingId, { status: 'no_show' });
+    if (m) m.status = 'no_show';
+    delete confirmedExpanded[meetingId];
+    showToast('Recorded as a no-show');
+    renderCurrent();
+  } catch(e) {
+    showToast(`Failed: ${e.message}`);
+  }
+}
+
+async function undoMeetingNoShow(meetingId) {
+  try {
+    await sbUpdate(TBL_MEETING, 'id', meetingId, { status: 'scheduled' });
+    const m = meetings.find(x => x.id === meetingId);
+    if (m) m.status = 'scheduled';
+    showToast('No-show undone — back in Upcoming');
+    renderCurrent();
+  } catch(e) {
+    showToast(`Failed: ${e.message}`);
+  }
 }
 
 async function markMeetingCompleted(meetingId) {
@@ -12297,7 +12350,7 @@ function mtgSets(){
     // needs an answer from me - so one list.
     requests: mine.filter(m => (!m.advisorConfirmed && m.status === 'scheduled')
                             || m.status === 'rescheduling').sort(byDate),
-    past: mine.filter(m => m.status === 'completed' || m.status === 'cancelled')
+    past: mine.filter(m => m.status === 'completed' || m.status === 'cancelled' || m.status === 'no_show')
               .sort((a,b) => (b.meetingDate||'').localeCompare(a.meetingDate||'')),
   };
 }
@@ -12362,7 +12415,7 @@ function mtgRenderBody(S){
 // those is a separate job from tidying the frame around them.
 function mtgKind(m){
   if(m.status === 'rescheduling') return 'resched';
-  if(m.status === 'completed' || m.status === 'cancelled') return 'past';
+  if(m.status === 'completed' || m.status === 'cancelled' || m.status === 'no_show') return 'past';
   return m.advisorConfirmed ? 'confirmed' : 'pending';
 }
 function mtgBadge(m){
@@ -12371,6 +12424,7 @@ function mtgBadge(m){
   if(k === 'resched')   return `<span class="bdg bdg-amber">Reschedule needed</span>`;
   if(k === 'pending')   return `<span class="bdg bdg-blue">Waiting on you</span>`;
   if(m.status === 'cancelled') return `<span class="bdg bdg-gray">Cancelled</span>`;
+  if(m.status === 'no_show')   return `<span class="bdg bdg-red">No-show</span>`;
   return `<span class="bdg bdg-gray">${m.logId ? 'Logged' : 'No log'}</span>`;
 }
 // When: a date if there is one, TBD if there is not, never a bare blank.
@@ -12520,10 +12574,15 @@ function mtgPast(box, S){
   const thisTerm  = all.filter(inTerm);
   const noLog     = thisTerm.filter(m => m.status === 'completed' && !m.logId);
   const cancelled = thisTerm.filter(m => m.status === 'cancelled');
+  const noShow    = thisTerm.filter(m => m.status === 'no_show');
+  // Held means held: the cancelled and the no-shows are in this term's list
+  // but not in the count the summary opens with.
+  const held      = thisTerm.filter(m => m.status === 'completed');
 
   let list = MTG.past === 'all' ? all
            : MTG.past === 'nolog' ? noLog
            : MTG.past === 'cancelled' ? cancelled
+           : MTG.past === 'noshow' ? noShow
            : thisTerm;
   const q = (MTG.q || '').trim().toLowerCase();
   if(q){
@@ -12548,15 +12607,17 @@ function mtgPast(box, S){
 
   box.innerHTML = `
     <h1 class="ov-h1">Past meetings</h1>
-    <p class="m2-lede">${thisTerm.length} meeting${thisTerm.length === 1 ? '' : 's'} held this cycle${
+    <p class="m2-lede">${held.length} meeting${held.length === 1 ? '' : 's'} held this cycle${
       noLog.length ? `, <b>${noLog.length}</b> of them without a session log` : ''}.${
-      cancelled.length ? ` ${cancelled.length} ${cancelled.length === 1 ? 'was' : 'were'} cancelled.` : ''}</p>
+      cancelled.length ? ` ${cancelled.length} ${cancelled.length === 1 ? 'was' : 'were'} cancelled.` : ''}${
+      noShow.length ? ` ${noShow.length} ${noShow.length === 1 ? 'was a no-show' : 'were no-shows'}.` : ''}</p>
     <div class="m2-filters">
       <input class="fi" id="mtg-q" placeholder="Search a name…" value="${esc(MTG.q || '')}"
         style="width:230px;height:36px;font-size:16px;" oninput="MTG.q=this.value;mtgRenderBody();">
       ${chip('term', `${term}–${term + 1}`, thisTerm.length)}
       ${chip('nolog', 'No session log', noLog.length)}
       ${chip('cancelled', 'Cancelled', cancelled.length)}
+      ${chip('noshow', 'No-show', noShow.length)}
       ${chip('all', 'All time', all.length)}
       <span class="ov-meta" style="margin-left:auto;">newest first</span>
     </div>

@@ -4155,7 +4155,7 @@ return `
                   ${esc(m.meeting_type||'Regular')} · ${new Date(m.meeting_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
                 </div>
               </div>
-              <span class="bdg ${m.status==='completed'?'bdg-green':'bdg-red'}">${m.status==='completed'?'Completed':'Cancelled'}</span>
+              <span class="bdg ${m.status==='completed'?'bdg-green':m.status==='no_show'?'bdg-amber':'bdg-red'}">${m.status==='completed'?'Completed':m.status==='no_show'?'Missed':'Cancelled'}</span>
               <span class="hist-chevron" id="hchev-${m.id}">${isOpen?'▴':'▾'}</span>
             </div>
 
