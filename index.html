@@ -13,7 +13,7 @@
   --blue:#185FA5; --blue-l:#E6F1FB; --blue-m:#378ADD; --blue-b:#B5D4F4;
   --amber:#854F0B; --amber-l:#FAEEDA; --amber-b:#EF9F27; --amber-d:#633806;
   --green:#3B6D11; --green-l:#EAF3DE; --green-b:#C0DD97;
-  --red:#A32D2D; --red-l:#FCEBEB;
+  --red:#A32D2D; --red-l:#FCEBEB; --red-b:#F2B8B8;
   --gray-l:#F1EFE8; --gray-m:#5F5E5A;
   --teal-l:#E1F5EE; --teal:#0F6E56;
   /* ── Taejae's own colours ────────────────────────────────────────────────
@@ -3002,15 +3002,15 @@ return `
             style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--green-l);color:var(--green);border:1px solid var(--green-b);font-size:13px;font-weight:600;cursor:pointer;">
             ✓ Mark as completed
           </button>
-          <button onclick="event.stopPropagation();rescheduleMeetingRequest(${m.id})"
-            style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--surface);color:var(--text2);border:1px solid var(--border-em);font-size:13px;cursor:pointer;">
-            Ask to reschedule
-          </button>
           ${mtgStarted(m) ? `
           <button onclick="event.stopPropagation();markMeetingNoShow(${m.id})"
-            style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--surface);color:var(--red);border:1px solid var(--red-l);font-size:13px;cursor:pointer;margin-left:auto;">
-            Mark as no-show
+            style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--red-l);color:var(--red);border:1px solid var(--red-b);font-size:13px;font-weight:600;cursor:pointer;">
+            ✕ Mark as no-show
           </button>` : ''}
+          <button onclick="event.stopPropagation();rescheduleMeetingRequest(${m.id})"
+            style="height:32px;padding:0 14px;border-radius:var(--r);background:var(--surface);color:var(--text2);border:1px solid var(--border-em);font-size:13px;cursor:pointer;margin-left:auto;">
+            Ask to reschedule
+          </button>
         </div>
         <div style="font-size:12px;color:var(--text3);margin-top:7px;">
           Session log can be added later from Students.
