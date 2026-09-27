@@ -3832,16 +3832,23 @@ const CI_SLOTS = ['As Advisor 1', 'As Advisor 2', 'Not my advisee'];
 const CI_NOT_MINE = 'Not my advisee';
 
 // Everyone this card draws: my advisees, plus anyone else I have actually sat
-// with. A student met once but not advised has a history worth seeing; a
-// student neither met nor advised has nothing to draw, so the roster is not
-// the whole register.
+// with or am booked to. A student met once but not advised has a history worth
+// seeing; a student neither met nor advised has nothing to draw, so the roster
+// is not the whole register. A confirmed booking counts as something to draw:
+// without it a non-advisee who asked the chair for a first meeting had no row,
+// so the booking mark ciDraw puts on every row had nowhere to go.
 function ciRoster(){
   const mine = myStudents();
   const have = new Set(mine.map(x => String(x.id)));
-  const met = new Set(realSessions()
+  const today = ymdLocal(facTodayDate());
+  const others = new Set(realSessions()
     .filter(x => x.faculty === FACULTY_EMAIL && x.studentId && !have.has(String(x.studentId)))
     .map(x => String(x.studentId)));
-  return mine.concat(students.filter(x => met.has(String(x.id)) && isCounted(x)));
+  meetings.filter(m => m.facultyEmail === FACULTY_EMAIL && m.status === 'scheduled'
+                    && m.advisorConfirmed === true && m.meetingDate && m.meetingDate >= today
+                    && m.studentId && !have.has(String(m.studentId)))
+          .forEach(m => others.add(String(m.studentId)));
+  return mine.concat(students.filter(x => others.has(String(x.id)) && isCounted(x)));
 }
 
 function ovContactCard(){
@@ -4115,7 +4122,7 @@ function ciDraw(){
   const oth  = rows.length - adv;
   const hd = document.getElementById('ci-hd');
   if(hd) hd.textContent = `${adv} advisee${adv === 1 ? '' : 's'}`
-    + (oth ? ` · ${oth} other${oth === 1 ? '' : 's'} met` : '')
+    + (oth ? ` · ${oth} non-advisee${oth === 1 ? '' : 's'}` : '')
     + ` · ${all} session${all === 1 ? '' : 's'}, ${mine} with me`;
   // Two things the drawing cannot say for itself: that Last is not only my own
   // meetings, and that there is more of the grid off to the left. Everything
