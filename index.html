@@ -2264,6 +2264,23 @@ async function restoreSession(){
   return true;
 }
 
+// Telos has two apps. A student who signs in here (a bookmark, a shared link)
+// is sent on to the student app; the session goes with them in this tab.
+async function sendStudentToStudentApp(profData){
+  if (Array.isArray(profData) && profData.length) return false;
+  const email = supabaseUser?.user?.email || '';
+  if (!email) return false;
+  try{
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/students?email=ilike.${encodeURIComponent(email)}&select=id`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${supabaseUser.access_token}` } });
+    const rows = r.ok ? await r.json() : [];
+    if (!rows.length) return false;
+  }catch(e){ return false; }
+  saveAuthSession();
+  location.replace(new URL('student/', location.href.split('#')[0].replace(/index\.html$/, '')).href);
+  return true;
+}
+
 // ── AUTH ──
 async function handleWallLogin() {
   const email    = document.getElementById('wall-email').value.trim();
@@ -2294,6 +2311,7 @@ async function handleWallLogin() {
     supabaseUser = data;
 
     const profData = await hydrateFacultyProfile(email, data.access_token, data.user);
+    if (await sendStudentToStudentApp(profData)) return;
     document.getElementById('dd-email').textContent   = supabaseUser?.user?.email || '';
     document.getElementById('nav-user-btn').style.display = 'flex';
     document.getElementById('src-dot').className = 'src-dot authed';
@@ -13012,8 +13030,9 @@ if(SUPABASE_URL !== 'YOUR_SUPABASE_URL'){
 (async () => {
   if(await restoreSession()){
     try{
-      await hydrateFacultyProfile(supabaseUser.user?.email || '',
+      const profData = await hydrateFacultyProfile(supabaseUser.user?.email || '',
                                   supabaseUser.access_token, supabaseUser.user);
+      if (await sendStudentToStudentApp(profData)) return;
       document.getElementById('dd-email').textContent = supabaseUser.user?.email || '';
       document.getElementById('login-wall').style.display = 'none';
       document.getElementById('nav-user-btn').style.display = 'flex';

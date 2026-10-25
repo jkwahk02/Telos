@@ -1563,7 +1563,13 @@ async function loadData(){
     const email=supabaseUser?.user?.email||'';
     // 1. 학생 본인 정보
     const rows=await sbGet(TBL_STUDENTS,`email=eq.${encodeURIComponent(email)}&select=*`);
-    if(!rows.length) throw new Error('Student record not found for '+email);
+    if(!rows.length){
+      // A faculty member who signs in here is sent on to the faculty app, with the session
+      let fac=[];
+      try{ fac=await sbGet('faculty_profiles',`email=ilike.${encodeURIComponent(email)}&select=email`); }catch(e){}
+      if(fac.length){ saveSession(); location.replace(new URL('../', location.href.split('#')[0]).href); return; }
+      throw new Error('Student record not found for '+email);
+    }
     studentData=rows[0];
     profileDraft={};
     const sid=studentData.id;
