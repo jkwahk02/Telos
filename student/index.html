@@ -993,6 +993,11 @@ tr.req-cant>td{opacity:.4;}
   .nav-tabs::-webkit-scrollbar{display:none;}
   .nav-tab{font-size:16px;padding:0 12px;flex:none;}
 }
+
+/* the Home greeting, the same in every app */
+.greet{margin:0 0 24px;}
+.greet-h{margin:0;font-size:clamp(28px,2.6vw,36px);font-weight:600;color:var(--text);letter-spacing:-0.01em;line-height:1.2;}
+.greet-s{margin:6px 0 0;font-size:18px;color:var(--text2);}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&display=swap">
 </head>
@@ -1816,6 +1821,13 @@ function renderCurrent(){
 }
 
 // ── OVERVIEW ──
+// Home greeting: "Welcome, <first name>" and today's date with the term
+function greetHTML(name){
+  const d = new Date(), first = String(name || '').trim().split(/\s+/)[0];
+  const date = d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  const term = (m => m >= 7 ? 'Fall ' + d.getFullYear() : m <= 5 ? 'Spring ' + d.getFullYear() : 'Summer ' + d.getFullYear())(d.getMonth());
+  return `<div class="greet"><p class="greet-h">Welcome${first ? ', ' + esc(first) : ''}</p><p class="greet-s">${date} · ${term}</p></div>`;
+}
 function renderOverview(){
   const s = studentData;
   const confirmed    = scheduledMeetings.filter(m=>m.advisor_confirmed && m.status==='scheduled');
@@ -1835,14 +1847,7 @@ function renderOverview(){
 
   // ── Welcome banner ──
   const initials = (s.name_en||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  const welcomeHtml = `
-    <div class="welcome-banner">
-      <div>
-        <div class="welcome-name">Welcome, ${esc(s.name_en||'')}</div>
-        <div class="welcome-sub">${esc(s.school||'')} · ${esc(s.cohort||'')} · Taejae University</div>
-      </div>
-      <div class="welcome-av">${initials}</div>
-    </div>`;
+  const welcomeHtml = greetHTML(s.name_en);
 
   // ── Getting started ──
   const profileDone  = pct === 100;
@@ -2167,7 +2172,7 @@ function renderOverview(){
     </div>` : '';
 
   document.getElementById('page-overview').innerHTML =
-    statHtml + welcomeHtml + gsHtml + ovReqHtml + nextHtml + reschedulingHtml + pendingHtml + advHtml + histHtml;
+    welcomeHtml + statHtml + gsHtml + ovReqHtml + nextHtml + reschedulingHtml + pendingHtml + advHtml + histHtml;
 }
 
 // ── GRADUATION REQUIREMENTS ──
