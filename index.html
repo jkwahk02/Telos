@@ -1647,6 +1647,15 @@ let pastExpanded = {};
 let confirmedLinkEditing = {};
 
 let gcalToken = null;
+// Paideia: a calendar token connected on the Paideia page or in another suite app (same tab) is
+// reused here instead of asking Google again, and a token taken here is shared the same way.
+const GCAL_SHARED_KEY = 'paideia_gcal';
+function sharedGcalToken() {
+  try { const g = JSON.parse(sessionStorage.getItem(GCAL_SHARED_KEY) || 'null'); return g && g.exp - Date.now() > 60000 ? g.token : null; } catch (e) { return null; }
+}
+function shareGcalToken(resp) {
+  try { sessionStorage.setItem(GCAL_SHARED_KEY, JSON.stringify({ token: resp.access_token, exp: Date.now() + (resp.expires_in || 3600) * 1000 })); } catch (e) {}
+}
 const _storedCalId = localStorage.getItem('telos_gcal_calendar_id');
 let gcalCalendarId = (_storedCalId && _storedCalId !== 'undefined') ? _storedCalId : null;
   
@@ -2204,22 +2213,31 @@ async function hydrateFacultyProfile(email, token, user){
 // tab does not. This app reads every student's record, so a session that
 // outlives the tab is not a trade worth making.
 const SESSION_KEY = 'telos_faculty_session';
+// Paideia: the suite apps share this origin, so each also keeps the session under one shared
+// key. Signing in once (on the Paideia page or in any app) carries over to the others in the
+// same tab, and signing out of one signs out of all of them.
+const SUITE_KEY  = 'paideia_session';
+const SUITE_KEYS = ['paideia_session', 'telos_faculty_session', 'telos_student_session', 'taesylla_session', 'ergon_session', 'paideia_gcal'];
 
 function saveAuthSession(){
-  try{ sessionStorage.setItem(SESSION_KEY, JSON.stringify(supabaseUser)); }catch(e){}
+  try{ const v = JSON.stringify(supabaseUser); sessionStorage.setItem(SESSION_KEY, v); sessionStorage.setItem(SUITE_KEY, v); }catch(e){}
 }
 function clearSession(){
-  try{ sessionStorage.removeItem(SESSION_KEY); }catch(e){}
+  try{ SUITE_KEYS.forEach(k => sessionStorage.removeItem(k)); }catch(e){}
+}
+// The newer of this app's own session and the shared one: a token renewed in another app wins.
+function newestSession(){
+  return [SESSION_KEY, SUITE_KEY].map(k => { try{ return JSON.parse(sessionStorage.getItem(k) || 'null'); }catch(e){ return null; } })
+    .filter(x => x && x.access_token).sort((a, b) => (b.expires_at || 0) - (a.expires_at || 0))[0] || null;
 }
 
 // Access tokens last about an hour, so a restored one is often stale already.
 // The refresh token buys a new one without asking for the password again; if
 // that fails the session is gone and the wall comes back.
 async function restoreSession(){
-  let saved = null;
-  try{ saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); }catch(e){ return false; }
+  const saved = newestSession();
   if(!saved?.access_token) return false;
-  supabaseUser = saved;
+  supabaseUser = saved; saveAuthSession();
 
   const expiresSoon = !saved.expires_at || (saved.expires_at*1000 - Date.now() < 60000);
   if(expiresSoon){
@@ -2464,7 +2482,7 @@ async function loadData() {
     console.log('[Supabase] Loaded:', students.length, 'students,', sessions.length, 'sessions');
     renderCurrent();
     // Silent: this runs after a data load, not after a click.
-    if (typeof google !== 'undefined') connectGoogleCalendar(true);
+    if (sharedGcalToken() || typeof google !== 'undefined') connectGoogleCalendar(true);
 
   } catch(e) {
     console.error('Supabase load error:', e);
@@ -2741,13 +2759,19 @@ async function saveConfirmedLink(meetingId) {
 // issues an access token good for about an hour and no refresh token, so every
 // reload starts disconnected; only the calendar id survives, in localStorage.
 function connectGoogleCalendar(silent) {
+  const shared = sharedGcalToken();
+  if (shared) {
+    gcalToken = shared;
+    ensureTelosMeetingsCalendar().then(() => { if (currentPage === 'settings') renderSettings(); });
+    return;
+  }
   const client = google.accounts.oauth2.initTokenClient({
     client_id: GCAL_CLIENT_ID,
     scope: GCAL_SCOPE,
     prompt: silent ? '' : 'select_account',
     callback: async (resp) => {
       if (resp.error) { if (!silent) showToast('Google sign-in failed: ' + resp.error); return; }
-      gcalToken = resp.access_token;
+      gcalToken = resp.access_token; shareGcalToken(resp);
       if (!silent) showToast('Signed in to Google — setting up Telos Meetings calendar…');
       await ensureTelosMeetingsCalendar();
       if (currentPage === 'settings') renderSettings();
@@ -2806,6 +2830,7 @@ function disconnectGoogleCalendar() {
   gcalToken = null;
   gcalCalendarId = null;
   localStorage.removeItem('telos_gcal_calendar_id');
+  try { sessionStorage.removeItem(GCAL_SHARED_KEY); } catch (e) {}
   renderSettings();
   showToast('Google Calendar disconnected');
 }

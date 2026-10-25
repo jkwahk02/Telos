@@ -1383,22 +1383,31 @@ let loginLocked = false;
 // keeps you signed in, closing the tab does not. This app shows a student's
 // whole academic record, and some of them will open it on a shared machine.
 const SESSION_KEY = 'telos_student_session';
+// Paideia: the suite apps share this origin, so each also keeps the session under one shared
+// key. Signing in once (on the Paideia page or in any app) carries over to the others in the
+// same tab, and signing out of one signs out of all of them.
+const SUITE_KEY  = 'paideia_session';
+const SUITE_KEYS = ['paideia_session', 'telos_faculty_session', 'telos_student_session', 'taesylla_session', 'ergon_session', 'paideia_gcal'];
 
 function saveSession(){
-  try{ sessionStorage.setItem(SESSION_KEY, JSON.stringify(supabaseUser)); }catch(e){}
+  try{ const v = JSON.stringify(supabaseUser); sessionStorage.setItem(SESSION_KEY, v); sessionStorage.setItem(SUITE_KEY, v); }catch(e){}
 }
 function clearSession(){
-  try{ sessionStorage.removeItem(SESSION_KEY); }catch(e){}
+  try{ SUITE_KEYS.forEach(k => sessionStorage.removeItem(k)); }catch(e){}
+}
+// The newer of this app's own session and the shared one: a token renewed in another app wins.
+function newestSession(){
+  return [SESSION_KEY, SUITE_KEY].map(k => { try{ return JSON.parse(sessionStorage.getItem(k) || 'null'); }catch(e){ return null; } })
+    .filter(x => x && x.access_token).sort((a, b) => (b.expires_at || 0) - (a.expires_at || 0))[0] || null;
 }
 
 // Access tokens last about an hour, so a restored one is often already stale.
 // The refresh token buys a new one without asking for the password again; if
 // that fails the session is gone and the wall comes back.
 async function restoreSession(){
-  let saved=null;
-  try{ saved=JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null'); }catch(e){ return false; }
+  const saved=newestSession();
   if(!saved?.access_token) return false;
-  supabaseUser=saved;
+  supabaseUser=saved; saveSession();
 
   const expiresSoon = !saved.expires_at || (saved.expires_at*1000 - Date.now() < 60000);
   if(expiresSoon){
