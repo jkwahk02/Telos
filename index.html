@@ -1448,15 +1448,25 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 @media (max-width:1180px){.pf-split{grid-template-columns:1fr;} .pf-side{position:static;}}
 @media (max-width:900px){.pf-stats,.pf-cyc{grid-template-columns:1fr 1fr;}
   .pf-row{grid-template-columns:1fr;gap:6px;}}
+
+/* logo and title as on Paideia: Marcellus 25 px with a 16 px keyword after a middle dot */
+.nav-logo{font-family:'Marcellus','Times New Roman',serif;font-size:25px;font-weight:400;letter-spacing:.06em;gap:12px;}
+.nav-logo .app-logo{width:34px;height:34px;}
+.nav-logo .role-badge{font-family:'Marcellus','Times New Roman',serif;font-size:16px;font-weight:400;letter-spacing:.03em;text-transform:none;background:none;color:var(--text2);padding:0;border-radius:0;}
+.nav-logo .role-badge::before{content:'· ';}
+
+/* role badge beside the name */
+.nav-user-btn .role-badge{font-family:inherit;font-size:10px;font-weight:600;background:var(--blue-l);color:var(--blue);padding:2px 7px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;flex:none;}
 </style>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&display=swap">
 </head>
 <body>
 
 <nav class="topnav">
-  <div class="nav-logo" role="link" tabindex="0" title="Home" onclick="goPage('overview')" onkeydown="if(event.key==='Enter')goPage('overview')"><svg class="app-logo" viewBox="0 0 76 76" aria-hidden="true"><rect width="76" height="76" rx="18" fill="#185FA5"/><polyline points="48,26 37,38 29,47 22,57" stroke="#fff" stroke-opacity=".6" stroke-width="2.5" fill="none"/><g fill="#fff"><circle cx="37" cy="38" r="3"/><circle cx="29" cy="47" r="3"/><circle cx="22" cy="57" r="3"/><path d="M48 12 L51.5 22.5 L62 26 L51.5 29.5 L48 40 L44.5 29.5 L34 26 L44.5 22.5 Z"/></g></svg>Telos Pro <span class="role-badge">Faculty</span></div>
+  <div class="nav-logo" role="link" tabindex="0" title="Home" onclick="goPage('overview')" onkeydown="if(event.key==='Enter')goPage('overview')"><svg class="app-logo" viewBox="0 0 76 76" aria-hidden="true"><rect width="76" height="76" rx="18" fill="#185FA5"/><polyline points="48,26 37,38 29,47 22,57" stroke="#fff" stroke-opacity=".6" stroke-width="2.5" fill="none"/><g fill="#fff"><circle cx="37" cy="38" r="3"/><circle cx="29" cy="47" r="3"/><circle cx="22" cy="57" r="3"/><path d="M48 12 L51.5 22.5 L62 26 L51.5 29.5 L48 40 L44.5 29.5 L34 26 L44.5 22.5 Z"/></g></svg>Telos Pro</div>
   <div class="nav-tabs">
     <button class="nav-tab active" data-page="overview">Home</button>
     <button class="nav-tab" data-page="profile">My Profile</button>
@@ -1475,6 +1485,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
       <button class="nav-user-btn" id="nav-user-btn" onclick="toggleUserMenu()" style="display:none;">
         <div class="nav-avatar" id="nav-avatar">–</div>
         <span class="nav-name" id="nav-name">Not signed in</span>
+        <span class="role-badge">Faculty</span>
         <span class="caret">▾</span>
       </button>
       <div class="nav-dropdown" id="nav-dropdown">
