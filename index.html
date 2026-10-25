@@ -1457,6 +1457,19 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 
 /* role badge beside the name */
 .nav-user-btn .role-badge{font-family:inherit;font-size:10px;font-weight:600;background:var(--blue-l);color:var(--blue);padding:2px 7px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;flex:none;}
+
+/* page header band, as on Ergon: the app's highlight colour, a large light title, a one-line lead */
+.pg-band{background:#185FA5;color:#fff;padding:36px 36px 40px;margin:0 0 32px;}
+.pg-band h1{margin:0;font-size:clamp(32px,3.6vw,52px);font-weight:300;letter-spacing:-.02em;line-height:1.08;color:#fff;}
+.pg-band p{margin:14px 0 0;max-width:62ch;color:rgba(255,255,255,.82);font-size:17px;line-height:1.55;}
+/* Telos About: its hero takes the same band */
+.help-hero{background:#185FA5;border:0;border-radius:0;padding:36px 36px 40px;margin-bottom:32px;}
+.help-hero-title{font-size:clamp(32px,3.6vw,52px);font-weight:300;letter-spacing:-.02em;line-height:1.08;color:#fff;margin-bottom:14px;}
+.help-hero-sub{font-size:17px;line-height:1.55;color:rgba(255,255,255,.82);max-width:62ch;}
+.help-hero-by{font-size:14px;color:rgba(255,255,255,.7);opacity:1;margin-top:14px;}
+.help-hero-btn{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);}
+.help-hero-btn:hover{background:rgba(255,255,255,.12);color:#fff;}
+.help-hero-p{color:rgba(255,255,255,.85);}
 </style>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -11926,6 +11939,7 @@ async function renderSettings() {
     .filter(Boolean).join(' · ');
 
   el.innerHTML = `
+    <div class="pg-band"><h1>Settings</h1><p>Your advising profile and the connections Telos uses.</p></div>
     <div style="display:flex;flex-direction:column;gap:14px;">
 
       <!-- AVAILABILITY - now edited in Meetings -->
