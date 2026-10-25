@@ -24,25 +24,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 button,input,select,textarea{font-family:inherit;}
 
 /* NAV */
-.topnav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 clamp(16px,3vw,44px);display:flex;align-items:center;height:52px;position:sticky;top:0;z-index:100;gap:0;}
-.nav-logo{font-size:17px;font-weight:600;color:var(--text);letter-spacing:-0.02em;margin-right:24px;white-space:nowrap;display:flex;align-items:center;gap:6px;}
+.topnav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;height:58px;position:sticky;top:0;z-index:100;gap:0;}
+.nav-logo{font-size:18.5px;font-weight:600;color:var(--text);letter-spacing:-0.02em;margin-right:28px;white-space:nowrap;display:flex;align-items:center;gap:9px;}
 .nav-logo .app-logo{width:28px;height:28px;flex:none;display:block}
 .nav-logo .role-badge{font-size:10px;font-weight:600;background:var(--accent-l);color:var(--accent);padding:2px 7px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;}
 .nav-tabs{display:flex;height:100%;}
-.nav-tab{font-size:17px;font-weight:400;color:var(--text2);padding:0 16px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px;transition:color .15s;white-space:nowrap;}
+.nav-tab{font-size:18.5px;font-weight:400;color:var(--text2);padding:0 17px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px;transition:color .15s;white-space:nowrap;}
 .nav-tab:hover{color:var(--text);}
 .nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500;}
 .nav-dot{width:7px;height:7px;border-radius:50%;background:var(--amber-b);display:none;}
 .nav-dot.on{display:inline-block;}
 .nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
-.nav-source{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:5px;}
+.nav-source{font-size:17px;color:var(--text3);display:flex;align-items:center;gap:5px;}
 .src-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
 .src-dot.loading{background:var(--amber-b);animation:pulse 1s infinite;}
 .src-dot.error{background:var(--red);}
 .src-dot.authed{background:var(--green);}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.nav-avatar{width:30px;height:30px;border-radius:50%;background:var(--accent-l);color:var(--accent);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.nav-name{font-size:13px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.nav-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent-l);color:var(--accent);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.nav-name{font-size:13px;color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .nav-user-btn{display:flex;align-items:center;gap:7px;cursor:pointer;padding:4px 6px;border-radius:var(--r);border:none;background:transparent;transition:background .12s;position:relative;}
 .nav-user-btn:hover{background:var(--surface2);}
 .nav-user-btn .caret{font-size:10px;color:var(--text3);}
@@ -984,16 +984,16 @@ tr.req-cant>td{opacity:.4;}
       </button>
       <div class="nav-dropdown" id="nav-dropdown">
         <div style="padding:10px 14px 8px;border-bottom:1px solid var(--border);">
-          <div style="font-size:13px;font-weight:500;" id="dd-name">—</div>
-          <div style="font-size:12px;color:var(--text3);" id="dd-email">—</div>
+          <div style="font-size:17px;font-weight:500;color:var(--text);" id="dd-name">—</div>
+          <div style="font-size:17px;color:var(--text3);" id="dd-email">—</div>
         </div>
         <button class="nav-dropdown-item" onclick="showChangePwModal();closeUserMenu()">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><rect x="2" y="9" width="12" height="5" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 9V6a3 3 0 0 1 6 0v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><rect x="2" y="9" width="12" height="5" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 9V6a3 3 0 0 1 6 0v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           Change password
         </button>
         <div class="nav-dropdown-divider"></div>
         <button class="nav-dropdown-item danger" onclick="handleSignOut()">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Sign out
         </button>
       </div>
