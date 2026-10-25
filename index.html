@@ -44,8 +44,8 @@ button,input,select,textarea{font-family:inherit;}
 
 /* NAV */
 .topnav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;height:58px;position:sticky;top:0;z-index:100;gap:0;}
-.nav-logo{font-size:18.5px;font-weight:600;color:var(--text);letter-spacing:-0.02em;margin-right:28px;white-space:nowrap;display:flex;align-items:center;gap:9px;}
-.nav-logo .app-logo{width:28px;height:28px;flex:none;display:block}
+.nav-logo{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.02em;margin-right:28px;white-space:nowrap;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.nav-logo .app-logo{width:34px;height:34px;flex:none;display:block}
 .nav-logo .role-badge{font-size:10px;font-weight:600;background:var(--blue-l);color:var(--blue);padding:2px 7px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;}
 .nav-tabs{display:flex;height:100%;}
 .nav-tab{font-size:18.5px;font-weight:400;color:var(--text2);padding:0 17px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;transition:color .15s;white-space:nowrap;}
@@ -55,7 +55,8 @@ button,input,select,textarea{font-family:inherit;}
 .nav-tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500;}
 .nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
 .nav-avatar{width:32px;height:32px;border-radius:50%;background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
-.nav-name{font-size:13px;color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.nav-name{font-size:18.5px;color:var(--text);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;}
+.dd-info{padding:12px 14px 10px;border-bottom:1px solid var(--border);max-width:300px;}.dd-info div{font-size:15px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.dd-info #dd-name{font-size:17px;font-weight:600;color:var(--text);}.dd-info #dd-role{color:var(--text2);}
 .nav-user-btn{display:flex;align-items:center;gap:7px;cursor:pointer;padding:4px 6px;border-radius:var(--r);border:none;background:transparent;transition:background .12s;position:relative;}
 .nav-user-btn:hover{background:var(--surface2);}
 .nav-user-btn .caret{font-size:10px;color:var(--text3);}
@@ -1455,9 +1456,9 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 <body>
 
 <nav class="topnav">
-  <div class="nav-logo"><svg class="app-logo" viewBox="0 0 76 76" aria-hidden="true"><rect width="76" height="76" rx="18" fill="#185FA5"/><polyline points="48,26 37,38 29,47 22,57" stroke="#fff" stroke-opacity=".6" stroke-width="2.5" fill="none"/><g fill="#fff"><circle cx="37" cy="38" r="3"/><circle cx="29" cy="47" r="3"/><circle cx="22" cy="57" r="3"/><path d="M48 12 L51.5 22.5 L62 26 L51.5 29.5 L48 40 L44.5 29.5 L34 26 L44.5 22.5 Z"/></g></svg>Telos Pro <span class="role-badge">Faculty</span></div>
+  <div class="nav-logo" role="link" tabindex="0" title="Home" onclick="goPage('overview')" onkeydown="if(event.key==='Enter')goPage('overview')"><svg class="app-logo" viewBox="0 0 76 76" aria-hidden="true"><rect width="76" height="76" rx="18" fill="#185FA5"/><polyline points="48,26 37,38 29,47 22,57" stroke="#fff" stroke-opacity=".6" stroke-width="2.5" fill="none"/><g fill="#fff"><circle cx="37" cy="38" r="3"/><circle cx="29" cy="47" r="3"/><circle cx="22" cy="57" r="3"/><path d="M48 12 L51.5 22.5 L62 26 L51.5 29.5 L48 40 L44.5 29.5 L34 26 L44.5 22.5 Z"/></g></svg>Telos Pro <span class="role-badge">Faculty</span></div>
   <div class="nav-tabs">
-    <button class="nav-tab active" data-page="overview">Overview</button>
+    <button class="nav-tab active" data-page="overview">Home</button>
     <button class="nav-tab" data-page="profile">My Profile</button>
     <button class="nav-tab" data-page="students">Students</button>
     <button class="nav-tab" data-page="meetings">Meetings</button>
@@ -1477,7 +1478,7 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
         <span class="caret">▾</span>
       </button>
       <div class="nav-dropdown" id="nav-dropdown">
-        <div hidden><span id="dd-name">—</span><span id="dd-email">—</span></div>
+        <div class="dd-info"><div id="dd-name">—</div><div id="dd-role"></div><div id="dd-email">—</div></div>
         <button class="nav-dropdown-item" onclick="showChangePwModal();closeUserMenu()">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><rect x="2" y="9" width="12" height="5" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 9V6a3 3 0 0 1 6 0v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           Change password
@@ -2203,6 +2204,9 @@ async function hydrateFacultyProfile(email, token, user){
   document.getElementById('nav-avatar').textContent = FACULTY_INITIALS;
   document.getElementById('nav-name').textContent   = FACULTY;
   document.getElementById('dd-name').textContent    = FACULTY;
+  // a short identity for the account menu: title, chair, programme
+  const title = FACULTY_ROLE === 'OAA_dean' ? 'Dean of Academic Affairs' : FACULTY_ROLE === 'visiting' ? 'Visiting Professor' : 'Professor';
+  document.getElementById('dd-role').textContent = [title, IS_CHAIR ? 'Program Chair' : '', FACULTY_PROGRAMS.join(', ')].filter(Boolean).join(' · ');
   return profData;
 }
 
