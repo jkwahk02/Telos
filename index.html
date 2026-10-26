@@ -1475,6 +1475,8 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .topnav{padding-left:max(clamp(16px,4vw,80px),env(safe-area-inset-left,0px));padding-right:max(clamp(16px,4vw,80px),env(safe-area-inset-right,0px));}
 .main{max-width:none;padding-left:max(clamp(16px,4vw,80px),env(safe-area-inset-left,0px));padding-right:max(clamp(16px,4vw,80px),env(safe-area-inset-right,0px));}
 
+/* menus sit on the right, next to the account, as in Arete */
+@media (min-width:761px){ .nav-tabs{margin-left:auto;} .nav-right{margin-left:16px;} }
 /* phones: the bar becomes two rows, logo + account on top and the tabs below, scrolling sideways if they do not fit */
 @media (max-width:760px){
   .topnav{height:auto;flex-wrap:wrap;padding-top:8px;}
