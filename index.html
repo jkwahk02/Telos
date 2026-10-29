@@ -1492,6 +1492,20 @@ tbody tr.xtr td{padding:0;border-bottom:1px solid var(--border-em);}
 .greet{margin:0 0 24px;}
 .greet-h{margin:0;font-size:clamp(28px,2.6vw,36px);font-weight:600;color:var(--text);letter-spacing:-0.01em;line-height:1.2;}
 .greet-s{margin:6px 0 0;font-size:18px;color:var(--text2);}
+
+/* header as on Arete: taller bar, menu on the right, 14 px text; an item grows a little on hover and when current */
+@media (min-width:761px){
+  .topnav{height:auto;padding-top:22px;padding-bottom:22px;flex-wrap:wrap;gap:16px 32px;}
+  .nav-logo{margin-right:0;}
+  .nav-tabs{margin-left:auto;height:auto;gap:12px 26px;flex-wrap:wrap;overflow:visible;}
+  .nav-tab{height:auto;padding:0 0 4px;font-size:14px;color:var(--text);border-bottom:1px solid transparent;background:none;}
+  .nav-tab.active{border-bottom-color:var(--blue);}
+  .nav-right{margin-left:0;}
+  .nav-name{font-size:14px;}
+}
+.nav-tab{transition:transform .15s ease,color .15s ease;transform-origin:center bottom;}
+.nav-tab:hover:not(:disabled){transform:scale(1.08);color:var(--blue);}
+.nav-tab.active{transform:scale(1.08);color:var(--blue);}
 </style>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
