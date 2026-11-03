@@ -374,6 +374,18 @@ button,input,select,textarea{font-family:inherit;}
 .sp-tab .sp-udot{width:7px;height:7px;border-radius:50%;background:var(--amber-b);
   display:inline-block;margin-left:5px;vertical-align:1px;}
 .sp-body{padding:18px 20px 26px;}
+.path-fac{margin-bottom:12px;}
+.path-fac .sp-chd{flex-wrap:wrap;row-gap:4px;}
+.path-fac-when{margin-left:auto;font-size:13px;color:var(--text3);font-weight:400;white-space:nowrap;}
+.path-fac-body{padding:12px 16px;display:grid;gap:8px;}
+.path-fac-roles{font-size:14px;color:var(--text2);}
+.path-fac-roles b{color:var(--text);font-weight:600;}
+.path-fac-y{display:flex;gap:12px;align-items:baseline;}
+.path-fac-yk{flex:none;width:56px;font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;}
+.path-fac-cs{display:flex;flex-wrap:wrap;gap:6px;}
+.path-fac-c{font-size:13px;padding:2px 8px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);}
+.path-fac-c.in{background:var(--teal-l);border-color:var(--teal-l);color:var(--teal);}
+.path-fac-note{font-size:12px;color:var(--text3);}
 .sp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
   overflow:hidden;margin-bottom:16px;}
 .sp-chd{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;
@@ -8097,7 +8109,7 @@ function renderStudPane(st){
   loadReqFor(st.id); loadMsgsFor(st.id);
   if(studTab === 'profile') p.innerHTML = buildProfileSection(st);
   else if(studTab === 'adv') p.innerHTML = buildAdvisingPane(st);
-  else if(studTab === 'req') p.innerHTML = buildReqPane(st);
+  else if(studTab === 'req') p.innerHTML = buildPathwayCard(st) + buildReqPane(st);
   else p.innerHTML = buildMsgPane(st);
 }
 
@@ -8164,7 +8176,7 @@ async function loadReqFor(sid){
   if(reqDetail[sid] || reqBusy[sid]) return;
   reqBusy[sid] = true;
   try{
-    const [items, sum, plan, confirms, lineage] = await Promise.all([
+    const [items, sum, plan, confirms, lineage, pathways] = await Promise.all([
       sbGet(VW_REQ_STATUS,  `student_id=eq.${sid}&order=sort_order.asc`).catch(()=>[]),
       sbGet(VW_REQ_SUMMARY, `student_id=eq.${sid}`).catch(()=>[]),
       sbGet(TBL_REQ_COURSE,
@@ -8174,6 +8186,9 @@ async function loadReqFor(sid){
       COURSE_LINEAGE.length ? Promise.resolve(COURSE_LINEAGE)
         : sbGet('course_lineage',
                 'select=predecessor_course_id,successor_course_id').catch(()=>[]),
+      // what the student sent from TaeSylla's Learning Pathways (advisors may read it)
+      sbGet('student_pathways',
+        `student_id=eq.${sid}&sent_at=not.is.null&select=program_code,sent_at,saved_at,sent&order=sent_at.desc`).catch(()=>[]),
     ]);
     COURSE_LINEAGE = lineage || [];
     reqDetail[sid] = {
@@ -8186,6 +8201,7 @@ async function loadReqFor(sid){
         credits: p.credits_awarded ?? p.courses?.credits ?? 0,
       })),
       confirms: confirms || [],
+      pathways: pathways || [],
     };
   } finally {
     delete reqBusy[sid];
@@ -8265,6 +8281,34 @@ function fReqCredits(r, plan){
     return { earned: Math.min(v, need), planned:0, need, done: v >= need };
   }
   return { earned: r.is_completed ? need : 0, planned:0, need, done: !!r.is_completed };
+}
+
+// The learning pathway the student made in TaeSylla and sent to Telos: the roles they are aiming at and
+// the courses by year, with the ones already in their plan marked. Read-only here: the plan below is
+// what the advisor and student change, and the student adds pathway courses from their own Telos.
+function buildPathwayCard(st){
+  const d = reqDetail[st.id];
+  if(!d || !d.pathways || !d.pathways.length) return '';
+  const inPlan = new Set(d.plan.map(p => p.course_id));
+  const day = t => new Date(t).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  return d.pathways.map(row => {
+    const s = row.sent || {}, years = {};
+    (s.courses || []).forEach(c => { (years[c.year] = years[c.year] || []).push(c); });
+    const roles = (s.roles || []).map(r => r.name).join(', ');
+    const later = row.saved_at && row.saved_at > row.sent_at;
+    return `<div class="sp-card path-fac">
+      <div class="sp-chd"><span>Learning pathway from TaeSylla</span>
+        <span class="bdg bdg-blue">${esc(s.program_name || row.program_code)}</span>
+        <span class="path-fac-when">sent ${day(row.sent_at)}${later ? ' · changed in TaeSylla since' : ''}</span></div>
+      <div class="path-fac-body">
+        ${roles ? `<div class="path-fac-roles">Aiming at <b>${esc(roles)}</b></div>` : ''}
+        ${Object.keys(years).sort().map(y => `<div class="path-fac-y"><span class="path-fac-yk">Year ${esc(y)}</span>
+          <span class="path-fac-cs">${years[y].map(c => `<span class="path-fac-c${inPlan.has(c.course_id) ? ' in' : ''}"
+            title="${esc(c.title || '')}${inPlan.has(c.course_id) ? ' · in the plan' : ''}">${esc(c.course_id)}${inPlan.has(c.course_id) ? ' ✓' : ''}</span>`).join('')}</span></div>`).join('')}
+        <div class="path-fac-note">✓ already in the plan below. The student adds the others from their own Telos Requirements page.</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function buildReqPane(st){

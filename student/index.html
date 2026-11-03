@@ -671,6 +671,20 @@ button,input,select,textarea{font-family:inherit;}
 .req-cred-rest{margin-left:auto;font-size:14px;color:var(--text2);}
 .req-bar{height:9px;border-radius:20px;background:var(--surface2);overflow:hidden;}
 .req-bar>span{display:block;height:100%;background:var(--accent-m);border-radius:20px;transition:width .3s;}
+.path-card .card-hd{flex-wrap:wrap;}
+.path-meta{font-size:14px;color:var(--text2);}
+.path-roles{font-size:15px;color:var(--text2);margin-bottom:6px;}
+.path-roles b{color:var(--text);font-weight:600;}
+.path-intro{font-size:14px;color:var(--text3);line-height:1.5;margin-bottom:10px;}
+.path-tbl td,.path-tbl th{text-align:left;}
+.path-y{white-space:nowrap;color:var(--text2);}
+.path-code{font-family:var(--mono,monospace);font-size:13px;color:var(--text2);margin-right:4px;}
+.path-act{text-align:right;white-space:nowrap;}
+.path-muted{color:var(--text3);}
+.path-warn{color:var(--amber-d);font-size:14px;}
+.path-btns{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;}
+.btn-teal.path-sec{background:var(--surface);color:var(--accent);border:1px solid var(--accent);}
+.btn-teal.path-sec:hover{background:var(--accent-l);}
 .req-note{padding:10px 16px;display:flex;align-items:flex-start;gap:8px;font-size:14px;line-height:1.5;}
 .req-note.warn{background:var(--amber-l);border-top:1px solid var(--amber-b);color:var(--amber-d);}
 .req-note.info{background:var(--blue-l);border-top:1px solid var(--blue-b);color:#0C447C;}
@@ -1694,6 +1708,11 @@ async function loadData(){
     reqBuildEligibility().then(() => {
       if(currentPage === 'requirements') renderRequirements();
     });
+    // Learning pathways sent from TaeSylla. A deployment without the table simply shows none.
+    pathReady = sbGet('student_pathways',
+      `student_id=eq.${sid}&sent_at=not.is.null&select=program_code,sent_at,sent&order=sent_at.desc`)
+      .then(rows => { pathSent = rows || []; if(currentPage === 'requirements') renderRequirements(); })
+      .catch(e => { console.warn('learning pathways unavailable:', e.message); pathSent = []; });
     reqCats       = reqCatRows || [];
     courseLineage = lineageRows || [];
     reqSummary = (reqSumRows && reqSumRows[0]) || null;
@@ -2535,7 +2554,7 @@ function renderRequirements(){
     <td class="req-num plan">${s.credits_planned||''}</td>
     <td class="req-num last ${s.credits_unplanned?'short':''}">${s.credits_unplanned||''}</td></tr>`;
 
-  el.innerHTML = hero + `<div class="req-wrap"><table class="req-tbl">
+  el.innerHTML = hero + pathPanelHtml() + `<div class="req-wrap"><table class="req-tbl">
       <colgroup>
         <col style="width:38px;"><col>
         <col style="width:78px;"><col style="width:70px;"><col style="width:58px;">
@@ -2717,6 +2736,7 @@ function reqResolveFilter(f){
 // A requirement whose filter resolves to nothing - free electives - takes
 // anything, and is recorded as such rather than fetching the whole catalogue.
 let reqEligible = new Map();
+let reqEligReady = false;   // reqEligible is built after the page first draws
 let reqAnyItem  = [];
 
 async function reqBuildEligibility(){
@@ -2732,7 +2752,7 @@ async function reqBuildEligibility(){
       });
     }catch(e){ /* a requirement we cannot read simply offers no target */ }
   }));
-  reqEligible = next; reqAnyItem = any;
+  reqEligible = next; reqAnyItem = any; reqEligReady = true;
 }
 
 // Where this course could go, other than where it already is.
@@ -3271,10 +3291,152 @@ function stuMsgPane(){
   </div>`;
 }
 
+// ── FROM TAESYLLA: the learning pathway the student sent ──
+// TaeSylla's Learning Pathways page ends with Send to my Telos plan: it writes what the student saved
+// (program, roles, and each course with the year it sits in) to student_pathways. Here each course is
+// offered for the plan with a suggested term and the requirement it would count toward; nothing goes
+// into the plan until the student presses Add. The advisor reads the same row on the student's page.
+let pathSent = [];          // student_pathways rows with sent_at, newest first
+let pathReady = null;       // the read, for a deep link to wait on
+let pathAgendaDraft = '';   // a meeting request started from the pathway carries it as its agenda
+let pathOpen = {};          // { program_code: false } once folded
+
+function pathEntryYear(){ const m = /\((\d{4})\)/.exec(studentData?.cohort || ''); return m ? +m[1] : null; }
+const pathKey = t => { const m = /^(Fall|Spring) (\d{4})$/.exec(t || ''); return m ? +m[2] * 10 + (m[1] === 'Fall' ? 2 : 1) : 0; };
+function pathNowKey(){ const d = new Date(); return d.getFullYear() * 10 + (d.getMonth() >= 6 ? 2 : 1); }
+// Year N of a cohort that entered in the fall of E runs from Fall E+N-1 to Spring E+N. A course offered
+// only in the spring takes that spring; anything else the fall. A term already past suggests nothing.
+function pathTerm(c){
+  const e = pathEntryYear();
+  if(!e || !c.year) return '';
+  const o = String(c.offered || '').toLowerCase();
+  const t = o.includes('spring') && !o.includes('fall') ? `Spring ${e + c.year}` : `Fall ${e + c.year - 1}`;
+  return pathKey(t) < pathNowKey() ? '' : t;
+}
+function pathInPlan(courseId){
+  const fam = reqFamilyOf(courseId);
+  return reqPlan.find(p => p.course_id === courseId || reqFamilyOf(p.course_id) === fam) || null;
+}
+// The requirement a course would count toward: one that names it and still has room, else the first
+// that names it, else a requirement open to any course. A fixed set (autoplan) is filled on its own.
+function pathItemFor(courseId){
+  const left = r => { const x = reqCredits(r); return Math.max(0, x.need - x.earned - x.planned); };
+  const byOrder = (a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0);
+  const named = [...(reqEligible.get(courseId) || [])].map(id => reqItems.find(r => r.item_id === id))
+    .filter(r => r && !r.autoplan).sort(byOrder);
+  const pick = named.find(r => left(r) > 0) || named[0];
+  if(pick) return pick;
+  const any = reqAnyItem.map(id => reqItems.find(r => r.item_id === id)).filter(Boolean).sort(byOrder);
+  return any.find(r => left(r) > 0) || any[0] || null;
+}
+const pathDate = t => new Date(t).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+
+function pathPanelHtml(){
+  if(!pathSent.length) return '';
+  return pathSent.map((row, i) => {
+    const s = row.sent || {}, courses = s.courses || [];
+    const open = pathOpen[row.program_code] !== false;
+    const items = courses.map(c => {
+      const held = pathInPlan(c.course_id), item = held ? null : pathItemFor(c.course_id), term = pathTerm(c);
+      return { c, held, item, term };
+    });
+    const addable = items.filter(x => !x.held && x.item);
+    const rows = items.map(({ c, held, item, term }) => `<tr>
+        <td class="path-y">Year ${esc(c.year)}</td>
+        <td><span class="path-code">${esc(c.course_id)}</span> ${esc(c.title || '')}</td>
+        <td>${held ? (held.term ? esc(held.term) : '—') : term ? esc(term) : '<span class="path-muted">—</span>'}</td>
+        <td>${held ? esc((reqItems.find(r => r.item_id === held.item_id) || {}).label || '')
+            : item ? esc(item.label) : reqEligReady ? '<span class="path-warn">No matching requirement</span>' : '<span class="path-muted">Checking…</span>'}</td>
+        <td class="path-act">${held ? '<span class="bdg bdg-teal">In your plan</span>'
+            : item ? `<button class="btn-link" onclick="pathAdd(${i},'${esc(c.course_id)}')">Add</button>`
+            : '<span class="path-muted">Ask your advisor</span>'}</td>
+      </tr>`).join('');
+    const roles = (s.roles || []).map(r => r.name).join(', ');
+    return `<div class="card path-card" id="${i ? '' : 'path-panel'}">
+      <div class="card-hd blue-bg">
+        <span class="card-title">From your TaeSylla learning pathway</span>
+        <span class="path-meta">${esc(s.program_name || row.program_code)} · sent ${pathDate(row.sent_at)}</span>
+        <button class="btn-link" style="margin-left:auto;" onclick="pathOpen['${esc(row.program_code)}']=${open ? 'false' : 'true'};renderRequirements()">${open ? 'Hide' : 'Show'}</button>
+      </div>
+      ${open ? `<div class="card-body">
+        ${roles ? `<div class="path-roles">Roles you are aiming at: <b>${esc(roles)}</b></div>` : ''}
+        <div class="path-intro">Suggested terms follow the year you put each course in on TaeSylla. Add the ones you want in your
+          plan, or go over them with your advisor first.</div>
+        <div class="req-wrap"><table class="req-tbl path-tbl">
+          <colgroup><col style="width:72px;"><col><col style="width:128px;"><col style="width:170px;"><col style="width:120px;"></colgroup>
+          <thead><tr><th class="l">Year</th><th class="l">Course</th><th class="l">Suggested term</th><th class="l">Counts toward</th><th></th></tr></thead>
+          <tbody>${rows}</tbody></table></div>
+        <div class="path-btns">
+          ${addable.length ? `<button class="btn-teal" onclick="pathAdd(${i})">Add ${addable.length === 1 ? 'it' : `all ${addable.length}`} to my plan</button>` : ''}
+          <button class="btn-teal path-sec" onclick="pathDiscuss(${i})">Discuss with my advisor</button>
+          <button class="btn-link" onclick="pathMessage(${i})">Ask in Messages</button>
+        </div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// Adds one course, or every course that can go in, as planned (not completed) under its requirement.
+async function pathAdd(i, only){
+  const row = pathSent[i];
+  if(!row) return;
+  const list = ((row.sent || {}).courses || []).filter(c => !only || c.course_id === only);
+  let added = 0, failed = 0;
+  for(const c of list){
+    if(pathInPlan(c.course_id)) continue;
+    const item = pathItemFor(c.course_id);
+    if(!item) continue;
+    try{
+      await sbInsert(TBL_REQ_COURSE, { student_id: studentData.id, item_id: item.item_id, course_id: c.course_id,
+        is_completed: false, term: pathTerm(c) || null });
+      added++;
+    }catch(e){ failed++; console.warn('pathway add failed for', c.course_id, e.message); }
+  }
+  showToast(added ? `${added} course${added === 1 ? '' : 's'} added to your plan${failed ? `, ${failed} could not be added` : ''}`
+    : failed ? 'Could not add the course to your plan.' : 'Nothing new to add.');
+  if(added) await reqReload();
+}
+
+function pathAgenda(i){
+  const s = (pathSent[i] || {}).sent || {};
+  const years = {};
+  (s.courses || []).forEach(c => { (years[c.year] = years[c.year] || []).push(c.course_id); });
+  const roles = (s.roles || []).map(r => r.name).join(', ');
+  return `I would like to go over the learning pathway I made in TaeSylla (${s.program_name || ''})`
+    + (roles ? ` for the roles ${roles}` : '') + '. '
+    + Object.keys(years).sort().map(y => `Year ${y}: ${years[y].join(', ')}`).join('. ')
+    + '. Which of these should go into my plan, and when?';
+}
+// a meeting request to the student's advisor, its agenda written from the pathway
+function pathDiscuss(i){
+  pathAgendaDraft = pathAgenda(i);
+  const adv = [studentData?.advisor1_email, studentData?.advisor2_email].find(e => e && allFaculty.some(f => f.email === e)) || null;
+  goToMeetings();
+  openRequestForm(adv);
+}
+// or a message, if a written answer is enough
+function pathMessage(i){
+  reqMsgAbout = null;
+  reqMsgDraft = pathAgenda(i);
+  goToPage('messages');
+}
+
 // A link from an email should land on the thing the email asked for.
 function applyDeepLink(){
   let p;
   try { p = new URLSearchParams(location.search); } catch { return; }
+  const pw = p.get('pathway');
+  if(pw){
+    history.replaceState({}, '', location.pathname + location.hash);
+    (pathReady || Promise.resolve()).then(() => setTimeout(() => {
+      try{
+        goToPage('requirements');
+        if(pw === 'discuss' && pathSent.length) pathDiscuss(0);
+        else document.getElementById('path-panel')?.scrollIntoView({behavior:'smooth', block:'start'});
+      }catch(e){ console.warn('Deep link failed:', e); }
+    }, 300));
+    return;
+  }
   if(p.get('request') !== 'meeting') return;
   const advisor = p.get('advisor') || '';
   // clear it so a refresh does not reopen the form
@@ -5092,7 +5254,7 @@ function buildRequestForm(){
         ${selSummary}
         <div>
           <div class="fta-lbl">Step 3 — Agenda *</div>
-          <textarea class="fta" id="req-agenda" rows="3" placeholder="Topics, questions, or decisions you need help with…">${editingRequestId ? esc(scheduledMeetings.find(x=>x.id===editingRequestId)?.student_agenda||'') : ''}</textarea>
+          <textarea class="fta" id="req-agenda" rows="3" placeholder="Topics, questions, or decisions you need help with…">${editingRequestId ? esc(scheduledMeetings.find(x=>x.id===editingRequestId)?.student_agenda||'') : esc(pathAgendaDraft||'')}</textarea>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <div>
@@ -5161,7 +5323,7 @@ function buildRequestForm(){
       ${otherFacultyHtml?`<div><div class="fta-lbl" style="margin-bottom:8px;">Other professor</div>${otherFacultyHtml}</div>`:''}
       <div>
         <div class="fta-lbl">Agenda *</div>
-        <textarea class="fta" id="req-agenda" rows="3" placeholder="Topics, questions, or decisions you need help with…">${editingRequestId ? esc(scheduledMeetings.find(x=>x.id===editingRequestId)?.student_agenda||'') : ''}</textarea>
+        <textarea class="fta" id="req-agenda" rows="3" placeholder="Topics, questions, or decisions you need help with…">${editingRequestId ? esc(scheduledMeetings.find(x=>x.id===editingRequestId)?.student_agenda||'') : esc(pathAgendaDraft||'')}</textarea>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <div>
@@ -5222,6 +5384,7 @@ async function openRequestForm(email){
   
 function closeRequestForm(){
   requestFormOpen=false;
+  pathAgendaDraft='';
   editingRequestId=null;        // ← 추가
   selectedFacultyEmail=null;
   selectedMeetingSlots=[];
@@ -5314,6 +5477,7 @@ async function submitRequest(){
     const result=await sbInsert(TBL_MEETING,row);
     scheduledMeetings.push(result[0]||row);
     justRequestedId=result[0]?.id ?? null;
+    pathAgendaDraft='';
 
     // An advisor who asked for a different time is waiting on THIS row being
     // answered. A student who instead starts a fresh request - which is the
