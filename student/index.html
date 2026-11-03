@@ -676,10 +676,28 @@ button,input,select,textarea{font-family:inherit;}
 .path-roles{font-size:15px;color:var(--text2);margin-bottom:6px;}
 .path-roles b{color:var(--text);font-weight:600;}
 .path-intro{font-size:14px;color:var(--text3);line-height:1.5;margin-bottom:10px;}
-.path-tbl td,.path-tbl th{text-align:left;}
-.path-y{white-space:nowrap;color:var(--text2);}
-.path-code{font-family:var(--mono,monospace);font-size:13px;color:var(--text2);margin-right:4px;}
+.path-intro b{color:var(--text2);font-weight:600;}
+.path-list{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.path-yr{display:flex;gap:10px;align-items:baseline;padding:7px 14px;background:var(--surface2);font-size:13px;color:var(--text3);}
+.path-yr + .path-row{border-top:none;}
+.path-row + .path-yr{border-top:1px solid var(--border);}
+.path-yr b{font-size:14px;color:var(--text);font-weight:600;}
+.path-row{display:grid;grid-template-columns:minmax(0,1fr) 150px 140px;gap:14px;align-items:center;padding:10px 14px;border-top:1px solid var(--border);}
+.path-c{display:flex;flex-wrap:wrap;column-gap:8px;row-gap:2px;align-items:baseline;min-width:0;}
+.path-code{font-family:var(--mono,monospace);font-size:13px;color:var(--text3);}
+.path-t{font-size:16px;color:var(--text);}
+.path-req{flex-basis:100%;font-size:13px;color:var(--text3);}
+.path-term{font-size:15px;color:var(--text2);white-space:nowrap;}
+.path-past{color:var(--text3);}
 .path-act{text-align:right;white-space:nowrap;}
+.path-add{font-size:14px;font-weight:600;color:var(--accent);background:var(--surface);border:1px solid var(--accent);
+  border-radius:var(--r);padding:4px 12px;cursor:pointer;font-family:inherit;}
+.path-add:hover{background:var(--accent-l);}
+@media (max-width:640px){
+  .path-row{grid-template-columns:minmax(0,1fr) auto;row-gap:4px;}
+  .path-term{grid-column:1;grid-row:2;}
+  .path-act{grid-column:2;grid-row:1 / span 2;}
+}
 .path-muted{color:var(--text3);}
 .path-warn{color:var(--amber-d);font-size:14px;}
 .path-btns{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;}
@@ -3305,14 +3323,19 @@ function pathEntryYear(){ const m = /\((\d{4})\)/.exec(studentData?.cohort || ''
 const pathKey = t => { const m = /^(Fall|Spring) (\d{4})$/.exec(t || ''); return m ? +m[2] * 10 + (m[1] === 'Fall' ? 2 : 1) : 0; };
 function pathNowKey(){ const d = new Date(); return d.getFullYear() * 10 + (d.getMonth() >= 6 ? 2 : 1); }
 // Year N of a cohort that entered in the fall of E runs from Fall E+N-1 to Spring E+N. A course offered
-// only in the spring takes that spring; anything else the fall. A term already past suggests nothing.
-function pathTerm(c){
+// only in the spring takes that spring; anything else the fall.
+function pathTermOf(c){
   const e = pathEntryYear();
   if(!e || !c.year) return '';
   const o = String(c.offered || '').toLowerCase();
-  const t = o.includes('spring') && !o.includes('fall') ? `Spring ${e + c.year}` : `Fall ${e + c.year - 1}`;
-  return pathKey(t) < pathNowKey() ? '' : t;
+  return o.includes('spring') && !o.includes('fall') ? `Spring ${e + c.year}` : `Fall ${e + c.year - 1}`;
 }
+const pathPast = t => !!t && pathKey(t) < pathNowKey();
+// the term a course goes into the plan with: none once that term is over
+function pathTerm(c){ const t = pathTermOf(c); return pathPast(t) ? '' : t; }
+// "2026–27", and whether that whole year is over
+function pathYearSpan(y){ const e = pathEntryYear(); return e ? `${e + y - 1}–${String(e + y).slice(2)}` : ''; }
+function pathYearPast(y){ const e = pathEntryYear(); return !!e && pathPast(`Spring ${e + y}`); }
 function pathInPlan(courseId){
   const fam = reqFamilyOf(courseId);
   return reqPlan.find(p => p.course_id === courseId || reqFamilyOf(p.course_id) === fam) || null;
@@ -3331,26 +3354,37 @@ function pathItemFor(courseId){
 }
 const pathDate = t => new Date(t).toLocaleDateString('en-US', { month:'short', day:'numeric' });
 
+// Grouped by year, one line per course: the course, its term, and In your plan or Add. When every
+// course counts toward the same requirement it is said once above the list instead of on each line.
 function pathPanelHtml(){
   if(!pathSent.length) return '';
   return pathSent.map((row, i) => {
     const s = row.sent || {}, courses = s.courses || [];
     const open = pathOpen[row.program_code] !== false;
     const items = courses.map(c => {
-      const held = pathInPlan(c.course_id), item = held ? null : pathItemFor(c.course_id), term = pathTerm(c);
-      return { c, held, item, term };
+      const held = pathInPlan(c.course_id), item = held ? null : pathItemFor(c.course_id);
+      const req = held ? reqItems.find(r => r.item_id === held.item_id) : item;
+      return { c, held, item, req };
     });
     const addable = items.filter(x => !x.held && x.item);
-    const rows = items.map(({ c, held, item, term }) => `<tr>
-        <td class="path-y">Year ${esc(c.year)}</td>
-        <td><span class="path-code">${esc(c.course_id)}</span> ${esc(c.title || '')}</td>
-        <td>${held ? (held.term ? esc(held.term) : '—') : term ? esc(term) : '<span class="path-muted">—</span>'}</td>
-        <td>${held ? esc((reqItems.find(r => r.item_id === held.item_id) || {}).label || '')
-            : item ? esc(item.label) : reqEligReady ? '<span class="path-warn">No matching requirement</span>' : '<span class="path-muted">Checking…</span>'}</td>
-        <td class="path-act">${held ? '<span class="bdg bdg-teal">In your plan</span>'
-            : item ? `<button class="btn-link" onclick="pathAdd(${i},'${esc(c.course_id)}')">Add</button>`
-            : '<span class="path-muted">Ask your advisor</span>'}</td>
-      </tr>`).join('');
+    const labels = new Set(items.map(x => x.req && x.req.label).filter(Boolean));
+    const shared = reqEligReady && labels.size === 1 && items.every(x => x.req) ? [...labels][0] : null;
+    const line = ({ c, held, item, req }) => {
+      const t = held ? (held.term || '') : pathTermOf(c);
+      const reqNote = shared ? ''
+        : req ? `<span class="path-req">Counts toward ${esc(req.label)}</span>`
+        : `<span class="path-req">${reqEligReady ? '<span class="path-warn">No matching requirement</span>' : 'Checking…'}</span>`;
+      return `<div class="path-row">
+          <div class="path-c"><span class="path-code">${esc(c.course_id)}</span><span class="path-t">${esc(c.title || '')}</span>${reqNote}</div>
+          <div class="path-term">${t ? esc(t) + (!held && pathPast(t) ? '<span class="path-past"> · passed</span>' : '') : '<span class="path-muted">No term set</span>'}</div>
+          <div class="path-act">${held ? '<span class="bdg bdg-teal">✓ In your plan</span>'
+            : item ? `<button class="path-add" onclick="pathAdd(${i},'${esc(c.course_id)}')">+ Add</button>`
+            : '<span class="path-muted">Ask your advisor</span>'}</div>
+        </div>`;
+    };
+    const years = [...new Set(items.map(x => x.c.year))].sort((a, b) => a - b);
+    const list = years.map(y => `<div class="path-yr"><b>Year ${esc(y)}</b>${pathYearSpan(y) ? `<span>${pathYearSpan(y)}${pathYearPast(y) ? ' · past' : ''}</span>` : ''}</div>`
+      + items.filter(x => x.c.year === y).map(line).join('')).join('');
     const roles = (s.roles || []).map(r => r.name).join(', ');
     return `<div class="card path-card" id="${i ? '' : 'path-panel'}">
       <div class="card-hd blue-bg">
@@ -3360,12 +3394,9 @@ function pathPanelHtml(){
       </div>
       ${open ? `<div class="card-body">
         ${roles ? `<div class="path-roles">Roles you are aiming at: <b>${esc(roles)}</b></div>` : ''}
-        <div class="path-intro">Suggested terms follow the year you put each course in on TaeSylla. Add the ones you want in your
-          plan, or go over them with your advisor first.</div>
-        <div class="req-wrap"><table class="req-tbl path-tbl">
-          <colgroup><col style="width:72px;"><col><col style="width:128px;"><col style="width:170px;"><col style="width:120px;"></colgroup>
-          <thead><tr><th class="l">Year</th><th class="l">Course</th><th class="l">Suggested term</th><th class="l">Counts toward</th><th></th></tr></thead>
-          <tbody>${rows}</tbody></table></div>
+        <div class="path-intro">Terms follow the year you put each course in on TaeSylla${shared ? `, and every course counts toward <b>${esc(shared)}</b>` : ''}.
+          Add the ones you want in your plan, or go over them with your advisor first.</div>
+        <div class="path-list">${list}</div>
         <div class="path-btns">
           ${addable.length ? `<button class="btn-teal" onclick="pathAdd(${i})">Add ${addable.length === 1 ? 'it' : `all ${addable.length}`} to my plan</button>` : ''}
           <button class="btn-teal path-sec" onclick="pathDiscuss(${i})">Request a meeting with my advisor</button>
