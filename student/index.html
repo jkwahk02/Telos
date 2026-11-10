@@ -4274,22 +4274,28 @@ const pendingHtml = pending.length ? `
         const slots=m.proposed_slots?(typeof m.proposed_slots==='string'?JSON.parse(m.proposed_slots):m.proposed_slots):[];
         const isAdvProposed=m.created_by==='advisor';
 
-        const mySlotHtml=slots.length?slots.map(sl=>`
+        // A student-proposed slot already holds both clocks: start/end/dateStr are the
+        // student's own time, facStart/facEnd/facDateStr the advisor's. Reading start
+        // as advisor time converted it a second time and swapped the two lines.
+        const mySlotHtml=slots.length?slots.map(sl=>{
+          const facTzM=getFacTz(m.faculty_email);
+          const f=studentSlotFacTime(sl,facTzM);
+          return `
           <div style="display:flex;align-items:center;gap:10px;padding:7px 11px;border:1px solid var(--blue-b);border-radius:var(--r);background:var(--blue-l);margin-bottom:5px;">
             <div style="width:5px;height:5px;border-radius:50%;background:var(--blue);flex-shrink:0;"></div>
             <div style="flex:1;">
               <div class="spop-tz" style="text-align:left;">
                 <div class="spop-tz-line" style="justify-content:flex-start;font-size:12px;font-weight:500;color:#0C447C;">
                   <span class="tz-pill">${tzAbbr(STUDENT_TIMEZONE)||'local'}</span>
-                  ${esc(sl.dateLabel||sl.dateStr)} · ${convertTime(sl.start,getFacTz(m.faculty_email),STUDENT_TIMEZONE)||sl.start}–${convertTime(sl.end,getFacTz(m.faculty_email),STUDENT_TIMEZONE)||sl.end}
+                  ${esc(sl.dateStr?formatShortDate(sl.dateStr):(sl.dateLabel||''))} · ${esc(sl.start)}–${esc(sl.end)}
                 </div>
-                <div class="spop-tz-line" style="justify-content:flex-start;">
-                  <span class="tz-pill">${tzAbbr(getFacTz(m.faculty_email))}</span>
-                  ${esc(sl.dateLabel||sl.dateStr)} · ${esc(sl.start)}–${esc(sl.end)}
-                </div>
+                ${facTzM&&facTzM!==STUDENT_TIMEZONE?`<div class="spop-tz-line" style="justify-content:flex-start;">
+                  <span class="tz-pill">${tzAbbr(facTzM)}</span>
+                  ${esc(f.date?formatShortDate(f.date):'')} · ${esc(f.start)}–${esc(f.end)}
+                </div>`:''}
               </div>
             </div>
-          </div>`).join('')
+          </div>`;}).join('')
           :'<div style="font-size:13px;color:var(--text3);font-style:italic;">No slots proposed</div>';
 
         const facTz=getFacTz(m.faculty_email);
@@ -4648,6 +4654,15 @@ function convertDateTime(dateStr, timeStr, fromTz, toTz) {
     const convertedDate = utcDate.toLocaleDateString('en-CA', { timeZone: toTz });
     return { date: convertedDate, time: convertedTime };
   } catch { return { date: dateStr, time: timeStr }; }
+}
+
+// The advisor's side of a student-proposed slot. Slots saved before facStart
+// existed carry only the student's time, so convert those from the student's zone.
+function studentSlotFacTime(sl, facTz) {
+  if (sl.facStart) return { date: sl.facDateStr || sl.dateStr, start: sl.facStart, end: sl.facEnd || sl.end };
+  const s = convertDateTime(sl.dateStr, sl.start, STUDENT_TIMEZONE, facTz);
+  const e = convertDateTime(sl.dateStr, sl.end, STUDENT_TIMEZONE, facTz);
+  return { date: s.date || sl.dateStr, start: s.time || sl.start, end: e.time || sl.end };
 }
 
 function formatShortDate(dateStr) {
@@ -5556,7 +5571,12 @@ function requestMailto(m){
     '',
     released ? 'New times I can do:' : 'Times I proposed:',
     ...(slots.length
-      ? slots.map(sl => `  · ${sl.dateLabel || sl.dateStr} ${sl.start}-${sl.end}`)
+      ? slots.map(sl => {
+          // Written in the advisor's own time, which is what they will read it in.
+          const facTzM = getFacTz(m.faculty_email);
+          const f = studentSlotFacTime(sl, facTzM);
+          return `  · ${f.date ? formatShortDate(f.date) : (sl.dateLabel || '')} ${f.start}-${f.end}${facTzM ? ` (${tzAbbr(facTzM)})` : ''}`;
+        })
       : ['  · (none listed)']),
     '',
     ...(m.student_agenda ? ['What I would like to discuss:', m.student_agenda, ''] : []),
